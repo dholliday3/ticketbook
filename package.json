@@ -1,0 +1,20 @@
+{
+  "name": "ticketbook",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "bin": {
+    "ticketbook": "bin/ticketbook.ts"
+  },
+  "scripts": {
+    "typecheck": "bash scripts/typecheck.sh",
+    "lint": "bunx eslint packages/core/src packages/server/src",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "typescript": "^5.8.3"
+  }
+}

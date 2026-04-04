@@ -1,0 +1,14 @@
+{
+  "id": "fb9d8cf3-86d5-498d-a21d-1265da263005",
+  "status": "completed",
+  "startedAt": "2026-04-03T22:19:39.050Z",
+  "updatedAt": "2026-04-03T22:19:53.241Z",
+  "agentPlugin": "claude",
+  "trackerPlugin": "json",
+  "currentIteration": 0,
+  "maxIterations": 25,
+  "totalTasks": 0,
+  "tasksCompleted": 0,
+  "cwd": "/Users/danielholliday/workspace/projects/ticketbook",
+  "endedAt": "2026-04-03T22:19:53.241Z"
+}

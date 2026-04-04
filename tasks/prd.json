@@ -1,0 +1,595 @@
+{
+  "name": "Ticketbook — Git-Backed Ticket Manager",
+  "branchName": "feature/ticketbook",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Core Schema, Types, and Config",
+      "description": "As a developer, I want validated Zod schemas and TypeScript types for tickets and config so that all modules share a single source of truth for the data format.",
+      "acceptanceCriteria": [
+        "packages/core/src/schema.ts defines Zod schemas for ticket frontmatter (required: id, title, status, created, updated; optional: priority, order, tags, project, epic, sprint)",
+        "Status enum: backlog | open | in-progress | done | cancelled",
+        "Priority enum: low | medium | high | urgent",
+        "order is an optional float",
+        "Tags are validated as an array of lowercase strings",
+        "Config schema for .config.yaml with prefix (default TKT) and deleteMode (default archive)",
+        "packages/core/src/types.ts exports Ticket, CreateTicketInput, TicketPatch, TicketFilters, TicketbookConfig",
+        "packages/core/src/config.ts reads/writes .tickets/.config.yaml with defaults when file is missing"
+      ],
+      "priority": 1,
+      "labels": [
+        "core",
+        "schema"
+      ],
+      "passes": true,
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Core Reader Module",
+      "description": "As a developer, I want to scan the .tickets/ directory and get a typed, filtered, searchable list of tickets so that all downstream consumers (server, UI, MCP) share the same read logic.",
+      "acceptanceCriteria": [
+        "packages/core/src/reader.ts implements listTickets(dir, filters?) — scans .tickets/, parses each .md file with gray-matter, validates with Zod, returns Ticket[]",
+        "getTicket(dir, id) returns a single ticket by ID or null",
+        "searchTickets(dir, query) does full-text search across title and body",
+        "TicketFilters supports: status, priority, project, epic, sprint, tags, and search",
+        "Ignores non-.md files, the .counter file, .config.yaml, and the .archive/ directory",
+        "getProjects(), getEpics(), getSprints(), getTags() derive available values by scanning existing tickets"
+      ],
+      "priority": 1,
+      "labels": [
+        "core",
+        "reader"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-003",
+      "title": "Core Writer Module",
+      "description": "As a developer, I want to create, update, delete, archive, and restore tickets as files so that all mutations go through a single validated code path.",
+      "acceptanceCriteria": [
+        "packages/core/src/writer.ts implements createTicket(dir, input) — generates ID, creates file with correct filename pattern ({ID}-{slug}.md), sets created and updated timestamps",
+        "updateTicket(dir, id, patch) updates frontmatter fields and/or body, refreshes updated timestamp",
+        "deleteTicket(dir, id) archives (moves to .tickets/.archive/) or hard-deletes per config deleteMode",
+        "restoreTicket(dir, id) moves a ticket from .tickets/.archive/ back to .tickets/",
+        "toggleSubtask(dir, id, taskIndex) toggles a checkbox by 0-based index in the body",
+        "addSubtask(dir, id, text) appends a checkbox item to the ## Tasks section (creates the section if missing)",
+        "Optional frontmatter fields are omitted entirely from the file when not set (no priority: null)",
+        "Tags are normalized on write (trimmed, lowercased, deduplicated)"
+      ],
+      "priority": 1,
+      "labels": [
+        "core",
+        "writer"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-001",
+        "US-004"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-004",
+      "title": "Core ID Generation",
+      "description": "As a developer, I want atomic ticket ID generation with configurable prefix so that IDs are unique, stable, and repo-customizable.",
+      "acceptanceCriteria": [
+        "packages/core/src/id.ts reads .tickets/.counter for the next number, increments it atomically",
+        "Generates IDs like TKT-001 (3-digit zero-padded, grows naturally past 999)",
+        "Respects configurable prefix from .config.yaml",
+        "Slugifies title: lowercase, alphanumeric + hyphens only, max 50 chars, truncated at word boundaries",
+        "Produces filenames like TKT-042-add-ticket-search.md"
+      ],
+      "priority": 1,
+      "labels": [
+        "core",
+        "id"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-005",
+      "title": "Core Ordering Module",
+      "description": "As a developer, I want midpoint-based ordering and automatic rebalancing so that drag-and-drop reordering works reliably without running out of precision.",
+      "acceptanceCriteria": [
+        "packages/core/src/order.ts implements reorderTicket(dir, id, afterId, beforeId) — calculates midpoint order value between neighbors",
+        "rebalanceOrder(dir, status) normalizes order values to clean integers when gaps get too small",
+        "Rebalance triggers automatically when a midpoint would require more than 10 decimal places",
+        "Tickets without an explicit order sort after ordered tickets, falling back to priority then updated date"
+      ],
+      "priority": 2,
+      "labels": [
+        "core",
+        "ordering"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-006",
+      "title": "REST API Server",
+      "description": "As a developer, I want a Bun HTTP server exposing all core functions as REST endpoints so that the UI has a clean API to consume.",
+      "acceptanceCriteria": [
+        "packages/server/src/index.ts starts Bun.serve() with route matching",
+        "packages/server/src/api.ts implements all REST routes: GET /api/tickets, GET /api/tickets/:id, POST /api/tickets, PATCH /api/tickets/:id, PATCH /api/tickets/:id/body, DELETE /api/tickets/:id, POST /api/tickets/:id/restore, PATCH /api/tickets/:id/reorder, PATCH /api/tickets/:id/subtask, GET /api/meta, GET /api/config, PATCH /api/config",
+        "All routes call the core library — no state duplication",
+        "CORS middleware allows localhost origins",
+        "Server serves the built UI as static files from the same process",
+        "Proper error responses (400 for validation errors, 404 for missing tickets)"
+      ],
+      "priority": 1,
+      "labels": [
+        "server",
+        "api"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-007",
+      "title": "SSE Live Updates",
+      "description": "As a developer, I want the server to push real-time events when ticket files change on disk so that the UI stays current when tickets are edited outside the UI.",
+      "acceptanceCriteria": [
+        "packages/server/src/watcher.ts uses fs.watch on the .tickets/ directory",
+        "GET /api/events SSE endpoint pushes events to all connected clients",
+        "Events include ticket ID and change type (created, updated, deleted)",
+        "Rapid file changes are debounced (100ms window) to avoid hammering on bulk operations",
+        "UI reconnects automatically if the SSE connection drops"
+      ],
+      "priority": 2,
+      "labels": [
+        "server",
+        "sse"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-006"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-008",
+      "title": "Basic UI — Ticket List Panel",
+      "description": "As a user, I want a scrollable ticket list grouped by status so that I can assess project state at a glance.",
+      "acceptanceCriteria": [
+        "Left panel (~300px) displays tickets grouped by status in order: In Progress, Open, Backlog, Done, Cancelled",
+        "Each group has a collapsible header with status name and ticket count",
+        "Each ticket row shows: title (bold), ID (muted), priority indicator, tags (small chips), relative timestamp",
+        "Sorting within groups: by order first, then priority (urgent first), then updated date (newest first)",
+        "Clicking a ticket row selects it and opens it in the detail panel",
+        "Active ticket row is visually highlighted",
+        "SSE events trigger automatic list refresh"
+      ],
+      "priority": 1,
+      "labels": [
+        "ui",
+        "list"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-006",
+        "US-007"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-009",
+      "title": "Basic UI — Ticket Detail Panel",
+      "description": "As a user, I want to view and edit a ticket's metadata and body inline so that updating a ticket feels like editing a document, not filling out a form.",
+      "acceptanceCriteria": [
+        "Right panel shows full ticket detail when a ticket is selected",
+        "Title is large and editable inline — click to edit, blur or Enter to save",
+        "Metadata row with editable dropdown chips: status, priority, project, epic, sprint, tags",
+        "Status and priority are select-from-list; project/epic/sprint are comboboxes; tags are a tag input",
+        "Plain textarea for body (tiptap comes later)",
+        "Changes to metadata save immediately via API",
+        "When no ticket is selected, shows an empty state with keyboard shortcut hints"
+      ],
+      "priority": 1,
+      "labels": [
+        "ui",
+        "detail"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-006",
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-010",
+      "title": "Basic UI — Create and Delete Tickets",
+      "description": "As a user, I want to create new tickets quickly and delete tickets with confirmation so that ticket management is fast and safe.",
+      "acceptanceCriteria": [
+        "+ button in header and Cmd+N shortcut open a new ticket in the detail panel",
+        "New ticket has: title focused and empty, status defaulted to open, all other fields empty",
+        "Ticket file is created on disk when the user types a title and blurs/presses Enter (no empty files)",
+        "Delete button with confirmation dialog shows Archive or Delete based on config deleteMode",
+        "Search input in header with debounced filtering (200ms) across title and body content"
+      ],
+      "priority": 1,
+      "labels": [
+        "ui",
+        "crud"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-008",
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-011",
+      "title": "CLI Entry Point",
+      "description": "As a developer, I want a ticketbook CLI command that starts the server and opens the UI so that launching is a single command from any directory in a repo.",
+      "acceptanceCriteria": [
+        "bin/ticketbook.ts is the CLI entry point, runnable via bunx ticketbook",
+        "Discovers .tickets/ by walking up from cwd (like git finds .git/), or via --dir flag or positional path argument",
+        "ticketbook init scaffolds .tickets/ directory with .config.yaml, .counter (set to 1), and adds .tickets/.archive/ to .gitignore",
+        "--port flag (default: auto-assigned) and --no-ui flag (server only, for API/MCP use)",
+        "--mcp flag starts MCP server mode (stdio transport, no HTTP)",
+        "If no .tickets/ found, offers to run ticketbook init"
+      ],
+      "priority": 2,
+      "labels": [
+        "cli"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-006"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-012",
+      "title": "Tiptap Rich Text Editor",
+      "description": "As a user, I want a rich markdown editor with interactive checkboxes so that editing ticket bodies feels polished and task lists are clickable.",
+      "acceptanceCriteria": [
+        "Replace the plain textarea with a tiptap editor in the ticket detail panel",
+        "Extensions installed: StarterKit, TaskList, TaskItem, Link, CodeBlock (with lowlight/shiki syntax highlighting), Placeholder, Markdown",
+        "Markdown round-trip: loads markdown to prosemirror on open, serializes prosemirror to markdown on save",
+        "Interactive checkboxes toggle on click and update the file via API",
+        "Placeholder text when body is empty: Add context, tasks, notes...",
+        "No formatting toolbar — uses slash commands and keyboard shortcuts (Cmd+B, etc.)"
+      ],
+      "priority": 2,
+      "labels": [
+        "ui",
+        "editor"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-013",
+      "title": "Tiptap Slash Commands and Auto-Save",
+      "description": "As a user, I want slash commands for block types and auto-save so that I can write without reaching for a toolbar or save button.",
+      "acceptanceCriteria": [
+        "Typing / opens a command menu with options: heading, checklist, code block, quote",
+        "Selecting a command inserts the corresponding block type",
+        "Auto-save triggers 500ms after the user stops typing (debounced)",
+        "A subtle Saving.../Saved indicator appears near the title",
+        "No manual save button needed"
+      ],
+      "priority": 2,
+      "labels": [
+        "ui",
+        "editor"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-012"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-014",
+      "title": "List View Drag-and-Drop Reordering",
+      "description": "As a user, I want to drag tickets within a status group to reorder them so that I can manually prioritize my work.",
+      "acceptanceCriteria": [
+        "@dnd-kit/core, @dnd-kit/sortable, and @dnd-kit/utilities installed",
+        "A drag handle (grip icon) appears on hover at the left edge of each ticket row",
+        "Dragging a ticket within its status group reorders it — a thin drop indicator line shows the target position",
+        "On drop, the ticket's order is updated via PATCH /api/tickets/:id/reorder",
+        "Optimistic UI update (instant visual feedback, rolls back on API error)",
+        "Keyboard DnD: Space to pick up, arrow keys to move, Space to drop",
+        "Dragging between status groups in list view is not supported"
+      ],
+      "priority": 2,
+      "labels": [
+        "ui",
+        "dnd"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-005",
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-015",
+      "title": "MCP Server with Tools",
+      "description": "As an AI agent, I want MCP tools for full ticket CRUD so that I can read, create, and update tickets natively from Claude Code.",
+      "acceptanceCriteria": [
+        "packages/server/src/mcp.ts registers all MCP tools with Zod schemas: list_tickets, get_ticket, create_ticket, update_ticket, delete_ticket, complete_subtask, add_subtask, reorder_ticket",
+        "Uses @modelcontextprotocol/sdk with stdio transport",
+        "list_tickets supports optional filters (status, project, sprint, epic, priority, tags) and returns compact summaries",
+        "get_ticket returns full ticket details including body",
+        "complete_subtask marks a subtask as done by index or text match",
+        "All tools call the core library directly"
+      ],
+      "priority": 2,
+      "labels": [
+        "mcp",
+        "server"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-016",
+      "title": "MCP Resources and Prompt Templates",
+      "description": "As an AI agent, I want a ticket list resource and a ticket-context prompt so that I can efficiently scan all tickets and kick off work on a specific ticket.",
+      "acceptanceCriteria": [
+        "Resource tickets://list returns the full ticket list (compact format)",
+        "Prompt template ticket-context takes a ticket ID and returns formatted prompt with ticket details, subtasks, and related context",
+        "README includes Claude Code MCP config instructions with example JSON (bunx ticketbook --mcp command, cwd pointing to the repo)"
+      ],
+      "priority": 3,
+      "labels": [
+        "mcp"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-015"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-017",
+      "title": "Kanban Board Layout",
+      "description": "As a user, I want a horizontal kanban board with one column per status so that I can visualize work across all stages.",
+      "acceptanceCriteria": [
+        "Board view renders columns in order: Backlog, Open, In Progress, Done, Cancelled",
+        "Each column has a header with status name and ticket count",
+        "Compact ticket cards show: title (bold), ID (muted), priority dot, tags",
+        "Each column scrolls vertically independently when tickets overflow",
+        "Done and Cancelled columns can be collapsed to a narrow strip with rotated label and count"
+      ],
+      "priority": 2,
+      "labels": [
+        "ui",
+        "kanban"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-006",
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-018",
+      "title": "Kanban Board Drag-and-Drop",
+      "description": "As a user, I want to drag tickets between kanban columns to change status and within columns to reorder so that I can manage workflow visually.",
+      "acceptanceCriteria": [
+        "Reorder within a column: dragging a card up/down updates its order value",
+        "Move between columns: dragging a card to a different column updates both status and order in a single operation",
+        "Drop indicator line between cards at the target position",
+        "Target column gets a subtle highlight border on drag-over",
+        "Optimistic UI updates with rollback on API error",
+        "Keyboard DnD: cards are focusable, Space picks up, arrow keys move, Space drops"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "kanban",
+        "dnd"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-005",
+        "US-014",
+        "US-017"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-019",
+      "title": "Kanban Detail Slide-Over",
+      "description": "As a user, I want clicking a kanban card to open the ticket detail in a slide-over panel so that I can view and edit without leaving the board context.",
+      "acceptanceCriteria": [
+        "Clicking (not dragging) a card opens a detail panel sliding in from the right (~60% board width)",
+        "Panel content is the same as the list view detail panel (editable title, metadata, tiptap editor)",
+        "Click outside the panel or press Escape to close it",
+        "Board remains visible and scrollable behind the overlay"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "kanban"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-009",
+        "US-017"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-020",
+      "title": "View Toggle (List / Board)",
+      "description": "As a user, I want to switch between list and board views so that I can use whichever layout suits my current task.",
+      "acceptanceCriteria": [
+        "Segmented control in the header bar: List | Board",
+        "View selection persists in localStorage across sessions",
+        "Both views share the same header bar (filters, search, new ticket button)",
+        "Active filters and search query apply to both views"
+      ],
+      "priority": 2,
+      "labels": [
+        "ui"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-008",
+        "US-017"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-021",
+      "title": "Keyboard Shortcut System",
+      "description": "As a power user, I want keyboard shortcuts for common actions so that I can navigate and manage tickets without touching the mouse.",
+      "acceptanceCriteria": [
+        "Cmd+N creates a new ticket",
+        "Cmd+K focuses the search input",
+        "Cmd+Shift+L switches to list view; Cmd+Shift+B switches to board view",
+        "Up/Down navigate the ticket list",
+        "Enter opens the selected ticket (focuses body editor)",
+        "Escape returns to list / closes detail slide-over",
+        "Cmd+Backspace deletes (archives) ticket with confirmation",
+        "1-4 set priority when a ticket is selected and the editor is not focused"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "keyboard"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-008",
+        "US-009",
+        "US-010"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-022",
+      "title": "Filter Chips and Search Polish",
+      "description": "As a user, I want multi-select filter dropdowns in the header so that I can quickly narrow down tickets by status, project, epic, or sprint.",
+      "acceptanceCriteria": [
+        "Dropdown chips in header for: Status, Project, Epic, Sprint",
+        "Each chip opens a multi-select dropdown; active filters show as filled chips",
+        "Clicking a chip toggles/opens its dropdown",
+        "Search input shows result count",
+        "Filters and search compose (e.g., filter by project AND search by keyword)"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "filters"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-008",
+        "US-010"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-023",
+      "title": "Visual Polish — Priority, Tags, Transitions",
+      "description": "As a user, I want polished visual indicators and smooth micro-interactions so that the UI feels responsive and professional.",
+      "acceptanceCriteria": [
+        "Priority dot indicators with color coding: urgent=red, high=orange, medium=yellow, low=gray, none=no dot",
+        "Tag chips with add/remove interaction on ticket detail",
+        "Combobox for project/epic/sprint supports type-to-create (select existing or type a new value)",
+        "Subtle transitions on hover and status changes (150ms ease)",
+        "Status bar at bottom showing ticket count, open count, in-progress count"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "polish"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-008",
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-024",
+      "title": "Responsive Layout and Empty States",
+      "description": "As a user, I want the UI to degrade gracefully on narrow screens and show helpful empty states so that the experience is never broken or confusing.",
+      "acceptanceCriteria": [
+        "Below 768px, layout switches to single-panel: list or detail, with a back button to return to the list",
+        "Empty state for no tickets: shows a welcome message and create shortcut hint",
+        "Empty state for no search results: shows No tickets match message",
+        "Empty state for no ticket selected: shows shortcut hints in the detail panel",
+        "Done and Cancelled groups in list view are collapsed by default"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "responsive"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-008",
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-025",
+      "title": "Settings Panel",
+      "description": "As a user, I want a settings panel to configure the ticket ID prefix and delete behavior so that I can customize Ticketbook per repo without editing YAML files.",
+      "acceptanceCriteria": [
+        "Settings accessible from a gear icon in the header bar",
+        "Allows editing prefix (ticket ID prefix, e.g., TKT, ART)",
+        "Allows toggling deleteMode between archive and hard",
+        "Changes save to .tickets/.config.yaml via PATCH /api/config",
+        "Settings panel can be a dialog or slide-over"
+      ],
+      "priority": 3,
+      "labels": [
+        "ui",
+        "settings"
+      ],
+      "passes": true,
+      "dependsOn": [
+        "US-006"
+      ],
+      "completionNotes": "Completed by agent"
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-04-03T18:06:11.670Z"
+  }
+}
