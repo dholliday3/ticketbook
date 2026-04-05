@@ -66,7 +66,7 @@ export function Terminal({ sessionId, isVisible }: TerminalProps) {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === "output") {
+        if (msg.type === "output" || msg.type === "replay") {
           term.write(msg.data);
         }
       } catch {

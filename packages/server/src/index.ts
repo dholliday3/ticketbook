@@ -2,7 +2,8 @@ import { resolve, join } from "node:path";
 import { stat } from "node:fs/promises";
 import { createRoutes, matchRoute, handleError, broadcastEvent } from "./api.js";
 import { createWatcher } from "./watcher.js";
-import { createPtySession, writeToPty, resizePty, destroyPtySession, destroyAllSessions } from "./terminal.js";
+import { createPtySession, getSession, getAliveSessions, writeToPty, resizePty, detachPtySession, reattachPtySession, destroyPtySession, destroyAllSessions, setDataDir } from "./terminal.js";
+import { listTerminalTabs, upsertTerminalTab, deleteTerminalTab } from "./db.js";
 
 export interface ServerConfig {
   ticketsDir: string;
@@ -37,6 +38,9 @@ function addCors(response: Response, origin: string | null): Response {
 export function startServer(config: ServerConfig): ServerHandle {
   const { ticketsDir, port, staticDir } = config;
   const routes = createRoutes(ticketsDir);
+
+  // Initialize terminal data dir (SQLite db lives alongside .tickets)
+  setDataDir(ticketsDir);
 
   async function tryServeStatic(pathname: string): Promise<Response | null> {
     if (!staticDir) return null;
@@ -82,6 +86,30 @@ export function startServer(config: ServerConfig): ServerHandle {
 
       const url = new URL(req.url);
 
+      // Terminal tab management
+      if (url.pathname === "/api/terminal/sessions") {
+        if (req.method === "GET") {
+          // Return persisted tabs with alive status from in-memory PTY state
+          const tabs = listTerminalTabs(ticketsDir);
+          const aliveSet = new Set(getAliveSessions());
+          const sessions = tabs.map((t) => ({ id: t.id, title: t.title, sortOrder: t.sort_order, alive: aliveSet.has(t.id) }));
+          return addCors(new Response(JSON.stringify({ sessions }), { headers: { "Content-Type": "application/json" } }), origin);
+        }
+        if (req.method === "POST") {
+          // Create a new tab entry (PTY is created on WS connect)
+          const body = await req.json() as { id?: string; title?: string; sortOrder?: number };
+          if (!body.id || !body.title) return addCors(new Response(JSON.stringify({ error: "id and title required" }), { status: 400, headers: { "Content-Type": "application/json" } }), origin);
+          upsertTerminalTab(ticketsDir, body.id, body.title, body.sortOrder ?? 0);
+          return addCors(new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }), origin);
+        }
+        if (req.method === "DELETE") {
+          const body = await req.json() as { id?: string };
+          if (!body.id) return addCors(new Response(JSON.stringify({ error: "id required" }), { status: 400, headers: { "Content-Type": "application/json" } }), origin);
+          destroyPtySession(body.id);
+          return addCors(new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }), origin);
+        }
+      }
+
       // WebSocket upgrade for terminal
       const termMatch = url.pathname.match(/^\/api\/terminal\/(.+)$/);
       if (termMatch && req.headers.get("upgrade")?.toLowerCase() === "websocket") {
@@ -121,7 +149,17 @@ export function startServer(config: ServerConfig): ServerHandle {
     websocket: {
       open(ws) {
         const { sessionId, ticketsDir: cwd } = ws.data;
-        const session = createPtySession(sessionId, resolve(cwd, ".."));
+
+        // Try to reattach to an existing session first
+        const replay = reattachPtySession(sessionId);
+        let session = getSession(sessionId);
+
+        if (!session?.alive) {
+          // No existing session — create new
+          session = createPtySession(sessionId, resolve(cwd, ".."));
+        }
+
+        // Wire up data/exit callbacks to this WebSocket
         session.onData = (data: string) => {
           try {
             ws.send(JSON.stringify({ type: "output", data }));
@@ -132,6 +170,11 @@ export function startServer(config: ServerConfig): ServerHandle {
         session.onExit = () => {
           try { ws.close(); } catch { /* already closed */ }
         };
+
+        // Send scrollback replay if reconnecting
+        if (replay) {
+          ws.send(JSON.stringify({ type: "replay", data: replay }));
+        }
       },
       message(ws, message) {
         const { sessionId } = ws.data;
@@ -148,7 +191,8 @@ export function startServer(config: ServerConfig): ServerHandle {
       },
       close(ws) {
         const { sessionId } = ws.data;
-        destroyPtySession(sessionId);
+        // Don't destroy — start grace timer for reconnection
+        detachPtySession(sessionId);
       },
     },
   });
