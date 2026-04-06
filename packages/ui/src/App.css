@@ -2540,7 +2540,7 @@ kbd {
   }
 }
 
-/* Terminal pane */
+/* Right rail (terminal + assistant share this collapsible pane) */
 .main-with-terminal {
   display: flex;
   flex: 1;
@@ -2556,7 +2556,7 @@ kbd {
   overflow: hidden;
 }
 
-.terminal-drag-handle {
+.right-rail-drag-handle {
   width: 4px;
   cursor: col-resize;
   background: var(--border);
@@ -2565,38 +2565,113 @@ kbd {
   z-index: 5;
 }
 
-.terminal-drag-handle:hover,
-.terminal-drag-handle:active {
+.right-rail-drag-handle:hover,
+.right-rail-drag-handle:active {
   background: var(--accent);
 }
 
-.terminal-side {
+.right-rail-side {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  min-width: 200px;
+  min-width: 240px;
   background: #1a1a2e;
   border-left: 1px solid var(--border);
   overflow: hidden;
 }
 
-.terminal-collapsed-bar {
+/* Stacked button bar — always visible on the far right edge so the user can
+   toggle between terminal and assistant. Active button is highlighted. */
+.right-rail-collapsed-bar {
   width: 32px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.right-rail-btn {
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-left: 1px solid var(--border);
-  background: var(--bg-panel);
+  background: transparent;
   color: var(--text-dim);
   cursor: pointer;
   transition: color 150ms ease, background 150ms ease;
 }
 
-.terminal-collapsed-bar:hover {
+.right-rail-btn:hover {
   color: var(--accent);
   background: var(--bg-hover);
+}
+
+.right-rail-btn-active {
+  color: var(--accent);
+  background: var(--bg-hover);
+}
+
+/* Copilot panel (placeholder until ai-elements lands in Phase 4) */
+.copilot-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  color: var(--text);
+}
+
+.copilot-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #151528;
+  flex-shrink: 0;
+}
+
+.copilot-pane-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.copilot-pane-close {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.copilot-pane-close:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.copilot-pane-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.copilot-pane-empty,
+.copilot-pane-error {
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.copilot-pane-error {
+  color: #ff6b6b;
 }
 
 .terminal-pane {

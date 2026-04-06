@@ -86,11 +86,16 @@ interface AppContextValue {
   isMobile: boolean;
   mobileShowDetail: boolean;
 
-  // Terminal
+  // Right rail: terminal + assistant share the same collapsible pane.
+  // Mutually exclusive — opening one closes the other.
   terminalOpen: boolean;
-  terminalWidth: number;
+  assistantOpen: boolean;
+  rightRailWidth: number;
   handleToggleTerminal: () => void;
-  handleTerminalDragStart: (e: React.MouseEvent) => void;
+  handleToggleAssistant: () => void;
+  handleRightRailDragStart: (e: React.MouseEvent) => void;
+  /** True iff either right-rail panel is currently expanded. */
+  rightRailOpen: boolean;
 
   // Handlers
   handleSelect: (ticket: Ticket) => void;
@@ -155,13 +160,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
-  // Terminal
-  const [terminalOpen, setTerminalOpen] = useState(
-    () => localStorage.getItem("ticketbook-terminal-open") === "true",
-  );
-  const [terminalWidth, setTerminalWidth] = useState(
-    () => parseInt(localStorage.getItem("ticketbook-terminal-width") || "400", 10),
-  );
+  // Right rail: terminal + assistant share the same collapsible pane and
+  // are mutually exclusive. We persist which one is open (or neither) and
+  // the shared pane width across reloads. The legacy `ticketbook-terminal-*`
+  // keys are read here for backwards-compat — `ticketbook-right-rail-*`
+  // takes over going forward.
+  const initialRightRail = (() => {
+    const explicit = localStorage.getItem("ticketbook-right-rail");
+    if (explicit === "terminal" || explicit === "assistant" || explicit === "closed") {
+      return explicit;
+    }
+    // Migrate from the legacy single-button "terminal-open" flag.
+    return localStorage.getItem("ticketbook-terminal-open") === "true" ? "terminal" : "closed";
+  })();
+  const [terminalOpen, setTerminalOpen] = useState(initialRightRail === "terminal");
+  const [assistantOpen, setAssistantOpen] = useState(initialRightRail === "assistant");
+  const [rightRailWidth, setRightRailWidth] = useState(() => {
+    const explicit = localStorage.getItem("ticketbook-right-rail-width");
+    if (explicit) return parseInt(explicit, 10);
+    return parseInt(localStorage.getItem("ticketbook-terminal-width") || "400", 10);
+  });
   const isDraggingRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -459,39 +477,63 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsCreating(false);
   }, []);
 
+  // Persist which right-rail panel is currently open. Mutually exclusive —
+  // opening one closes the other. "closed" means neither is open.
+  const persistRightRail = useCallback((mode: "terminal" | "assistant" | "closed") => {
+    localStorage.setItem("ticketbook-right-rail", mode);
+  }, []);
+
   const handleToggleTerminal = useCallback(() => {
     setTerminalOpen((prev) => {
       const next = !prev;
-      localStorage.setItem("ticketbook-terminal-open", String(next));
+      if (next) {
+        setAssistantOpen(false);
+        persistRightRail("terminal");
+      } else {
+        persistRightRail("closed");
+      }
       return next;
     });
-  }, []);
+  }, [persistRightRail]);
 
-  const handleTerminalDragStart = useCallback(
+  const handleToggleAssistant = useCallback(() => {
+    setAssistantOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setTerminalOpen(false);
+        persistRightRail("assistant");
+      } else {
+        persistRightRail("closed");
+      }
+      return next;
+    });
+  }, [persistRightRail]);
+
+  const handleRightRailDragStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       isDraggingRef.current = true;
       const startX = e.clientX;
-      const startWidth = terminalWidth;
+      const startWidth = rightRailWidth;
 
       const onMove = (ev: MouseEvent) => {
         const delta = startX - ev.clientX;
-        const newWidth = Math.max(200, Math.min(window.innerWidth * 0.7, startWidth + delta));
-        setTerminalWidth(newWidth);
+        const newWidth = Math.max(240, Math.min(window.innerWidth * 0.7, startWidth + delta));
+        setRightRailWidth(newWidth);
       };
       const onUp = () => {
         isDraggingRef.current = false;
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
-        setTerminalWidth((w) => {
-          localStorage.setItem("ticketbook-terminal-width", String(w));
+        setRightRailWidth((w) => {
+          localStorage.setItem("ticketbook-right-rail-width", String(w));
           return w;
         });
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
     },
-    [terminalWidth],
+    [rightRailWidth],
   );
 
   const handleSaveSettings = useCallback(
@@ -529,9 +571,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isMobile,
     mobileShowDetail,
     terminalOpen,
-    terminalWidth,
+    assistantOpen,
+    rightRailOpen: terminalOpen || assistantOpen,
+    rightRailWidth,
     handleToggleTerminal,
-    handleTerminalDragStart,
+    handleToggleAssistant,
+    handleRightRailDragStart,
     handleSelect,
     handleSelectPlan,
     handleNewTicket,
