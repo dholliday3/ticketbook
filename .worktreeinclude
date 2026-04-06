@@ -1,0 +1,19 @@
+# Environment files (root and per-package)
+.env
+.env.local
+.env.*
+packages/server/.env
+packages/server/.env.*
+packages/core/.env
+packages/core/.env.*
+packages/ui/.env
+packages/ui/.env.*
+
+# Bun workspace dependencies
+node_modules/
+**/node_modules/
+
+# Local SQLite database (ticketbook dev DB lives at repo root)
+ticketbook.db
+ticketbook.db-shm
+ticketbook.db-wal

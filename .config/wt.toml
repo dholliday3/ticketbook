@@ -1,0 +1,5 @@
+[post-create]
+# Copy selected gitignored files into new worktrees so they start warm.
+# Keeping this on post-create avoids re-copying large directories like
+# node_modules every time a worktree is started.
+copy = "wt step copy-ignored"
