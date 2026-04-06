@@ -1,11 +1,25 @@
 /**
  * SQLite database for persistent app state.
  * Uses bun:sqlite (built-in, zero-dependency).
- * Tables are created automatically on first use — no migrations needed.
+ *
+ * Single schema definition — modify the SCHEMA below and call resetDb() to rebuild.
+ * PRAGMA user_version tracks the schema version; bump SCHEMA_VERSION to auto-reset.
  */
 
 import { Database } from "bun:sqlite";
 import { resolve } from "node:path";
+
+const SCHEMA_VERSION = 1;
+
+const SCHEMA = `
+  CREATE TABLE terminal_tabs (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    tab_number INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
 
 let db: Database | null = null;
 
@@ -15,28 +29,31 @@ export function getDb(dataDir: string): Database {
   const dbPath = resolve(dataDir, "ticketbook.db");
   db = new Database(dbPath, { create: true });
 
-  // Enable WAL mode for better concurrent read performance
   db.run("PRAGMA journal_mode = WAL");
 
-  // Create tables
-  db.run(`
-    CREATE TABLE IF NOT EXISTS terminal_tabs (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      tab_number INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Migration: add tab_number column if missing (existing databases)
-  try {
-    db.run("ALTER TABLE terminal_tabs ADD COLUMN tab_number INTEGER NOT NULL DEFAULT 0");
-  } catch {
-    // Column already exists
+  const current = (db.query("PRAGMA user_version").get() as { user_version: number }).user_version;
+  if (current !== SCHEMA_VERSION) {
+    dropAll(db);
+    db.run(SCHEMA);
+    db.run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   }
 
   return db;
+}
+
+/** Drop all tables and reset. */
+export function resetDb(dataDir: string): void {
+  const d = getDb(dataDir);
+  dropAll(d);
+  d.run(SCHEMA);
+  d.run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+}
+
+function dropAll(d: Database): void {
+  const tables = d.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[];
+  for (const { name } of tables) {
+    d.run(`DROP TABLE IF EXISTS "${name}"`);
+  }
 }
 
 // --- Terminal tab persistence ---

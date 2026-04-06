@@ -10,7 +10,8 @@
     "dev": "trap 'kill 0' EXIT; bun bin/ticketbook.ts --port 4242 --no-ui & cd packages/ui && bunx vite",
     "typecheck": "bash scripts/typecheck.sh",
     "lint": "bunx eslint packages/core/src packages/server/src",
-    "test": "bun test"
+    "test": "bun test",
+    "db:reset": "bun -e \"import { resetDb } from './packages/server/src/db.ts'; resetDb('.'); console.log('Database reset.');\""
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
