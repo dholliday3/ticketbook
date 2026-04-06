@@ -5,17 +5,27 @@ import { createWatcher } from "./watcher.js";
 import { BunPtyHeadlessBackend, type TerminalSession } from "./terminal/index.js";
 import { listTerminalTabs, upsertTerminalTab, getNextTabNumber, deleteTerminalTab } from "./db.js";
 import { createDebug } from "./debug.js";
+import { CopilotManager, type CopilotMessagePart } from "./copilot/index.js";
 import { getConfig } from "@ticketbook/core";
 import type { ServerMessage } from "@ticketbook/core";
 
 const dbgWs = createDebug("ws");
 const dbgApi = createDebug("api");
+const dbgCop = createDebug("copilot");
 
 export interface ServerConfig {
   ticketsDir: string;
   plansDir: string;
   port: number;
   staticDir?: string;
+  /**
+   * Absolute path to the bin/ticketbook.ts entry script. When set, the
+   * copilot manager generates a per-session MCP config that points the
+   * spawned `claude` CLI back at this same script in --mcp mode, so the
+   * copilot has read/write access to the user's tickets and plans for free.
+   * If omitted, the copilot still works but without ticketbook tool access.
+   */
+  binPath?: string;
 }
 
 export interface ServerHandle {
@@ -47,13 +57,20 @@ function sendMsg(ws: { send(data: string): void }, msg: ServerMessage): void {
 }
 
 export function startServer(config: ServerConfig): ServerHandle {
-  const { ticketsDir, plansDir, port, staticDir } = config;
-  const routes = createRoutes(ticketsDir, plansDir);
+  const { ticketsDir, plansDir, port, staticDir, binPath } = config;
 
   // Terminal session backend (owns PTYs, grace timers, and DB cleanup on destroy)
   const terminalBackend = new BunPtyHeadlessBackend(ticketsDir);
 
-  // Track active WebSocket connections per session for graceful teardown
+  // Copilot session manager — wraps the Claude Code provider, owns per-session
+  // MCP config files. Pass binPath through so the spawned CLI can call back
+  // into ticketbook's own MCP server.
+  const copilot = new CopilotManager({ ticketsDir, binPath });
+
+  const routes = createRoutes(ticketsDir, plansDir, copilot);
+
+  // Track active WebSocket connections per session for graceful teardown.
+  // Used by both terminal and copilot WS bridges.
   const wsConnections = new Map<string, { close(code?: number, reason?: string): void }>();
 
   // Track the per-WS listener dispose functions so close() can clean up cleanly
@@ -99,7 +116,9 @@ export function startServer(config: ServerConfig): ServerHandle {
     return null;
   }
 
-  type WsData = { sessionId: string; ticketsDir: string };
+  type WsData =
+    | { kind: "terminal"; sessionId: string; ticketsDir: string }
+    | { kind: "copilot"; sessionId: string };
 
   const server = Bun.serve<WsData>({
     port,
@@ -164,7 +183,23 @@ export function startServer(config: ServerConfig): ServerHandle {
       const termMatch = url.pathname.match(/^\/api\/terminal\/(.+)$/);
       if (termMatch && req.headers.get("upgrade")?.toLowerCase() === "websocket") {
         const sessionId = decodeURIComponent(termMatch[1]);
-        const success = server.upgrade(req, { data: { sessionId, ticketsDir } });
+        const success = server.upgrade(req, {
+          data: { kind: "terminal", sessionId, ticketsDir } satisfies WsData,
+        });
+        if (success) return undefined as unknown as Response;
+        return new Response("WebSocket upgrade failed", { status: 500 });
+      }
+
+      // WebSocket upgrade for copilot — one-way stream of message parts and
+      // done events for a single copilot session. Client subscribes by
+      // connecting to /api/copilot/<sessionId> right after creating the
+      // session via REST.
+      const copMatch = url.pathname.match(/^\/api\/copilot\/(.+)$/);
+      if (copMatch && req.headers.get("upgrade")?.toLowerCase() === "websocket") {
+        const sessionId = decodeURIComponent(copMatch[1]);
+        const success = server.upgrade(req, {
+          data: { kind: "copilot", sessionId } satisfies WsData,
+        });
         if (success) return undefined as unknown as Response;
         return new Response("WebSocket upgrade failed", { status: 500 });
       }
@@ -199,12 +234,46 @@ export function startServer(config: ServerConfig): ServerHandle {
     websocket: {
       idleTimeout: 0, // disable — terminal sessions can be idle indefinitely
       open(ws) {
-        const { sessionId } = ws.data;
+        const { sessionId, kind } = ws.data;
         // Just track the connection — PTY creation is deferred until "init" handshake
         wsConnections.set(sessionId, ws);
-        dbgWs("open", { sessionId });
+        dbgWs("open", { sessionId, kind });
+
+        // Copilot WS is push-only: subscribe to manager events for this
+        // session and forward them as JSON frames. The client doesn't send
+        // any input on this socket — it uses POST /api/copilot/sessions/:id/messages.
+        if (kind === "copilot") {
+          const dispose = copilot.subscribe({
+            stream: (sid: string, part: CopilotMessagePart, messageId: string) => {
+              if (sid !== sessionId) return;
+              try {
+                ws.send(JSON.stringify({ type: "copilot.stream", sessionId: sid, messageId, part }));
+              } catch {
+                /* socket closed */
+              }
+            },
+            done: (sid: string) => {
+              if (sid !== sessionId) return;
+              try {
+                ws.send(JSON.stringify({ type: "copilot.done", sessionId: sid }));
+              } catch {
+                /* socket closed */
+              }
+            },
+          });
+          const existing = wsDisposers.get(sessionId) ?? [];
+          existing.push(dispose);
+          wsDisposers.set(sessionId, existing);
+          dbgCop("subscribed", { sessionId });
+          // Send a ready frame so the client knows the bridge is live.
+          try { ws.send(JSON.stringify({ type: "ready" })); } catch { /* closed */ }
+        }
       },
       async message(ws, message) {
+        if (ws.data.kind === "copilot") {
+          // Copilot WS is push-only — ignore inbound frames.
+          return;
+        }
         const { sessionId, ticketsDir: cwd } = ws.data;
         try {
           const msg = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
@@ -262,10 +331,11 @@ export function startServer(config: ServerConfig): ServerHandle {
         }
       },
       close(ws, code, reason) {
-        const { sessionId } = ws.data;
-        dbgWs("close", { sessionId, code, reason });
+        const { sessionId, kind } = ws.data;
+        dbgWs("close", { sessionId, kind, code, reason });
         wsConnections.delete(sessionId);
-        // Drop this connection's listeners
+        // Drop this connection's listeners (terminal output forwarders or
+        // copilot stream subscribers, depending on kind).
         const disposers = wsDisposers.get(sessionId);
         if (disposers) {
           for (const d of disposers) {
@@ -273,9 +343,13 @@ export function startServer(config: ServerConfig): ServerHandle {
           }
           wsDisposers.delete(sessionId);
         }
-        // Don't destroy — start grace timer for reconnection
-        const session = terminalBackend.get(sessionId);
-        session?.detach();
+        if (kind === "terminal") {
+          // Don't destroy — start grace timer for reconnection
+          const session = terminalBackend.get(sessionId);
+          session?.detach();
+        }
+        // Copilot sessions are short-lived and explicit — they're stopped via
+        // DELETE /api/copilot/sessions/:id, not by closing the WebSocket.
       },
     },
   });
@@ -290,6 +364,7 @@ export function startServer(config: ServerConfig): ServerHandle {
 
   const shutdown = () => {
     terminalBackend.destroyAll();
+    void copilot.stopAll();
     ticketWatcher.close();
     planWatcher.close();
     server.stop();
@@ -302,6 +377,7 @@ export function startServer(config: ServerConfig): ServerHandle {
     port: server.port ?? port,
     close() {
       terminalBackend.destroyAll();
+      void copilot.stopAll();
       ticketWatcher.close();
       planWatcher.close();
       server.stop();

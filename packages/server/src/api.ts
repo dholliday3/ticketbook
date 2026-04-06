@@ -33,6 +33,7 @@ import {
   PlanFiltersSchema,
 } from "@ticketbook/core";
 import type { TicketChangeEvent } from "./watcher.js";
+import type { CopilotManager } from "./copilot/index.js";
 
 type RouteHandler = (
   req: Request,
@@ -108,7 +109,11 @@ function buildRouteRegex(path: string): { regex: RegExp; paramNames: string[] } 
   return { regex: new RegExp(`^${pattern}$`), paramNames };
 }
 
-export function createRoutes(ticketsDir: string, plansDir?: string): Route[] {
+export function createRoutes(
+  ticketsDir: string,
+  plansDir?: string,
+  copilot?: CopilotManager,
+): Route[] {
   const base = "/api";
   const routes: Route[] = [];
 
@@ -363,6 +368,50 @@ export function createRoutes(ticketsDir: string, plansDir?: string): Route[] {
         createdTickets: result.createdTickets,
         count: result.createdTickets.length,
       });
+    });
+  }
+
+  // ─── Copilot routes ─────────────────────────────────────────────
+  // Mounted only if a CopilotManager was passed in. Streaming output is
+  // delivered over the WebSocket bridge in index.ts (frames `copilot.stream`
+  // and `copilot.done`); these REST routes only handle session lifecycle.
+  if (copilot) {
+    route("GET", "/copilot/health", async () => {
+      const health = await copilot.checkHealth();
+      return json(health);
+    });
+
+    route("GET", "/copilot/sessions", async () => {
+      return json({ sessions: copilot.listSessions() });
+    });
+
+    route("POST", "/copilot/sessions", async () => {
+      const result = await copilot.startSession();
+      const meta = copilot.getSession(result.sessionId);
+      return json({ sessionId: result.sessionId, session: meta }, 201);
+    });
+
+    // Send a turn — fire and forget; output streams over the WebSocket bridge.
+    route("POST", "/copilot/sessions/:id/messages", async (req, params) => {
+      const body = (await readJsonBody(req)) as { text?: string };
+      if (typeof body.text !== "string" || !body.text.trim()) {
+        return errorResponse("Missing 'text' field", 400);
+      }
+      try {
+        await copilot.sendMessage(params.id, body.text);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.toLowerCase().includes("not found")) {
+          return errorResponse(msg, 404);
+        }
+        throw err;
+      }
+      return json({ ok: true });
+    });
+
+    route("DELETE", "/copilot/sessions/:id", async (_req, params) => {
+      await copilot.stopSession(params.id);
+      return json({ ok: true });
     });
   }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { resolve, join, dirname, basename } from "node:path";
+import { fileURLToPath } from "node:url";
 import { stat, mkdir, writeFile, readFile, appendFile } from "node:fs/promises";
 
 interface CliArgs {
@@ -202,11 +203,16 @@ async function main(): Promise<void> {
   // Derive plans dir from tickets dir (sibling .plans/ directory)
   const plansDir = join(dirname(ticketsDir), ".plans");
 
+  // Absolute path to this script — passed through so the copilot manager can
+  // wire up an MCP config that re-invokes us in --mcp mode for tool access.
+  const binPath = fileURLToPath(import.meta.url);
+
   const handle = startServer({
     ticketsDir,
     plansDir,
     port: args.port ?? 0,
     staticDir: uiDistDir,
+    binPath,
   });
 
   console.log(`Ticketbook server listening on http://localhost:${handle.port}`);
