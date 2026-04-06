@@ -24,9 +24,17 @@ export function getDb(dataDir: string): Database {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0,
+      tab_number INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Migration: add tab_number column if missing (existing databases)
+  try {
+    db.run("ALTER TABLE terminal_tabs ADD COLUMN tab_number INTEGER NOT NULL DEFAULT 0");
+  } catch {
+    // Column already exists
+  }
 
   return db;
 }
@@ -37,19 +45,26 @@ export interface TerminalTabRow {
   id: string;
   title: string;
   sort_order: number;
+  tab_number: number;
 }
 
 export function listTerminalTabs(dataDir: string): TerminalTabRow[] {
   const d = getDb(dataDir);
-  return d.query("SELECT id, title, sort_order FROM terminal_tabs ORDER BY sort_order ASC").all() as TerminalTabRow[];
+  return d.query("SELECT id, title, sort_order, tab_number FROM terminal_tabs ORDER BY sort_order ASC").all() as TerminalTabRow[];
 }
 
-export function upsertTerminalTab(dataDir: string, id: string, title: string, sortOrder: number): void {
+export function upsertTerminalTab(dataDir: string, id: string, title: string, sortOrder: number, tabNumber: number): void {
   const d = getDb(dataDir);
   d.run(
-    "INSERT INTO terminal_tabs (id, title, sort_order) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, sort_order = excluded.sort_order",
-    [id, title, sortOrder],
+    "INSERT INTO terminal_tabs (id, title, sort_order, tab_number) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, sort_order = excluded.sort_order, tab_number = excluded.tab_number",
+    [id, title, sortOrder, tabNumber],
   );
+}
+
+export function getNextTabNumber(dataDir: string): number {
+  const d = getDb(dataDir);
+  const row = d.query("SELECT MAX(tab_number) as max_num FROM terminal_tabs").get() as { max_num: number | null } | null;
+  return (row?.max_num ?? 0) + 1;
 }
 
 export function deleteTerminalTab(dataDir: string, id: string): void {

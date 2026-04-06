@@ -3,7 +3,8 @@ import { stat } from "node:fs/promises";
 import { createRoutes, matchRoute, handleError, broadcastEvent } from "./api.js";
 import { createWatcher } from "./watcher.js";
 import { createPtySession, getSession, getAliveSessions, writeToPty, resizePty, detachPtySession, reattachPtySession, destroyPtySession, destroyAllSessions, setDataDir } from "./terminal.js";
-import { listTerminalTabs, upsertTerminalTab, deleteTerminalTab } from "./db.js";
+import { listTerminalTabs, upsertTerminalTab, getNextTabNumber, deleteTerminalTab } from "./db.js";
+import type { ServerMessage } from "@ticketbook/core";
 
 export interface ServerConfig {
   ticketsDir: string;
@@ -36,12 +37,19 @@ function addCors(response: Response, origin: string | null): Response {
   return response;
 }
 
+function sendMsg(ws: { send(data: string): void }, msg: ServerMessage): void {
+  try { ws.send(JSON.stringify(msg)); } catch { /* ws closed */ }
+}
+
 export function startServer(config: ServerConfig): ServerHandle {
   const { ticketsDir, plansDir, port, staticDir } = config;
   const routes = createRoutes(ticketsDir, plansDir);
 
   // Initialize terminal data dir (SQLite db lives alongside .tickets)
   setDataDir(ticketsDir);
+
+  // Track active WebSocket connections per session for graceful teardown
+  const wsConnections = new Map<string, { close(code?: number, reason?: string): void }>();
 
   async function tryServeStatic(pathname: string): Promise<Response | null> {
     if (!staticDir) return null;
@@ -77,6 +85,7 @@ export function startServer(config: ServerConfig): ServerHandle {
 
   const server = Bun.serve<WsData>({
     port,
+    idleTimeout: 255, // max; prevents Bun from killing WebSocket upgrade requests
     async fetch(req, server) {
       const origin = req.headers.get("Origin");
 
@@ -93,19 +102,30 @@ export function startServer(config: ServerConfig): ServerHandle {
           // Return persisted tabs with alive status from in-memory PTY state
           const tabs = listTerminalTabs(ticketsDir);
           const aliveSet = new Set(getAliveSessions());
-          const sessions = tabs.map((t) => ({ id: t.id, title: t.title, sortOrder: t.sort_order, alive: aliveSet.has(t.id) }));
+          const sessions = tabs.map((t) => ({ id: t.id, title: t.title, sortOrder: t.sort_order, tabNumber: t.tab_number, alive: aliveSet.has(t.id) }));
           return addCors(new Response(JSON.stringify({ sessions }), { headers: { "Content-Type": "application/json" } }), origin);
         }
         if (req.method === "POST") {
-          // Create a new tab entry (PTY is created on WS connect)
-          const body = await req.json() as { id?: string; title?: string; sortOrder?: number };
-          if (!body.id || !body.title) return addCors(new Response(JSON.stringify({ error: "id and title required" }), { status: 400, headers: { "Content-Type": "application/json" } }), origin);
-          upsertTerminalTab(ticketsDir, body.id, body.title, body.sortOrder ?? 0);
-          return addCors(new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }), origin);
+          // Server assigns id, title, and tab number
+          const body = await req.json() as { sortOrder?: number };
+          const tabNumber = getNextTabNumber(ticketsDir);
+          const id = `term-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          const title = `Terminal ${tabNumber}`;
+          const sortOrder = body.sortOrder ?? 0;
+          upsertTerminalTab(ticketsDir, id, title, sortOrder, tabNumber);
+          return addCors(new Response(JSON.stringify({ id, title, tabNumber, sortOrder }), { headers: { "Content-Type": "application/json" } }), origin);
         }
         if (req.method === "DELETE") {
           const body = await req.json() as { id?: string };
           if (!body.id) return addCors(new Response(JSON.stringify({ error: "id required" }), { status: 400, headers: { "Content-Type": "application/json" } }), origin);
+
+          // Close WebSocket first (gracefully) to prevent ECONNRESET
+          const existingWs = wsConnections.get(body.id);
+          if (existingWs) {
+            try { existingWs.close(1000, "session destroyed"); } catch { /* already closed */ }
+            wsConnections.delete(body.id);
+          }
+
           destroyPtySession(body.id);
           return addCors(new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }), origin);
         }
@@ -148,39 +168,43 @@ export function startServer(config: ServerConfig): ServerHandle {
       return new Response("Not found", { status: 404 });
     },
     websocket: {
+      idleTimeout: 0, // disable — terminal sessions can be idle indefinitely
       open(ws) {
-        const { sessionId, ticketsDir: cwd } = ws.data;
-
-        // Try to reattach to an existing session first
-        const replay = reattachPtySession(sessionId);
-        let session = getSession(sessionId);
-
-        if (!session?.alive) {
-          // No existing session — create new
-          session = createPtySession(sessionId, resolve(cwd, ".."));
-        }
-
-        // Wire up data/exit callbacks to this WebSocket
-        session.onData = (data: string) => {
-          try {
-            ws.send(JSON.stringify({ type: "output", data }));
-          } catch {
-            // ws closed
-          }
-        };
-        session.onExit = () => {
-          try { ws.close(); } catch { /* already closed */ }
-        };
-
-        // Send scrollback replay if reconnecting
-        if (replay) {
-          ws.send(JSON.stringify({ type: "replay", data: replay }));
-        }
+        const { sessionId } = ws.data;
+        // Just track the connection — PTY creation is deferred until "init" handshake
+        wsConnections.set(sessionId, ws);
       },
       message(ws, message) {
-        const { sessionId } = ws.data;
+        const { sessionId, ticketsDir: cwd } = ws.data;
         try {
           const msg = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
+
+          if (msg.type === "init" && typeof msg.cols === "number" && typeof msg.rows === "number") {
+            // Handshake: client sends its actual dimensions
+            let session = getSession(sessionId);
+
+            if (session?.alive) {
+              // Wire callbacks BEFORE reattach so any output (resize reflow,
+              // prompt redraw) reaches the client instead of being dropped
+              session.onData = (data: string) => sendMsg(ws, { type: "output", data });
+              session.onExit = () => { try { ws.close(); } catch { /* already closed */ } };
+              // Resize PTY + clear stale scrollback buffer
+              reattachPtySession(sessionId, msg.cols, msg.rows);
+              // Send Ctrl-L to the shell — it will clear and redraw the prompt.
+              // The xterm on the client is fresh (remounted on tab switch),
+              // so we don't need to clear it ourselves.
+              writeToPty(sessionId, "\x0c");
+            } else {
+              // New session: spawn PTY with correct dimensions
+              session = createPtySession(sessionId, resolve(cwd, ".."), msg.cols, msg.rows);
+              session.onData = (data: string) => sendMsg(ws, { type: "output", data });
+              session.onExit = () => { try { ws.close(); } catch { /* already closed */ } };
+            }
+
+            sendMsg(ws, { type: "ready" });
+            return;
+          }
+
           if (msg.type === "input" && typeof msg.data === "string") {
             writeToPty(sessionId, msg.data);
           } else if (msg.type === "resize" && typeof msg.cols === "number" && typeof msg.rows === "number") {
@@ -192,6 +216,7 @@ export function startServer(config: ServerConfig): ServerHandle {
       },
       close(ws) {
         const { sessionId } = ws.data;
+        wsConnections.delete(sessionId);
         // Don't destroy — start grace timer for reconnection
         detachPtySession(sessionId);
       },

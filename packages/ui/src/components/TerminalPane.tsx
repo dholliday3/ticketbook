@@ -7,16 +7,6 @@ interface TerminalTab {
   alive: boolean;
 }
 
-let nextTabNum = 1;
-
-function generateTabId(): string {
-  return `term-${Date.now()}-${nextTabNum}`;
-}
-
-function generateTabTitle(): string {
-  return `Terminal ${nextTabNum++}`;
-}
-
 async function fetchSessions(): Promise<TerminalTab[]> {
   try {
     const res = await fetch("/api/terminal/sessions");
@@ -28,14 +18,19 @@ async function fetchSessions(): Promise<TerminalTab[]> {
   }
 }
 
-async function createTabOnServer(id: string, title: string, sortOrder: number): Promise<void> {
+async function createTabOnServer(sortOrder: number): Promise<TerminalTab | null> {
   try {
-    await fetch("/api/terminal/sessions", {
+    const res = await fetch("/api/terminal/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, title, sortOrder }),
+      body: JSON.stringify({ sortOrder }),
     });
-  } catch { /* ignore */ }
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { id: data.id, title: data.title, alive: false };
+  } catch {
+    return null;
+  }
 }
 
 async function deleteTabOnServer(id: string): Promise<void> {
@@ -61,60 +56,50 @@ export function TerminalPane({ onClose }: TerminalPaneProps) {
   }, []);
   const [initialized, setInitialized] = useState(false);
 
-  // On mount: fetch existing sessions from server
+  // On mount: fetch existing sessions from server (StrictMode-safe via cancelled flag)
   useEffect(() => {
+    let cancelled = false;
+
     async function init() {
       const serverTabs = await fetchSessions();
+      if (cancelled) return;
 
       if (serverTabs.length > 0) {
-        // Recover tab numbering from existing titles
-        const maxNum = serverTabs.reduce((max, t) => {
-          const m = t.title.match(/Terminal (\d+)/);
-          return m ? Math.max(max, parseInt(m[1], 10)) : max;
-        }, 0);
-        nextTabNum = maxNum + 1;
-
         setTabs(serverTabs);
-        // Restore last active tab, falling back to first tab
         const savedTabId = localStorage.getItem("ticketbook-active-terminal-tab");
         const restoredTab = savedTabId && serverTabs.some((t) => t.id === savedTabId) ? savedTabId : serverTabs[0].id;
         setActiveTabId(restoredTab);
       } else {
-        // No existing sessions — create a fresh one
-        const id = generateTabId();
-        const title = generateTabTitle();
-        await createTabOnServer(id, title, 0);
-        setTabs([{ id, title, alive: false }]);
-        setActiveTabId(id);
+        const tab = await createTabOnServer(0);
+        if (cancelled || !tab) return;
+        setTabs([tab]);
+        setActiveTabId(tab.id);
       }
 
       setInitialized(true);
     }
 
     init();
-  }, []);
+    return () => { cancelled = true; };
+  }, [setActiveTabId]);
 
   const handleAddTab = useCallback(async () => {
-    const id = generateTabId();
-    const title = generateTabTitle();
-    const sortOrder = tabs.length;
-    await createTabOnServer(id, title, sortOrder);
-    setTabs((prev) => [...prev, { id, title, alive: false }]);
-    setActiveTabId(id);
+    const tab = await createTabOnServer(tabs.length);
+    if (!tab) return;
+    setTabs((prev) => [...prev, tab]);
+    setActiveTabId(tab.id);
   }, [tabs.length, setActiveTabId]);
 
   const handleCloseTab = useCallback(async (id: string) => {
+    if (tabs.length === 1) {
+      // Last tab: close the pane, keep session alive for reattach
+      onClose?.();
+      return;
+    }
+
     await deleteTabOnServer(id);
     setTabs((prev) => {
       const next = prev.filter((t) => t.id !== id);
-      if (next.length === 0) {
-        // Create a fresh tab
-        const newId = generateTabId();
-        const title = generateTabTitle();
-        createTabOnServer(newId, title, 0);
-        setActiveTabId(newId);
-        return [{ id: newId, title, alive: false }];
-      }
       if (id === activeTabId) {
         const idx = prev.findIndex((t) => t.id === id);
         const newActive = next[Math.min(idx, next.length - 1)];
@@ -122,9 +107,11 @@ export function TerminalPane({ onClose }: TerminalPaneProps) {
       }
       return next;
     });
-  }, [activeTabId, setActiveTabId]);
+  }, [tabs.length, activeTabId, setActiveTabId, onClose]);
 
   if (!initialized) return null;
+
+  const activeTab = tabs.find((t) => t.id === activeTabId);
 
   return (
     <div className="terminal-pane">
@@ -173,13 +160,7 @@ export function TerminalPane({ onClose }: TerminalPaneProps) {
         )}
       </div>
       <div className="terminal-content">
-        {tabs.map((tab) => (
-          <Terminal
-            key={tab.id}
-            sessionId={tab.id}
-            isVisible={tab.id === activeTabId}
-          />
-        ))}
+        {activeTab && <Terminal key={activeTab.id} sessionId={activeTab.id} />}
       </div>
     </div>
   );

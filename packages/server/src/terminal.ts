@@ -5,6 +5,9 @@
  * Sessions survive WebSocket disconnects for up to 5 minutes (grace period),
  * allowing page refreshes to reconnect and replay scrollback.
  *
+ * PTY creation is deferred until the client sends its actual dimensions via
+ * the "init" handshake message — this prevents output at wrong column widths.
+ *
  * Session metadata (tab id, title, order) is persisted to SQLite via db.ts
  * so tabs survive full page reloads and even server restarts (PTY is gone
  * but the tab list is restored — a fresh shell is spawned on reconnect).
@@ -30,7 +33,6 @@ class RingBuffer {
 
   append(data: Uint8Array): void {
     if (data.length >= this.buf.length) {
-      // Data larger than buffer — keep only the tail
       this.buf.set(data.subarray(data.length - this.buf.length));
       this.writePos = 0;
       this.length = this.buf.length;
@@ -48,21 +50,6 @@ class RingBuffer {
     this.length = Math.min(this.length + data.length, this.buf.length);
   }
 
-  read(): Uint8Array {
-    if (this.length === 0) return new Uint8Array(0);
-    if (this.length < this.buf.length) {
-      // Buffer hasn't wrapped yet
-      const start = this.writePos - this.length;
-      return this.buf.slice(start, this.writePos);
-    }
-    // Buffer has wrapped — concat tail + head
-    const result = new Uint8Array(this.buf.length);
-    const tailLen = this.buf.length - this.writePos;
-    result.set(this.buf.subarray(this.writePos), 0);
-    result.set(this.buf.subarray(0, this.writePos), tailLen);
-    return result;
-  }
-
   clear(): void {
     this.writePos = 0;
     this.length = 0;
@@ -72,8 +59,9 @@ class RingBuffer {
 // --- Session types ---
 
 interface PtySession {
-  proc: ReturnType<typeof Bun.spawn>;
+  proc: ReturnType<typeof Bun.spawn> | null;
   alive: boolean;
+  cwd: string;
   scrollback: RingBuffer;
   onData: ((data: string) => void) | null;
   onExit: (() => void) | null;
@@ -92,13 +80,18 @@ export function setDataDir(dir: string): void {
   dataDir = dir;
 }
 
-export function createPtySession(sessionId: string, cwd: string, cols = 80, rows = 24): PtySession {
+/**
+ * Create and spawn a PTY session with known client dimensions.
+ * Called when the client sends the "init" handshake message.
+ */
+export function createPtySession(sessionId: string, cwd: string, cols: number, rows: number): PtySession {
   const existing = sessions.get(sessionId);
   if (existing?.alive) return existing;
 
   const session: PtySession = {
-    proc: null as unknown as ReturnType<typeof Bun.spawn>,
-    alive: true,
+    proc: null,
+    alive: false,
+    cwd,
     scrollback: new RingBuffer(SCROLLBACK_SIZE),
     onData: null,
     onExit: null,
@@ -126,6 +119,7 @@ export function createPtySession(sessionId: string, cwd: string, cols = 80, rows
   });
 
   session.proc = proc;
+  session.alive = true;
   sessions.set(sessionId, session);
 
   return session;
@@ -143,13 +137,13 @@ export function getAliveSessions(): string[] {
 
 export function writeToPty(sessionId: string, data: string): void {
   const session = sessions.get(sessionId);
-  if (!session?.alive || !session.proc.terminal) return;
+  if (!session?.alive || !session.proc?.terminal) return;
   session.proc.terminal.write(data);
 }
 
 export function resizePty(sessionId: string, cols: number, rows: number): void {
   const session = sessions.get(sessionId);
-  if (!session?.alive || !session.proc.terminal) return;
+  if (!session?.alive || !session.proc?.terminal) return;
   session.proc.terminal.resize(cols, rows);
 }
 
@@ -161,7 +155,6 @@ export function detachPtySession(sessionId: string): void {
   const session = sessions.get(sessionId);
   if (!session?.alive) return;
 
-  // Clear any existing timer and start a new one
   if (session.disconnectTimer) clearTimeout(session.disconnectTimer);
   session.onData = null;
 
@@ -171,27 +164,33 @@ export function detachPtySession(sessionId: string): void {
 }
 
 /**
- * Called when a WebSocket reconnects to an existing session.
- * Cancels the grace timer and replays scrollback.
- * Returns the scrollback data to send to the client, or null if session doesn't exist.
+ * Cancel the grace timer for a session (called during reattach handshake).
  */
-export function reattachPtySession(sessionId: string): string | null {
+export function cancelGraceTimer(sessionId: string): void {
   const session = sessions.get(sessionId);
-  if (!session?.alive) return null;
-
-  // Cancel grace timer
-  if (session.disconnectTimer) {
+  if (session?.disconnectTimer) {
     clearTimeout(session.disconnectTimer);
     session.disconnectTimer = null;
   }
+}
 
-  // Build replay: terminal reset + scrollback contents
-  const scrollbackBytes = session.scrollback.read();
-  if (scrollbackBytes.length === 0) return null;
+/**
+ * Called when a client reconnects to an existing alive session.
+ * Resizes PTY to new client dimensions and clears stale scrollback
+ * to avoid rendering artifacts from width mismatches.
+ */
+export function reattachPtySession(sessionId: string, cols: number, rows: number): void {
+  const session = sessions.get(sessionId);
+  if (!session?.alive || !session.proc?.terminal) return;
 
-  const reset = "\x1b[H\x1b[2J\x1b[0m";
-  const scrollbackStr = new TextDecoder().decode(scrollbackBytes);
-  return reset + scrollbackStr;
+  cancelGraceTimer(sessionId);
+
+  // Resize PTY to new client dimensions
+  session.proc.terminal.resize(cols, rows);
+
+  // Clear stale scrollback — it was encoded at the old column width
+  // and would render with double lines if replayed at the new width
+  session.scrollback.clear();
 }
 
 export function destroyPtySession(sessionId: string): void {
@@ -203,8 +202,8 @@ export function destroyPtySession(sessionId: string): void {
     session.onExit = null;
     session.scrollback.clear();
 
-    try { session.proc.terminal?.close(); } catch { /* already dead */ }
-    try { session.proc.kill(); } catch { /* already dead */ }
+    try { session.proc?.terminal?.close(); } catch { /* already dead */ }
+    try { session.proc?.kill(); } catch { /* already dead */ }
     sessions.delete(sessionId);
   }
   // Always remove from DB, even if PTY session wasn't in memory

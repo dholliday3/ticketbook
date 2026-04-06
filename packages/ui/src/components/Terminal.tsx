@@ -5,19 +5,13 @@ import "@xterm/xterm/css/xterm.css";
 
 interface TerminalProps {
   sessionId: string;
-  isVisible: boolean;
 }
 
-export function Terminal({ sessionId, isVisible }: TerminalProps) {
+export function Terminal({ sessionId }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const visibleRef = useRef(isVisible);
-  const initialResizeSentRef = useRef(false);
-
-  // Keep visibility ref in sync
-  visibleRef.current = isVisible;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -57,18 +51,23 @@ export function Terminal({ sessionId, isVisible }: TerminalProps) {
 
     xtermRef.current = term;
     fitRef.current = fit;
-    initialResizeSentRef.current = false;
 
     // Connect WebSocket
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(`${protocol}//${window.location.host}/api/terminal/${encodeURIComponent(sessionId)}`);
     wsRef.current = ws;
 
+    ws.onerror = () => {
+      // Connection error — will trigger onclose
+    };
+
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === "output" || msg.type === "replay") {
           term.write(msg.data);
+        } else if (msg.type === "ready") {
+          term.focus();
         }
       } catch {
         // ignore
@@ -76,24 +75,23 @@ export function Terminal({ sessionId, isVisible }: TerminalProps) {
     };
 
     ws.onopen = () => {
-      // Only send initial resize if visible — hidden containers have
-      // zero/wrong dimensions which would corrupt the PTY's column count
-      if (!visibleRef.current) return;
-
+      // Handshake: measure real container dimensions and send to server
+      // Server will not spawn/reattach the PTY until it receives this
       let attempts = 0;
-      const sendInitialSize = () => {
+      const sendInit = () => {
         try {
           fit.fit();
           if (term.cols >= 20 || attempts >= 10) {
-            ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
-            initialResizeSentRef.current = true;
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "init", cols: term.cols, rows: term.rows }));
+            }
           } else {
             attempts++;
-            requestAnimationFrame(sendInitialSize);
+            requestAnimationFrame(sendInit);
           }
         } catch { /* ignore */ }
       };
-      requestAnimationFrame(sendInitialSize);
+      requestAnimationFrame(sendInit);
     };
 
     // Forward user input to server
@@ -103,47 +101,30 @@ export function Terminal({ sessionId, isVisible }: TerminalProps) {
       }
     });
 
-    // Handle resize
+    // Handle resize — debounced to reduce noise during panel drag
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const resizeDisposable = term.onResize(({ cols, rows }) => {
-      if (ws.readyState === WebSocket.OPEN && visibleRef.current) {
-        ws.send(JSON.stringify({ type: "resize", cols, rows }));
-      }
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "resize", cols, rows }));
+        }
+      }, 100);
     });
 
     return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
       inputDisposable.dispose();
       resizeDisposable.dispose();
-      ws.close();
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close(1000, "tab closed");
+      }
       term.dispose();
       xtermRef.current = null;
       fitRef.current = null;
       wsRef.current = null;
     };
   }, [sessionId]);
-
-  // When becoming visible: fit and send resize (may be the first resize for this session)
-  useEffect(() => {
-    if (!isVisible) return;
-    const fit = fitRef.current;
-    const term = xtermRef.current;
-    const ws = wsRef.current;
-    if (!fit || !term) return;
-
-    let attempts = 0;
-    const fitAndResize = () => {
-      try {
-        fit.fit();
-        if (ws && ws.readyState === WebSocket.OPEN && (term.cols >= 20 || attempts >= 10)) {
-          ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
-          initialResizeSentRef.current = true;
-        } else if (term.cols < 20 && attempts < 10) {
-          attempts++;
-          requestAnimationFrame(fitAndResize);
-        }
-      } catch { /* ignore */ }
-    };
-    requestAnimationFrame(fitAndResize);
-  }, [isVisible]);
 
   // Re-fit on container resize
   useEffect(() => {
@@ -152,14 +133,9 @@ export function Terminal({ sessionId, isVisible }: TerminalProps) {
 
     const observer = new ResizeObserver(() => {
       const fit = fitRef.current;
-      const term = xtermRef.current;
-      const ws = wsRef.current;
-      if (!fit || !term || !visibleRef.current) return;
+      if (!fit) return;
       try {
         fit.fit();
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
-        }
       } catch { /* ignore */ }
     });
     observer.observe(el);
@@ -170,7 +146,6 @@ export function Terminal({ sessionId, isVisible }: TerminalProps) {
     <div
       ref={containerRef}
       className="terminal-container"
-      style={{ display: isVisible ? "block" : "none" }}
     />
   );
 }
