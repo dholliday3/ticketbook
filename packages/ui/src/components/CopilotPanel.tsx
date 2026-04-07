@@ -7,6 +7,8 @@ import {
 } from "@/components/ai-elements/conversation";
 import {
   Message,
+  MessageBranch,
+  MessageBranchContent,
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
@@ -24,6 +26,10 @@ import {
   PromptInputTools,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
+import {
+  Suggestion,
+  Suggestions,
+} from "@/components/ai-elements/suggestion";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCopilotSession, type CopilotPart } from "@/hooks/useCopilotSession";
 import { cn } from "@/lib/utils";
@@ -34,12 +40,33 @@ interface CopilotPanelProps {
 
 /**
  * Right-rail copilot panel — talks to the headless Claude Code provider via
- * /api/copilot. Built on ai-elements for the chat shell (Conversation,
- * Message, Reasoning, PromptInput) plus a small custom Tool block since
- * ai-elements' <Tool> expects Vercel AI SDK tool-call shapes that our
- * server-side stream-json parser doesn't emit. A follow-up should pair
- * tool_use and tool_result on the server side so we can switch to the
- * canonical <Tool> component proper.
+ * /api/copilot. Built on the canonical ai-elements chatbot pattern:
+ *   <Conversation>
+ *     <ConversationContent>
+ *       <MessageBranch><MessageBranchContent>
+ *         <Message from={role}>
+ *           {reasoning above content}
+ *           {tool blocks above content}
+ *           <MessageContent><MessageResponse>{text}</MessageResponse></MessageContent>
+ *         </Message>
+ *       </MessageBranchContent></MessageBranch>
+ *     </ConversationContent>
+ *     <ConversationScrollButton />
+ *   </Conversation>
+ *   <div className="grid shrink-0 gap-4 pt-4">
+ *     <Suggestions /> (only when empty)
+ *     <PromptInput />
+ *   </div>
+ *
+ * Each part of the message is rendered as a sibling of MessageContent inside
+ * the Message wrapper, so the user-message bubble (.bg-secondary, .ml-auto)
+ * only wraps the actual text. Reasoning and tool blocks sit above as their
+ * own full-width children.
+ *
+ * Custom <ToolBlock> stays for now because ai-elements' canonical <Tool>
+ * expects Vercel AI SDK tool-call shapes that pair tool_use + tool_result
+ * via tool_use_id. Our server emits them as separate parts; pairing them on
+ * the server (TKTB-060 follow-up) would let us swap to the upstream <Tool>.
  */
 export function CopilotPanel({ onClose }: CopilotPanelProps) {
   const session = useCopilotSession(true);
@@ -51,11 +78,10 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
     await session.sendMessage(message.text);
   };
 
-  // The session has to be both ready (CLI installed + session created) AND
-  // not currently streaming for the user to be able to send a new turn.
-  // We only gate the *submit* button on this — never the textarea itself,
-  // because disabling the textarea also blocks typing the next prompt
-  // while a response is still streaming.
+  const handleSuggestionClick = (suggestion: string) => {
+    void session.sendMessage(suggestion);
+  };
+
   const canSubmit =
     !session.isStarting &&
     !session.isStreaming &&
@@ -72,10 +98,13 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
           ? "Claude Code not installed"
           : "Not connected";
 
+  const isEmpty = session.messages.length === 0;
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
-        {/* Header */}
+        {/* Custom header — canonical chatbot doesn't have one but we want
+            the version + close + new conversation controls visible. */}
         <div className="flex flex-shrink-0 items-center justify-between border-b border-border bg-card px-3 py-2">
           <div className="flex items-center gap-2">
             <SparkleIcon className="size-3.5 text-muted-foreground" />
@@ -92,7 +121,7 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
             <button
               type="button"
               onClick={session.reset}
-              disabled={session.isStreaming || session.messages.length === 0}
+              disabled={session.isStreaming || isEmpty}
               aria-label="New conversation"
               title="New conversation"
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
@@ -118,59 +147,74 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
           </div>
         )}
 
-        {/* Conversation */}
-        <Conversation className="min-h-0 flex-1">
-          <ConversationContent className="gap-4 p-3">
-            {session.messages.length === 0 ? (
-              <ConversationEmptyState
-                title="What are we building?"
-                description="Ask me to draft a ticket, plan an epic, or read your existing tickets."
-                icon={<SparkleIcon className="size-6" />}
-              />
-            ) : (
-              session.messages.map((msg) => (
-                <Message key={msg.id} from={msg.role}>
-                  <MessageContent>
-                    {msg.parts.map((part, i) => (
-                      <CopilotPartView
-                        key={`${msg.id}-${i}`}
-                        part={part}
-                        isStreaming={
-                          session.isStreaming &&
-                          msg.role === "assistant" &&
-                          i === msg.parts.length - 1
-                        }
-                      />
-                    ))}
-                  </MessageContent>
-                </Message>
-              ))
-            )}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
+        {/* Canonical chatbot layout — divide-y draws the line between the
+            scrolling conversation and the (suggestions+input) bottom area. */}
+        <div className="relative flex min-h-0 flex-1 flex-col divide-y divide-border overflow-hidden">
+          <Conversation>
+            <ConversationContent>
+              {isEmpty ? (
+                <ConversationEmptyState
+                  title="What are we building?"
+                  description="Ask me to draft a ticket, plan an epic, or read your existing tickets."
+                  icon={<SparkleIcon className="size-6" />}
+                />
+              ) : (
+                session.messages.map((msg) => (
+                  <MessageBranch defaultBranch={0} key={msg.id}>
+                    <MessageBranchContent>
+                      <Message from={msg.role}>
+                        {msg.parts.map((part, i) => (
+                          <CopilotPartView
+                            key={`${msg.id}-${i}`}
+                            part={part}
+                            isStreaming={
+                              session.isStreaming &&
+                              msg.role === "assistant" &&
+                              i === msg.parts.length - 1
+                            }
+                          />
+                        ))}
+                      </Message>
+                    </MessageBranchContent>
+                  </MessageBranch>
+                ))
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-        {/* Prompt input — uncontrolled textarea, FormData-driven submission.
-            PromptInput renders its own <form> and <InputGroup> with rounded
-            border + footer addon, so we don't wrap it in another bordered
-            div. Footer holds Tools (left) and Submit (right) as siblings. */}
-        <div className="flex-shrink-0 p-3">
-          <PromptInput onSubmit={handleSubmit}>
-            <PromptInputBody>
-              <PromptInputTextarea placeholder="Ask the assistant…" />
-            </PromptInputBody>
-            <PromptInputFooter>
-              <PromptInputTools>
-                <span className="px-1 text-xs text-muted-foreground">
-                  {statusLabel}
-                </span>
-              </PromptInputTools>
-              <PromptInputSubmit
-                status={session.isStreaming ? "streaming" : undefined}
-                disabled={!canSubmit}
-              />
-            </PromptInputFooter>
-          </PromptInput>
+          {/* Bottom area — grid with suggestions (when empty) and the input */}
+          <div className="grid shrink-0 gap-3 pt-3">
+            {isEmpty && (
+              <Suggestions className="px-3">
+                {STARTER_SUGGESTIONS.map((s) => (
+                  <Suggestion
+                    key={s}
+                    suggestion={s}
+                    onClick={handleSuggestionClick}
+                  />
+                ))}
+              </Suggestions>
+            )}
+            <div className="w-full px-3 pb-3">
+              <PromptInput onSubmit={handleSubmit}>
+                <PromptInputBody>
+                  <PromptInputTextarea placeholder="Ask the assistant…" />
+                </PromptInputBody>
+                <PromptInputFooter>
+                  <PromptInputTools>
+                    <span className="px-1 text-xs text-muted-foreground">
+                      {statusLabel}
+                    </span>
+                  </PromptInputTools>
+                  <PromptInputSubmit
+                    status={session.isStreaming ? "streaming" : undefined}
+                    disabled={!canSubmit}
+                  />
+                </PromptInputFooter>
+              </PromptInput>
+            </div>
+          </div>
         </div>
       </div>
     </TooltipProvider>
@@ -179,6 +223,12 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
 
 // ─── Part renderers ────────────────────────────────────────────────
 
+/**
+ * Each part renders as a direct child of <Message>. Text parts wrap in
+ * <MessageContent> so they pick up the user-bubble styling on user messages
+ * and the foreground-text styling on assistant messages. Reasoning and tool
+ * parts render as their own full-width blocks above/between text.
+ */
 function CopilotPartView({
   part,
   isStreaming,
@@ -188,7 +238,11 @@ function CopilotPartView({
 }) {
   switch (part.type) {
     case "text":
-      return <MessageResponse>{part.content}</MessageResponse>;
+      return (
+        <MessageContent>
+          <MessageResponse>{part.content}</MessageResponse>
+        </MessageContent>
+      );
 
     case "thinking":
       return (
@@ -234,7 +288,7 @@ function ToolBlock({
   return (
     <div
       className={cn(
-        "not-prose rounded-md border text-xs",
+        "not-prose w-full rounded-md border text-xs",
         kind === "use"
           ? "border-border bg-muted/40"
           : "border-border bg-muted/20",
@@ -252,3 +306,10 @@ function ToolBlock({
     </div>
   );
 }
+
+const STARTER_SUGGESTIONS = [
+  "List my in-progress tickets",
+  "What should I focus on next?",
+  "Summarize the open backlog by tag",
+  "Draft a ticket: fix terminal scrollback bug",
+];

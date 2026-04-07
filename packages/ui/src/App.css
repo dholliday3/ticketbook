@@ -1,11 +1,11 @@
-/* Reset */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Reset removed: Tailwind v4's preflight (loaded via index.css) already
+   provides `box-sizing: border-box` on all elements and a sensible margin
+   reset on body. Re-adding `* { margin: 0; padding: 0 }` here is actively
+   hostile because it's UNLAYERED CSS, and per Tailwind v4 cascade rules
+   unlayered styles beat every layered utility regardless of specificity —
+   it silently clobbers `.ml-auto`, `.p-3`, every `m-*` and `p-*` Tailwind
+   class on shadcn/ai-elements components, breaking message alignment and
+   padding throughout the copilot panel. */
 
 :root {
   --bg: #0f0f0f;

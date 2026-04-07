@@ -546,7 +546,7 @@ function RootLayoutInner() {
                 className={`right-rail-btn ${ctx.terminalOpen ? "right-rail-btn-active" : ""}`}
                 onClick={ctx.handleToggleTerminal}
                 title={ctx.terminalOpen ? "Close terminal" : "Open terminal"}
-                aria-label="Toggle terminal"
+                aria-label={ctx.terminalOpen ? "Close terminal" : "Open terminal"}
                 aria-pressed={ctx.terminalOpen}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -558,7 +558,7 @@ function RootLayoutInner() {
                 className={`right-rail-btn ${ctx.assistantOpen ? "right-rail-btn-active" : ""}`}
                 onClick={ctx.handleToggleAssistant}
                 title={ctx.assistantOpen ? "Close assistant" : "Open assistant"}
-                aria-label="Toggle assistant"
+                aria-label={ctx.assistantOpen ? "Close assistant" : "Open assistant"}
                 aria-pressed={ctx.assistantOpen}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
