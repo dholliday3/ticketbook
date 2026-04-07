@@ -87,6 +87,10 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
     health: null,
     error: null,
   });
+  // Bumped by reset() to force a fresh server session — the start-session
+  // useEffect re-runs whenever this changes, tearing down the old WS + REST
+  // session and creating a new one.
+  const [resetCounter, setResetCounter] = useState(0);
 
   // The current assistant message id we're appending parts to. When a new
   // copilot.done arrives this resets so the next turn starts a fresh message.
@@ -177,6 +181,7 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
 
   // Start the session and open the WS bridge whenever the panel is active.
   // On unmount or deactivation we DELETE the session and close the WS.
+  // Re-runs when resetCounter bumps so reset() can start a fresh session.
   useEffect(() => {
     if (!active) return;
 
@@ -260,7 +265,7 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
         error: null,
       });
     };
-  }, [active, appendPartToCurrentAssistant]);
+  }, [active, resetCounter, appendPartToCurrentAssistant]);
 
   // ─── Send message ────────────────────────────────────────────────
 
@@ -308,9 +313,10 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
   }, []);
 
   const reset = useCallback(() => {
-    currentAssistantIdRef.current = null;
-    currentMessageIdRef.current = null;
-    setState((p) => ({ ...p, messages: [], error: null, isStreaming: false }));
+    // Bumping the counter triggers the start-session effect's cleanup (which
+    // DELETEs the old server session) and re-runs it to create a fresh one.
+    // The state is reset by the cleanup branch's setState call.
+    setResetCounter((n) => n + 1);
   }, []);
 
   return {

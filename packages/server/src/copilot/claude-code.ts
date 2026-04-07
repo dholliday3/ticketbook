@@ -110,14 +110,20 @@ export class ClaudeCodeProvider extends EventEmitter {
       "stream-json",
       "--verbose",
       // Headless mode has no interactive stdin for permission prompts, so
-      // tool calls would otherwise hang. Bypass the prompts since the user
-      // explicitly opened the copilot panel and the tools they expose are
-      // scoped to the per-session MCP config (currently just ticketbook's
-      // own tickets/plans server). Phase 6 should narrow this further by
-      // passing --allowedTools "mcp__ticketbook__*" and disallowing the
-      // built-in Bash/Edit/Write tools.
+      // tool calls would otherwise hang. Bypass the prompts since the
+      // allowlist below already restricts what the agent can touch.
       "--permission-mode",
       "bypassPermissions",
+      // Restrict the agent to ticketbook's MCP tools + read-only project
+      // navigation. No Bash, Edit, Write, or web access — the copilot is a
+      // ticket/plan assistant, not a coding agent. If the user wants the
+      // full coding-agent powerset they should "Open in terminal" and run
+      // claude there. We allow Read/Glob/Grep so the agent can pull repo
+      // context (CLAUDE.md, prd.md, etc.) when reasoning about tickets.
+      "--allowed-tools",
+      "mcp__ticketbook__*,Read,Glob,Grep,WebSearch",
+      "--disallowed-tools",
+      "Bash,Edit,Write,NotebookEdit,WebFetch",
     ];
 
     if (session.conversationId) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SparkleIcon, WrenchIcon, XIcon } from "lucide-react";
+import { PlusIcon, SparkleIcon, WrenchIcon, XIcon } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -38,8 +38,9 @@ interface CopilotPanelProps {
  * /api/copilot. Built on ai-elements for the chat shell (Conversation,
  * Message, Reasoning, PromptInput) plus a small custom Tool block since
  * ai-elements' <Tool> expects Vercel AI SDK tool-call shapes that our
- * server-side stream-json parser doesn't emit. Phase 6 will pair tool_use
- * and tool_result on the server side and switch to <Tool> proper.
+ * server-side stream-json parser doesn't emit. A follow-up should pair
+ * tool_use and tool_result on the server side so we can switch to the
+ * canonical <Tool> component proper.
  */
 export function CopilotPanel({ onClose }: CopilotPanelProps) {
   const session = useCopilotSession(true);
@@ -75,15 +76,27 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close assistant"
-            title="Close"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <XIcon className="size-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={session.reset}
+              disabled={session.isStreaming || session.messages.length === 0}
+              aria-label="New conversation"
+              title="New conversation"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+            >
+              <PlusIcon className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close assistant"
+              title="Close"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <XIcon className="size-4" />
+            </button>
+          </div>
         </div>
 
         {/* Error banner */}
