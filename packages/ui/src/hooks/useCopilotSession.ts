@@ -37,6 +37,8 @@ export interface CopilotHealth {
 
 interface UseCopilotSessionState {
   sessionId: string | null;
+  /** Claude's conversation_id once the first turn captures it. */
+  conversationId: string | null;
   messages: CopilotMessage[];
   isStreaming: boolean;
   isStarting: boolean;
@@ -46,7 +48,10 @@ interface UseCopilotSessionState {
 
 export interface UseCopilotSessionApi extends UseCopilotSessionState {
   sendMessage: (text: string) => Promise<void>;
-  reset: () => void;
+  /** Start a fresh conversation (no resume). Tears down the current session. */
+  startNew: () => void;
+  /** Switch to a previously persisted conversation by Claude conversation ID. */
+  switchConversation: (conversationId: string) => void;
 }
 
 interface StreamFrame {
@@ -67,6 +72,15 @@ interface ReadyFrame {
 
 type CopilotWsFrame = StreamFrame | DoneFrame | ReadyFrame;
 
+interface HistoryResponse {
+  messages: Array<{
+    id: string;
+    role: "user" | "assistant";
+    parts: CopilotPart[];
+    createdAt: number;
+  }>;
+}
+
 /**
  * Owns the lifecycle of one copilot session: starts it via REST on mount,
  * subscribes to /api/copilot/<sessionId> over WebSocket, sends turns via
@@ -77,26 +91,35 @@ type CopilotWsFrame = StreamFrame | DoneFrame | ReadyFrame;
  * we collapse consecutive text/thinking parts within the same messageId
  * into one accumulating part. tool_use, tool_result and error parts are
  * always pushed as their own entries.
+ *
+ * Conversation resume: callers can switch to a previously persisted
+ * conversation via switchConversation(id), which triggers the start-session
+ * effect to tear down the current session and create a new one with the
+ * given conversationId pre-set on the server. The hook also fetches the
+ * prior message history from /api/copilot/conversations/<id>/messages so
+ * the panel renders the full chat (not just an empty resume).
  */
 export function useCopilotSession(active: boolean): UseCopilotSessionApi {
   const [state, setState] = useState<UseCopilotSessionState>({
     sessionId: null,
+    conversationId: null,
     messages: [],
     isStreaming: false,
     isStarting: false,
     health: null,
     error: null,
   });
-  // Bumped by reset() to force a fresh server session — the start-session
-  // useEffect re-runs whenever this changes, tearing down the old WS + REST
-  // session and creating a new one.
-  const [resetCounter, setResetCounter] = useState(0);
 
-  // The current assistant message id we're appending parts to. When a new
-  // copilot.done arrives this resets so the next turn starts a fresh message.
+  // Which Claude conversation to resume on the next start. null = brand new.
+  // Bumping this triggers the start-session effect to re-run.
+  const [resumeFromConversationId, setResumeFromConversationId] = useState<string | null>(null);
+  // Bumped by startNew() to force the start-session effect to re-run even
+  // when resumeFromConversationId stays null (e.g., starting a fresh
+  // conversation when one was already null).
+  const [restartCounter, setRestartCounter] = useState(0);
+
+  // Refs that need to outlive renders for stable callbacks.
   const currentAssistantIdRef = useRef<string | null>(null);
-  // Used to associate streaming parts with the message they belong to. If a
-  // new messageId shows up mid-stream we start a fresh assistant message.
   const currentMessageIdRef = useRef<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -105,33 +128,41 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
 
   const appendPartToCurrentAssistant = useCallback(
     (messageId: string, part: CopilotPart) => {
+      // Resolve the target assistant message id and update the per-turn
+      // refs OUTSIDE the setState callback. The setState updater must be
+      // pure — React 19's concurrent rendering can call updaters multiple
+      // times for a single dispatch, and side-effects-in-the-updater would
+      // produce duplicate messages on the second invocation. Computing the
+      // assistantId and ref state once up front keeps the updater idempotent.
+      const isNewTurn = currentMessageIdRef.current !== messageId;
+      let assistantId = currentAssistantIdRef.current;
+      if (isNewTurn || !assistantId) {
+        assistantId = `asst-${messageId}`;
+        currentAssistantIdRef.current = assistantId;
+        currentMessageIdRef.current = messageId;
+      }
+      const targetId = assistantId;
+
       setState((prev) => {
-        let messages = prev.messages;
-        let assistantId = currentAssistantIdRef.current;
-        const isNewTurn = currentMessageIdRef.current !== messageId;
-
-        if (isNewTurn || !assistantId) {
-          assistantId = `asst-${messageId}`;
-          currentAssistantIdRef.current = assistantId;
-          currentMessageIdRef.current = messageId;
-          messages = [
-            ...messages,
-            {
-              id: assistantId,
-              role: "assistant",
-              parts: [],
-              createdAt: Date.now(),
-            },
-          ];
-        }
-
+        // Pure updater: relies only on `prev`, `targetId`, and `part`. Safe
+        // to be called multiple times by React without producing duplicates.
+        const exists = prev.messages.some((m) => m.id === targetId);
+        const messages = exists
+          ? prev.messages
+          : [
+              ...prev.messages,
+              {
+                id: targetId,
+                role: "assistant" as const,
+                parts: [],
+                createdAt: Date.now(),
+              },
+            ];
         return {
           ...prev,
           messages: messages.map((m) => {
-            if (m.id !== assistantId) return m;
+            if (m.id !== targetId) return m;
             const last = m.parts[m.parts.length - 1];
-            // Merge consecutive text/thinking deltas into one accumulating part
-            // so Streamdown renders the full chunk, not a fragment per token.
             if (
               last &&
               (last.type === "text" || last.type === "thinking") &&
@@ -153,10 +184,8 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
     [],
   );
 
-  // ─── Session lifecycle ───────────────────────────────────────────
+  // ─── Health check ────────────────────────────────────────────────
 
-  // Health check is cheap and reusable across sessions; do it once when the
-  // panel first becomes active so the user sees provider status immediately.
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
@@ -179,34 +208,81 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
     };
   }, [active]);
 
-  // Start the session and open the WS bridge whenever the panel is active.
-  // On unmount or deactivation we DELETE the session and close the WS.
-  // Re-runs when resetCounter bumps so reset() can start a fresh session.
+  // ─── Session lifecycle ───────────────────────────────────────────
+
   useEffect(() => {
     if (!active) return;
 
     let cancelled = false;
     let createdSessionId: string | null = null;
+    const targetConversationId = resumeFromConversationId;
 
-    setState((p) => ({ ...p, isStarting: true, error: null }));
+    setState((p) => ({
+      ...p,
+      isStarting: true,
+      error: null,
+      // Clear messages immediately so switching feels instant. They get
+      // refilled by the history fetch below for resumed conversations.
+      messages: [],
+      conversationId: targetConversationId,
+    }));
 
-    fetch("/api/copilot/sessions", { method: "POST" })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`Failed to start session: HTTP ${r.status}`);
-        return (await r.json()) as { sessionId: string };
-      })
-      .then(({ sessionId }) => {
+    (async () => {
+      try {
+        const startRes = await fetch("/api/copilot/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            targetConversationId ? { conversationId: targetConversationId } : {},
+          ),
+        });
+        if (!startRes.ok) {
+          throw new Error(`Failed to start session: HTTP ${startRes.status}`);
+        }
+        const { sessionId } = (await startRes.json()) as { sessionId: string };
         if (cancelled) {
-          // Session was created but the panel already closed — clean up.
           void fetch(`/api/copilot/sessions/${sessionId}`, { method: "DELETE" });
           return;
         }
         createdSessionId = sessionId;
         sessionIdRef.current = sessionId;
-        setState((p) => ({ ...p, sessionId, isStarting: false }));
 
-        // Open the WS bridge for streaming. The server pushes copilot.stream
-        // and copilot.done frames; this socket is push-only.
+        // If we're resuming, fetch the prior history. Best-effort — empty
+        // result is fine, the panel still works for new turns.
+        let historyMessages: CopilotMessage[] = [];
+        if (targetConversationId) {
+          try {
+            const histRes = await fetch(
+              `/api/copilot/conversations/${targetConversationId}/messages`,
+            );
+            if (histRes.ok) {
+              const data = (await histRes.json()) as HistoryResponse;
+              historyMessages = data.messages.map((m) => ({
+                id: m.id,
+                role: m.role,
+                parts: m.parts,
+                createdAt: m.createdAt,
+              }));
+            }
+          } catch {
+            // ignore — panel will just be empty until next turn
+          }
+        }
+        if (cancelled) return;
+
+        // We have the sessionId and (optionally) the history, but the
+        // panel isn't *truly* ready until the server-side WS subscriber
+        // is in place. Otherwise the next sendMessage fires before any
+        // subscriber exists and the stream events get dropped on the
+        // floor. We pre-load the messages here but keep `isStarting`
+        // true until the server pushes its `ready` frame.
+        setState((p) => ({
+          ...p,
+          sessionId,
+          messages: historyMessages,
+        }));
+
+        // Open the WS bridge for streaming.
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const ws = new WebSocket(
           `${protocol}//${window.location.host}/api/copilot/${sessionId}`,
@@ -220,7 +296,10 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
           } catch {
             return;
           }
-          if (frame.type === "copilot.stream") {
+          if (frame.type === "ready") {
+            // Server-side subscriber is in place — safe to send turns.
+            setState((p) => ({ ...p, isStarting: false }));
+          } else if (frame.type === "copilot.stream") {
             appendPartToCurrentAssistant(frame.messageId, frame.part);
           } else if (frame.type === "copilot.done") {
             currentAssistantIdRef.current = null;
@@ -232,15 +311,15 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
         ws.addEventListener("error", () => {
           setState((p) => ({ ...p, error: "WebSocket error" }));
         });
-      })
-      .catch((err: unknown) => {
+      } catch (err) {
         if (cancelled) return;
         setState((p) => ({
           ...p,
           isStarting: false,
           error: err instanceof Error ? err.message : String(err),
         }));
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -256,16 +335,22 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
       sessionIdRef.current = null;
       currentAssistantIdRef.current = null;
       currentMessageIdRef.current = null;
-      setState({
+      // Reset session-specific state but PRESERVE the health check —
+      // the health effect is gated on [active] and doesn't re-run on
+      // restart, so wiping health here would leave it null forever and
+      // permanently disable the submit button. Errors are also cleared
+      // so a stale message doesn't bleed into the new session.
+      setState((p) => ({
+        ...p,
         sessionId: null,
+        conversationId: null,
         messages: [],
         isStreaming: false,
         isStarting: false,
-        health: null,
         error: null,
-      });
+      }));
     };
-  }, [active, resetCounter, appendPartToCurrentAssistant]);
+  }, [active, resumeFromConversationId, restartCounter, appendPartToCurrentAssistant]);
 
   // ─── Send message ────────────────────────────────────────────────
 
@@ -275,9 +360,6 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
     const id = sessionIdRef.current;
     if (!id) throw new Error("Copilot session not ready");
 
-    // Optimistically append the user message and flip to streaming. The
-    // assistant message is created lazily when the first stream frame
-    // arrives (we don't know its messageId yet).
     setState((p) => ({
       ...p,
       isStreaming: true,
@@ -312,16 +394,22 @@ export function useCopilotSession(active: boolean): UseCopilotSessionApi {
     }
   }, []);
 
-  const reset = useCallback(() => {
-    // Bumping the counter triggers the start-session effect's cleanup (which
-    // DELETEs the old server session) and re-runs it to create a fresh one.
-    // The state is reset by the cleanup branch's setState call.
-    setResetCounter((n) => n + 1);
+  const startNew = useCallback(() => {
+    // Clear any resume target and bump the restart counter so the
+    // start-session effect re-runs even when resumeFromConversationId is
+    // already null (which is the common "I just opened the panel" case).
+    setResumeFromConversationId(null);
+    setRestartCounter((n) => n + 1);
+  }, []);
+
+  const switchConversation = useCallback((conversationId: string) => {
+    setResumeFromConversationId(conversationId);
   }, []);
 
   return {
     ...state,
     sendMessage,
-    reset,
+    startNew,
+    switchConversation,
   };
 }

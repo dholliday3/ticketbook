@@ -6,6 +6,7 @@ import { BunPtyHeadlessBackend, type TerminalSession } from "./terminal/index.js
 import { listTerminalTabs, upsertTerminalTab, getNextTabNumber, deleteTerminalTab } from "./db.js";
 import { createDebug } from "./debug.js";
 import { CopilotManager, type CopilotMessagePart } from "./copilot/index.js";
+import { StubCopilotProvider } from "./copilot/stub-provider.js";
 import { getConfig } from "@ticketbook/core";
 import type { ServerMessage } from "@ticketbook/core";
 
@@ -65,7 +66,15 @@ export function startServer(config: ServerConfig): ServerHandle {
   // Copilot session manager — wraps the Claude Code provider, owns per-session
   // MCP config files. Pass binPath through so the spawned CLI can call back
   // into ticketbook's own MCP server.
-  const copilot = new CopilotManager({ ticketsDir, binPath });
+  // E2E tests set COPILOT_PROVIDER=stub to inject a fake provider that
+  // streams scripted responses without spawning real `claude` (no LLM cost,
+  // no install requirement).
+  const useStub = process.env.COPILOT_PROVIDER === "stub";
+  const copilot = new CopilotManager({
+    ticketsDir,
+    binPath,
+    provider: useStub ? new StubCopilotProvider() : undefined,
+  });
 
   const routes = createRoutes(ticketsDir, plansDir, copilot);
 

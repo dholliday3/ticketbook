@@ -40,6 +40,23 @@ export interface CopilotSessionEvents {
   done: (sessionId: string) => void;
 }
 
+/**
+ * Minimal provider contract the manager talks to. Lets us swap in a
+ * stub provider for e2e tests without spawning real `claude` (and
+ * without the manager caring which one it's using). The real provider
+ * is `ClaudeCodeProvider`; the test stub is `StubCopilotProvider`.
+ */
+export interface CopilotProvider {
+  readonly id: CopilotProviderId | "stub";
+  checkHealth(): Promise<CopilotProviderHealth>;
+  startSession(sessionId: string, opts: CopilotSessionOptions & { mcpConfigPath?: string }): void;
+  sendMessage(sessionId: string, text: string): Promise<void>;
+  stopSession(sessionId: string): void;
+  stopAll(): void;
+  getConversationId(sessionId: string): string | null;
+  on<E extends keyof CopilotSessionEvents>(event: E, listener: CopilotSessionEvents[E]): this;
+}
+
 /** Options accepted when creating a copilot session. */
 export interface CopilotSessionOptions {
   /** Working directory the spawned CLI runs in. Defaults to the project root. */
@@ -52,4 +69,13 @@ export interface CopilotSessionOptions {
    * any other servers the user has configured).
    */
   mcpConfig?: Record<string, unknown>;
+  /**
+   * Optional Claude Code conversation/session ID to resume from. When set,
+   * the very first sendMessage call will pass `--resume <id>` to claude
+   * instead of starting a fresh conversation. This is how we restore prior
+   * conversations across page refreshes — Claude Code persists every
+   * conversation as JSONL on disk, and `--resume` reloads the full history
+   * into the agent's context.
+   */
+  conversationId?: string;
 }

@@ -59,7 +59,13 @@ async function main(): Promise<void> {
     {
       stdio: "inherit",
       cwd: REPO_ROOT,
-      env: { ...process.env, NODE_ENV: "production" },
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        // E2E tests use a scripted stub provider so they don't need
+        // Claude Code installed and don't burn LLM tokens.
+        COPILOT_PROVIDER: "stub",
+      },
     },
   );
 

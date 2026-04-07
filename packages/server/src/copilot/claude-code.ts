@@ -80,7 +80,11 @@ export class ClaudeCodeProvider extends EventEmitter {
       cwd: opts.cwd ?? process.cwd(),
       systemPrompt: opts.systemPrompt ?? null,
       mcpConfigPath: opts.mcpConfigPath ?? null,
-      conversationId: null,
+      // If a conversationId is provided up-front (resuming a prior
+      // conversation), pre-populate it so the first sendMessage uses
+      // --resume <id>. Otherwise it gets captured from the first turn's
+      // stream events as before.
+      conversationId: opts.conversationId ?? null,
       process: null,
       hasEmittedText: false,
       status: "idle",

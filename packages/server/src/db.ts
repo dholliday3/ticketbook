@@ -9,7 +9,7 @@
 import { Database } from "bun:sqlite";
 import { resolve } from "node:path";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const SCHEMA = `
   CREATE TABLE terminal_tabs (
@@ -19,6 +19,24 @@ const SCHEMA = `
     tab_number INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Copilot conversation metadata. Stores Claude Code's conversation_id
+  -- (the same ID used for --resume), an auto-generated title (first user
+  -- message truncated), timestamps, and message count. The actual chat
+  -- content is NOT stored here — Claude Code persists every conversation
+  -- as JSONL at ~/.claude/projects/<encoded-cwd>/<id>.jsonl, and we just
+  -- replay the agent's context via --resume on the next turn. This table
+  -- exists so the UI can list and switch between prior conversations
+  -- across page refreshes.
+  CREATE TABLE copilot_conversations (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    message_count INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_copilot_conversations_updated
+    ON copilot_conversations(updated_at DESC);
 `;
 
 let db: Database | null = null;
@@ -103,4 +121,71 @@ export function deleteTerminalTab(dataDir: string, id: string): void {
 export function clearTerminalTabs(dataDir: string): void {
   const d = getDb(dataDir);
   d.run("DELETE FROM terminal_tabs");
+}
+
+// --- Copilot conversation persistence ---
+
+export interface CopilotConversationRow {
+  id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  message_count: number;
+}
+
+export function listCopilotConversations(dataDir: string): CopilotConversationRow[] {
+  const d = getDb(dataDir);
+  return d
+    .query(
+      "SELECT id, title, created_at, updated_at, message_count FROM copilot_conversations ORDER BY updated_at DESC",
+    )
+    .all() as CopilotConversationRow[];
+}
+
+export function getCopilotConversation(
+  dataDir: string,
+  id: string,
+): CopilotConversationRow | null {
+  const d = getDb(dataDir);
+  return (
+    (d
+      .query(
+        "SELECT id, title, created_at, updated_at, message_count FROM copilot_conversations WHERE id = ?",
+      )
+      .get(id) as CopilotConversationRow | null) ?? null
+  );
+}
+
+/**
+ * Insert a new conversation row. Caller is responsible for ensuring the id
+ * doesn't already exist (use INSERT OR IGNORE semantics if uncertain).
+ */
+export function recordCopilotConversation(
+  dataDir: string,
+  row: { id: string; title: string },
+): void {
+  const d = getDb(dataDir);
+  const now = Date.now();
+  d.run(
+    "INSERT OR IGNORE INTO copilot_conversations (id, title, created_at, updated_at, message_count) VALUES (?, ?, ?, ?, 1)",
+    [row.id, row.title, now, now],
+  );
+}
+
+/**
+ * Bump updated_at and increment message_count for an existing conversation.
+ * No-op if the conversation doesn't exist (we'd rather drop the bump than
+ * create a row with no title).
+ */
+export function bumpCopilotConversation(dataDir: string, id: string): void {
+  const d = getDb(dataDir);
+  d.run(
+    "UPDATE copilot_conversations SET updated_at = ?, message_count = message_count + 1 WHERE id = ?",
+    [Date.now(), id],
+  );
+}
+
+export function deleteCopilotConversation(dataDir: string, id: string): void {
+  const d = getDb(dataDir);
+  d.run("DELETE FROM copilot_conversations WHERE id = ?", [id]);
 }

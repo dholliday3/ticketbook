@@ -385,10 +385,37 @@ export function createRoutes(
       return json({ sessions: copilot.listSessions() });
     });
 
-    route("POST", "/copilot/sessions", async () => {
-      const result = await copilot.startSession();
+    route("POST", "/copilot/sessions", async (req) => {
+      const body = (await readJsonBody(req).catch(() => ({}))) as {
+        conversationId?: string;
+      };
+      const conversationId =
+        typeof body.conversationId === "string" && body.conversationId.length > 0
+          ? body.conversationId
+          : undefined;
+      const result = await copilot.startSession({ conversationId });
       const meta = copilot.getSession(result.sessionId);
       return json({ sessionId: result.sessionId, session: meta }, 201);
+    });
+
+    // List persisted conversations (newest first). The actual chat content
+    // lives in Claude Code's local store; we only return metadata.
+    route("GET", "/copilot/conversations", async () => {
+      return json({ conversations: copilot.listConversations() });
+    });
+
+    // Load prior messages for a conversation from Claude Code's local
+    // JSONL store. Returns { messages: [] } if the file doesn't exist on
+    // this machine (the panel will still work — Claude Code is the source
+    // of truth and --resume will reload the agent context).
+    route("GET", "/copilot/conversations/:id/messages", async (_req, params) => {
+      const messages = await copilot.loadConversationMessages(params.id);
+      return json({ messages });
+    });
+
+    route("DELETE", "/copilot/conversations/:id", async (_req, params) => {
+      copilot.deleteConversation(params.id);
+      return json({ ok: true });
     });
 
     // Send a turn — fire and forget; output streams over the WebSocket bridge.

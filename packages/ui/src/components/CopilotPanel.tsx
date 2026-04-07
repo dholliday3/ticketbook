@@ -1,4 +1,12 @@
-import { PlusIcon, SparkleIcon, WrenchIcon, XIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  SparkleIcon,
+  Trash2Icon,
+  WrenchIcon,
+  XIcon,
+} from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -30,8 +38,17 @@ import {
   Suggestion,
   Suggestions,
 } from "@/components/ai-elements/suggestion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCopilotSession, type CopilotPart } from "@/hooks/useCopilotSession";
+import { useCopilotConversations } from "@/hooks/useCopilotConversations";
 import { cn } from "@/lib/utils";
 
 interface CopilotPanelProps {
@@ -71,6 +88,21 @@ interface CopilotPanelProps {
 export function CopilotPanel({ onClose }: CopilotPanelProps) {
   const session = useCopilotSession(true);
 
+  // Bumps every time a turn finishes streaming, used as a refetch key
+  // for the conversations list so newly created or updated conversations
+  // appear in the dropdown without a manual reload.
+  const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
+  useEffect(() => {
+    if (!session.isStreaming) {
+      setConversationsRefreshKey((n) => n + 1);
+    }
+  }, [session.isStreaming]);
+
+  const { conversations, remove: deleteConversation } = useCopilotConversations(
+    true,
+    conversationsRefreshKey,
+  );
+
   // PromptInput owns the textarea state via FormData (the textarea has
   // name="message"). We just receive the submitted text in the handler.
   const handleSubmit = async (message: PromptInputMessage): Promise<void> => {
@@ -80,6 +112,16 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
 
   const handleSuggestionClick = (suggestion: string) => {
     void session.sendMessage(suggestion);
+  };
+
+  const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (id === session.conversationId) {
+      // Deleting the active conversation: start a fresh one first
+      session.startNew();
+    }
+    await deleteConversation(id);
   };
 
   const canSubmit =
@@ -100,30 +142,94 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
 
   const isEmpty = session.messages.length === 0;
 
+  const activeConversation =
+    session.conversationId
+      ? conversations.find((c) => c.id === session.conversationId) ?? null
+      : null;
+  const headerTitle = activeConversation?.title ?? "New conversation";
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
-        {/* Custom header — canonical chatbot doesn't have one but we want
-            the version + close + new conversation controls visible. */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-border bg-card px-3 py-2">
-          <div className="flex items-center gap-2">
-            <SparkleIcon className="size-3.5 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Assistant
-            </span>
-            {session.health?.cliVersion && (
-              <span className="text-xs text-muted-foreground/70">
-                · {session.health.cliVersion.replace(/\s*\(.*\)$/, "")}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
+        {/* Custom header with conversation switcher dropdown + new + close. */}
+        <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Switch conversation"
+              data-testid="copilot-conversation-trigger"
+              className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <SparkleIcon className="size-3.5 shrink-0" />
+              <span className="truncate font-semibold">{headerTitle}</span>
+              {session.health?.cliVersion && !activeConversation && (
+                <span className="shrink-0 text-muted-foreground/60">
+                  · {session.health.cliVersion.replace(/\s*\(.*\)$/, "")}
+                </span>
+              )}
+              <ChevronDownIcon className="size-3 shrink-0 opacity-60" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="max-h-[60vh] min-w-[260px] overflow-y-auto"
+              data-testid="copilot-conversations-menu"
+            >
+              <DropdownMenuItem
+                onSelect={() => session.startNew()}
+                data-testid="copilot-new-conversation"
+                className="gap-2"
+              >
+                <PlusIcon className="size-4" />
+                <span>New conversation</span>
+              </DropdownMenuItem>
+              {conversations.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Recent
+                  </DropdownMenuLabel>
+                  {conversations.map((c) => {
+                    const isActive = c.id === session.conversationId;
+                    return (
+                      <DropdownMenuItem
+                        key={c.id}
+                        onSelect={() => session.switchConversation(c.id)}
+                        data-testid="copilot-conversation-item"
+                        data-conversation-id={c.id}
+                        className={cn(
+                          "group flex items-start gap-2",
+                          isActive && "bg-accent",
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm">{c.title}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {formatRelative(c.updated_at)} · {c.message_count}{" "}
+                            {c.message_count === 1 ? "turn" : "turns"}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => void handleDeleteConversation(c.id, e)}
+                          aria-label={`Delete conversation: ${c.title}`}
+                          className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </button>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
-              onClick={session.reset}
+              onClick={() => session.startNew()}
               disabled={session.isStreaming || isEmpty}
               aria-label="New conversation"
               title="New conversation"
+              data-testid="copilot-new-conversation-button"
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
             >
               <PlusIcon className="size-4" />
@@ -162,7 +268,11 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
                 session.messages.map((msg) => (
                   <MessageBranch defaultBranch={0} key={msg.id}>
                     <MessageBranchContent>
-                      <Message from={msg.role}>
+                      <Message
+                        from={msg.role}
+                        data-testid="copilot-message"
+                        data-role={msg.role}
+                      >
                         {msg.parts.map((part, i) => (
                           <CopilotPartView
                             key={`${msg.id}-${i}`}
@@ -313,3 +423,16 @@ const STARTER_SUGGESTIONS = [
   "Summarize the open backlog by tag",
   "Draft a ticket: fix terminal scrollback bug",
 ];
+
+function formatRelative(ms: number): string {
+  const diff = Date.now() - ms;
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return new Date(ms).toLocaleDateString();
+}
