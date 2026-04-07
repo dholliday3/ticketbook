@@ -1,84 +1,241 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { SparkleIcon, WrenchIcon, XIcon } from "lucide-react";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+  type PromptInputMessage,
+} from "@/components/ai-elements/prompt-input";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCopilotSession, type CopilotPart } from "@/hooks/useCopilotSession";
+import { cn } from "@/lib/utils";
 
 interface CopilotPanelProps {
   onClose: () => void;
 }
 
-interface CopilotHealth {
-  providerId: string;
-  status: "ready" | "not_installed" | "not_authenticated" | "error";
-  cliVersion: string | null;
-  error: string | null;
-}
-
 /**
- * Placeholder copilot panel — wired to the backend health endpoint so we can
- * verify the right-rail plumbing end-to-end before the real ai-elements UI
- * lands in Phase 4. Once Phase 3 (Tailwind + ai-elements) is in place this
- * file gets replaced with the real Conversation/Message/Reasoning rendering.
+ * Right-rail copilot panel — talks to the headless Claude Code provider via
+ * /api/copilot. Built on ai-elements for the chat shell (Conversation,
+ * Message, Reasoning, PromptInput) plus a small custom Tool block since
+ * ai-elements' <Tool> expects Vercel AI SDK tool-call shapes that our
+ * server-side stream-json parser doesn't emit. Phase 6 will pair tool_use
+ * and tool_result on the server side and switch to <Tool> proper.
  */
 export function CopilotPanel({ onClose }: CopilotPanelProps) {
-  const [health, setHealth] = useState<CopilotHealth | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const session = useCopilotSession(true);
+  const [pendingText, setPendingText] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/copilot/health")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data: CopilotHealth) => {
-        if (!cancelled) setHealth(data);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const handleSubmit = async (
+    message: PromptInputMessage,
+  ): Promise<void> => {
+    if (!message.text.trim()) return;
+    setPendingText("");
+    await session.sendMessage(message.text);
+  };
+
+  const inputDisabled =
+    session.isStarting ||
+    session.isStreaming ||
+    !session.sessionId ||
+    session.health?.status !== "ready";
 
   return (
-    <div className="copilot-pane">
-      <div className="copilot-pane-header">
-        <span className="copilot-pane-title">Assistant</span>
-        <button
-          className="copilot-pane-close"
-          onClick={onClose}
-          aria-label="Close assistant"
-          title="Close"
-        >
-          &times;
-        </button>
-      </div>
-      <div className="copilot-pane-body">
-        {error && <div className="copilot-pane-error">Error: {error}</div>}
-        {!error && !health && <div className="copilot-pane-empty">Checking provider…</div>}
-        {health && (
-          <div className="copilot-pane-empty">
-            <p>
-              <strong>Provider:</strong> {health.providerId}
-            </p>
-            <p>
-              <strong>Status:</strong> {health.status}
-            </p>
-            {health.cliVersion && (
-              <p>
-                <strong>CLI:</strong> {health.cliVersion}
-              </p>
+    <TooltipProvider delayDuration={200}>
+      <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
+        {/* Header */}
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-border bg-card px-3 py-2">
+          <div className="flex items-center gap-2">
+            <SparkleIcon className="size-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Assistant
+            </span>
+            {session.health?.cliVersion && (
+              <span className="text-xs text-muted-foreground/70">
+                · {session.health.cliVersion.replace(/\s*\(.*\)$/, "")}
+              </span>
             )}
-            {health.error && (
-              <p>
-                <strong>Error:</strong> {health.error}
-              </p>
-            )}
-            <p style={{ marginTop: 16, opacity: 0.6 }}>
-              The full assistant UI lands in Phase 4 once ai-elements is wired up.
-            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close assistant"
+            title="Close"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
+
+        {/* Error banner */}
+        {session.error && (
+          <div className="flex-shrink-0 border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {session.error}
           </div>
         )}
+
+        {/* Conversation */}
+        <Conversation className="min-h-0 flex-1">
+          <ConversationContent className="gap-4 p-3">
+            {session.messages.length === 0 ? (
+              <ConversationEmptyState
+                title="What are we building?"
+                description="Ask me to draft a ticket, plan an epic, or read your existing tickets."
+                icon={<SparkleIcon className="size-6" />}
+              />
+            ) : (
+              session.messages.map((msg) => (
+                <Message key={msg.id} from={msg.role}>
+                  <MessageContent>
+                    {msg.parts.map((part, i) => (
+                      <CopilotPartView
+                        key={`${msg.id}-${i}`}
+                        part={part}
+                        isStreaming={
+                          session.isStreaming &&
+                          msg.role === "assistant" &&
+                          i === msg.parts.length - 1
+                        }
+                      />
+                    ))}
+                  </MessageContent>
+                </Message>
+              ))
+            )}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+
+        {/* Prompt input */}
+        <div className="flex-shrink-0 border-t border-border p-3">
+          <PromptInput onSubmit={handleSubmit}>
+            <PromptInputBody>
+              <PromptInputTextarea
+                value={pendingText}
+                onChange={(e) => setPendingText(e.target.value)}
+                placeholder={
+                  inputDisabled && session.isStreaming
+                    ? "Generating…"
+                    : "Ask the assistant…"
+                }
+                disabled={inputDisabled && !session.isStreaming}
+              />
+              <PromptInputFooter>
+                <PromptInputTools>
+                  <span className="text-xs text-muted-foreground/70">
+                    {session.isStreaming
+                      ? "Streaming…"
+                      : session.sessionId
+                        ? "Ready"
+                        : session.isStarting
+                          ? "Starting…"
+                          : "Not connected"}
+                  </span>
+                  <PromptInputSubmit
+                    status={session.isStreaming ? "streaming" : undefined}
+                    disabled={!pendingText.trim() || inputDisabled}
+                  />
+                </PromptInputTools>
+              </PromptInputFooter>
+            </PromptInputBody>
+          </PromptInput>
+        </div>
       </div>
+    </TooltipProvider>
+  );
+}
+
+// ─── Part renderers ────────────────────────────────────────────────
+
+function CopilotPartView({
+  part,
+  isStreaming,
+}: {
+  part: CopilotPart;
+  isStreaming: boolean;
+}) {
+  switch (part.type) {
+    case "text":
+      return <MessageResponse>{part.content}</MessageResponse>;
+
+    case "thinking":
+      return (
+        <Reasoning isStreaming={isStreaming}>
+          <ReasoningTrigger />
+          <ReasoningContent>{part.content}</ReasoningContent>
+        </Reasoning>
+      );
+
+    case "tool_use":
+      return <ToolBlock kind="use" name={part.toolName} body={part.content} />;
+
+    case "tool_result":
+      // For tool_result the server stuffs the tool_use_id into toolName, so
+      // we don't have a friendly name to show — just label as "Result".
+      return <ToolBlock kind="result" body={part.content} />;
+
+    case "error":
+      return (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {part.content}
+        </div>
+      );
+  }
+}
+
+function ToolBlock({
+  kind,
+  name,
+  body,
+}: {
+  kind: "use" | "result";
+  name?: string;
+  body: string;
+}) {
+  // Try to pretty-print JSON; fall back to raw text.
+  let pretty = body;
+  try {
+    pretty = JSON.stringify(JSON.parse(body), null, 2);
+  } catch {
+    /* not JSON, leave as-is */
+  }
+  return (
+    <div
+      className={cn(
+        "not-prose rounded-md border text-xs",
+        kind === "use"
+          ? "border-border bg-muted/40"
+          : "border-border bg-muted/20",
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-border px-2.5 py-1.5">
+        <WrenchIcon className="size-3 text-muted-foreground" />
+        <span className="font-medium text-muted-foreground">
+          {kind === "use" ? (name ?? "tool call") : "result"}
+        </span>
+      </div>
+      <pre className="overflow-x-auto px-2.5 py-2 font-mono text-[11px] leading-relaxed text-foreground/80">
+        {pretty}
+      </pre>
     </div>
   );
 }

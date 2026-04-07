@@ -22,7 +22,7 @@ function makeSessionShim(): ParserSession {
     mcpConfigPath: null,
     conversationId: null,
     process: null,
-    receivedDeltas: false,
+    hasEmittedText: false,
     status: "idle",
   };
 }
@@ -44,7 +44,7 @@ describe("ClaudeCodeProvider.parseStreamJsonLine", () => {
     });
     const parts = p.parseStreamJsonLine(line, session);
     expect(parts).toEqual([{ type: "text", content: "Hello" }]);
-    expect(session.receivedDeltas).toBe(true);
+    expect(session.hasEmittedText).toBe(true);
   });
 
   it("parses a thinking_delta into a thinking part", () => {
@@ -75,26 +75,37 @@ describe("ClaudeCodeProvider.parseStreamJsonLine", () => {
     expect(session.conversationId).toBe("first");
   });
 
-  it("drops final assistant block if deltas were already streamed (dedup)", () => {
+  it("emits multiple assistant blocks within one turn (intro + post-tool conclusion)", () => {
+    // A single turn can contain several assistant blocks: an intro text, a
+    // tool_use, the tool_result, then a post-tool conclusion. All of them
+    // must reach the client — only the trailing `result` summary is deduped.
     const p = new ClaudeCodeProvider();
     const session = makeSessionShim();
 
-    // Stream a delta first to set the flag.
-    p.parseStreamJsonLine(
+    const intro = p.parseStreamJsonLine(
       JSON.stringify({
-        type: "content_block_delta",
-        delta: { type: "text_delta", text: "streamed " },
+        type: "assistant",
+        message: { content: [{ type: "text", text: "Let me check..." }] },
       }),
       session,
     );
+    expect(intro).toEqual([{ type: "text", content: "Let me check..." }]);
 
-    // Then deliver the final assistant block — should be dropped.
-    const finalLine = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "text", text: "streamed text" }] },
-    });
-    const parts = p.parseStreamJsonLine(finalLine, session);
-    expect(parts).toEqual([]);
+    const conclusion = p.parseStreamJsonLine(
+      JSON.stringify({
+        type: "assistant",
+        message: { content: [{ type: "text", text: "Done — focus on TKTB-018." }] },
+      }),
+      session,
+    );
+    expect(conclusion).toEqual([{ type: "text", content: "Done — focus on TKTB-018." }]);
+
+    // Trailing result summary must be deduped — both assistant blocks already shipped.
+    const result = p.parseStreamJsonLine(
+      JSON.stringify({ type: "result", result: "Done — focus on TKTB-018." }),
+      session,
+    );
+    expect(result).toEqual([]);
   });
 
   it("emits assistant block when no deltas were streamed", () => {
@@ -108,10 +119,38 @@ describe("ClaudeCodeProvider.parseStreamJsonLine", () => {
     expect(parts).toEqual([{ type: "text", content: "Final answer." }]);
   });
 
+  it("dedups result text when an assistant block already delivered it (no deltas)", () => {
+    // Regression: when Claude Code skips streaming deltas and delivers the
+    // final answer as one assistant block followed by a result block, the
+    // dedup flag must be set by the assistant block too — otherwise the
+    // result block re-emits the same text and the user sees it twice.
+    const p = new ClaudeCodeProvider();
+    const session = makeSessionShim();
+
+    const assistantParts = p.parseStreamJsonLine(
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          content: [{ type: "text", text: "## Answer\nfoo" }],
+        },
+      }),
+      session,
+    );
+    expect(assistantParts).toEqual([{ type: "text", content: "## Answer\nfoo" }]);
+    expect(session.hasEmittedText).toBe(true);
+
+    // Trailing result with the same content — must be dropped.
+    const resultParts = p.parseStreamJsonLine(
+      JSON.stringify({ type: "result", result: "## Answer\nfoo", session_id: "conv-1" }),
+      session,
+    );
+    expect(resultParts).toEqual([]);
+  });
+
   it("emits result text only when no deltas were streamed", () => {
     const p = new ClaudeCodeProvider();
     const sessionWithDeltas = makeSessionShim();
-    sessionWithDeltas.receivedDeltas = true;
+    sessionWithDeltas.hasEmittedText = true;
     const sessionWithoutDeltas = makeSessionShim();
 
     const line = JSON.stringify({ type: "result", result: "done", session_id: "conv-xyz" });

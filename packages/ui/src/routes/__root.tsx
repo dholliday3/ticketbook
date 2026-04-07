@@ -1,5 +1,5 @@
 import { createRootRoute, Outlet, useMatch, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { AppProvider, useAppContext } from "../context/AppContext";
 import type { ViewMode } from "../context/AppContext";
 import { FilterChip } from "../components/FilterChip";
@@ -8,7 +8,13 @@ import { CreatePlanModal } from "../components/CreatePlanModal";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { DeleteConfirmDialog } from "../components/DeleteConfirmDialog";
 import { TerminalPane } from "../components/TerminalPane";
-import { CopilotPanel } from "../components/CopilotPanel";
+
+// Lazy-loaded so the ai-elements/streamdown/shiki tree (~1MB+) only loads
+// when the user opens the assistant panel for the first time. Without this
+// the initial bundle balloons by ~5x.
+const CopilotPanel = lazy(() =>
+  import("../components/CopilotPanel").then((m) => ({ default: m.CopilotPanel })),
+);
 import { patchTicket } from "../api";
 import type { Status, Priority, Ticket } from "../types";
 import "../App.css";
@@ -527,7 +533,11 @@ function RootLayoutInner() {
                 <div className="right-rail-drag-handle" onMouseDown={ctx.handleRightRailDragStart} />
                 <div className="right-rail-side" style={{ width: ctx.rightRailWidth }}>
                   {ctx.terminalOpen && <TerminalPane onClose={ctx.handleToggleTerminal} />}
-                  {ctx.assistantOpen && <CopilotPanel onClose={ctx.handleToggleAssistant} />}
+                  {ctx.assistantOpen && (
+                    <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted-foreground">Loading assistant…</div>}>
+                      <CopilotPanel onClose={ctx.handleToggleAssistant} />
+                    </Suspense>
+                  )}
                 </div>
               </>
             )}

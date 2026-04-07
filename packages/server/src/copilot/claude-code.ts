@@ -18,11 +18,12 @@ interface InternalSession {
   /** The currently running CLI process for this session, if any. */
   process: ChildProcess | null;
   /**
-   * Per-message flag set when we receive an incremental delta block. If true,
-   * we drop the final `assistant`/`result` blocks to avoid emitting the same
-   * text twice. Reset on every sendMessage call.
+   * Per-turn flag set the first time text/thinking content is delivered for
+   * the current message (via deltas, an assistant block, or content_block_*
+   * events). Used to drop the trailing `result` block, which is a duplicate
+   * summary claude-code emits as a convenience. Reset on every sendMessage.
    */
-  receivedDeltas: boolean;
+  hasEmittedText: boolean;
   status: "idle" | "busy" | "stopped";
 }
 
@@ -81,7 +82,7 @@ export class ClaudeCodeProvider extends EventEmitter {
       mcpConfigPath: opts.mcpConfigPath ?? null,
       conversationId: null,
       process: null,
-      receivedDeltas: false,
+      hasEmittedText: false,
       status: "idle",
     });
   }
@@ -101,9 +102,23 @@ export class ClaudeCodeProvider extends EventEmitter {
     }
 
     session.status = "busy";
-    session.receivedDeltas = false;
+    session.hasEmittedText = false;
 
-    const args: string[] = ["-p", "--output-format", "stream-json", "--verbose"];
+    const args: string[] = [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      // Headless mode has no interactive stdin for permission prompts, so
+      // tool calls would otherwise hang. Bypass the prompts since the user
+      // explicitly opened the copilot panel and the tools they expose are
+      // scoped to the per-session MCP config (currently just ticketbook's
+      // own tickets/plans server). Phase 6 should narrow this further by
+      // passing --allowedTools "mcp__ticketbook__*" and disallowing the
+      // built-in Bash/Edit/Write tools.
+      "--permission-mode",
+      "bypassPermissions",
+    ];
 
     if (session.conversationId) {
       args.push("--resume", session.conversationId);
@@ -237,10 +252,17 @@ export class ClaudeCodeProvider extends EventEmitter {
       session.conversationId = json.conversation_id as string;
     }
 
+    // Helper: did this batch of parts contain any text/thinking content? Used
+    // by the result-block dedup below.
+    const hasTextLike = (xs: CopilotMessagePart[]) =>
+      xs.some((p) => p.type === "text" || p.type === "thinking");
+
     switch (type) {
       case "assistant": {
-        // Final assistant block — skip if we already streamed deltas to avoid duplication.
-        if (session.receivedDeltas) break;
+        // Always emit. A single turn can contain multiple assistant blocks
+        // (intro text → tool_use → post-tool conclusion), and dropping any
+        // of them would lose visible content. The duplication risk we care
+        // about is the trailing `result` block, which we dedup separately.
         const message = json.message as Record<string, unknown> | undefined;
         const content = (message?.content ?? json.content) as
           | Array<Record<string, unknown>>
@@ -248,23 +270,27 @@ export class ClaudeCodeProvider extends EventEmitter {
         if (Array.isArray(content)) {
           for (const block of content) parts.push(...this.parseContentBlock(block));
         }
+        // Mark that text has been delivered so the trailing result block skips.
+        if (hasTextLike(parts)) session.hasEmittedText = true;
         break;
       }
 
       case "content_block_start": {
-        session.receivedDeltas = true;
+        // Streaming has begun; subsequent result text must be deduped.
+        session.hasEmittedText = true;
         break;
       }
 
       case "content_block_delta": {
-        session.receivedDeltas = true;
         const delta = json.delta as Record<string, unknown> | undefined;
         if (!delta) break;
         const deltaType = delta.type as string | undefined;
         if (deltaType === "text_delta" && typeof delta.text === "string") {
           parts.push({ type: "text", content: delta.text });
+          session.hasEmittedText = true;
         } else if (deltaType === "thinking_delta" && typeof delta.thinking === "string") {
           parts.push({ type: "thinking", content: delta.thinking });
+          session.hasEmittedText = true;
         } else if (deltaType === "input_json_delta" && typeof delta.partial_json === "string") {
           parts.push({ type: "tool_use", content: delta.partial_json });
         }
@@ -272,18 +298,20 @@ export class ClaudeCodeProvider extends EventEmitter {
       }
 
       case "result": {
-        // Final summary — skip text if we already streamed deltas. Still capture
-        // the session ID in case it only appears here.
+        // Final summary — claude-code repeats the last assistant message text
+        // here as a convenience for non-streaming consumers. We've already
+        // delivered it via assistant/delta events, so drop it.
         if (typeof json.session_id === "string") {
           session.conversationId = json.session_id;
         }
-        if (session.receivedDeltas) break;
+        if (session.hasEmittedText) break;
         const result = json.result as string | undefined;
         if (result) parts.push({ type: "text", content: result });
         const content = json.content as Array<Record<string, unknown>> | undefined;
         if (Array.isArray(content)) {
           for (const block of content) parts.push(...this.parseContentBlock(block));
         }
+        if (hasTextLike(parts)) session.hasEmittedText = true;
         break;
       }
 

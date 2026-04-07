@@ -2614,66 +2614,6 @@ kbd {
   background: var(--bg-hover);
 }
 
-/* Copilot panel (placeholder until ai-elements lands in Phase 4) */
-.copilot-pane {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  color: var(--text);
-}
-
-.copilot-pane-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: #151528;
-  flex-shrink: 0;
-}
-
-.copilot-pane-title {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
-}
-
-.copilot-pane-close {
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-.copilot-pane-close:hover {
-  background: var(--bg-hover);
-  color: var(--tb-accent);
-}
-
-.copilot-pane-body {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  font-size: 13px;
-}
-
-.copilot-pane-empty,
-.copilot-pane-error {
-  color: var(--text-dim);
-  line-height: 1.5;
-}
-
-.copilot-pane-error {
-  color: #ff6b6b;
-}
-
 .terminal-pane {
   display: flex;
   flex-direction: column;
