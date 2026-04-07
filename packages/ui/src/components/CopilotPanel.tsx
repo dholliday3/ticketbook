@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { PlusIcon, SparkleIcon, WrenchIcon, XIcon } from "lucide-react";
 import {
   Conversation,
@@ -44,21 +43,34 @@ interface CopilotPanelProps {
  */
 export function CopilotPanel({ onClose }: CopilotPanelProps) {
   const session = useCopilotSession(true);
-  const [pendingText, setPendingText] = useState("");
 
-  const handleSubmit = async (
-    message: PromptInputMessage,
-  ): Promise<void> => {
+  // PromptInput owns the textarea state via FormData (the textarea has
+  // name="message"). We just receive the submitted text in the handler.
+  const handleSubmit = async (message: PromptInputMessage): Promise<void> => {
     if (!message.text.trim()) return;
-    setPendingText("");
     await session.sendMessage(message.text);
   };
 
-  const inputDisabled =
-    session.isStarting ||
-    session.isStreaming ||
-    !session.sessionId ||
-    session.health?.status !== "ready";
+  // The session has to be both ready (CLI installed + session created) AND
+  // not currently streaming for the user to be able to send a new turn.
+  // We only gate the *submit* button on this — never the textarea itself,
+  // because disabling the textarea also blocks typing the next prompt
+  // while a response is still streaming.
+  const canSubmit =
+    !session.isStarting &&
+    !session.isStreaming &&
+    session.sessionId !== null &&
+    session.health?.status === "ready";
+
+  const statusLabel = session.isStreaming
+    ? "Streaming…"
+    : session.isStarting
+      ? "Starting…"
+      : session.sessionId
+        ? "Ready"
+        : session.health?.status === "not_installed"
+          ? "Claude Code not installed"
+          : "Not connected";
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -138,38 +150,26 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
           <ConversationScrollButton />
         </Conversation>
 
-        {/* Prompt input */}
-        <div className="flex-shrink-0 border-t border-border p-3">
+        {/* Prompt input — uncontrolled textarea, FormData-driven submission.
+            PromptInput renders its own <form> and <InputGroup> with rounded
+            border + footer addon, so we don't wrap it in another bordered
+            div. Footer holds Tools (left) and Submit (right) as siblings. */}
+        <div className="flex-shrink-0 p-3">
           <PromptInput onSubmit={handleSubmit}>
             <PromptInputBody>
-              <PromptInputTextarea
-                value={pendingText}
-                onChange={(e) => setPendingText(e.target.value)}
-                placeholder={
-                  inputDisabled && session.isStreaming
-                    ? "Generating…"
-                    : "Ask the assistant…"
-                }
-                disabled={inputDisabled && !session.isStreaming}
-              />
-              <PromptInputFooter>
-                <PromptInputTools>
-                  <span className="text-xs text-muted-foreground/70">
-                    {session.isStreaming
-                      ? "Streaming…"
-                      : session.sessionId
-                        ? "Ready"
-                        : session.isStarting
-                          ? "Starting…"
-                          : "Not connected"}
-                  </span>
-                  <PromptInputSubmit
-                    status={session.isStreaming ? "streaming" : undefined}
-                    disabled={!pendingText.trim() || inputDisabled}
-                  />
-                </PromptInputTools>
-              </PromptInputFooter>
+              <PromptInputTextarea placeholder="Ask the assistant…" />
             </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <span className="px-1 text-xs text-muted-foreground">
+                  {statusLabel}
+                </span>
+              </PromptInputTools>
+              <PromptInputSubmit
+                status={session.isStreaming ? "streaming" : undefined}
+                disabled={!canSubmit}
+              />
+            </PromptInputFooter>
           </PromptInput>
         </div>
       </div>
