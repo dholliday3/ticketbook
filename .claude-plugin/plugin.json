@@ -1,0 +1,14 @@
+{
+  "name": "ticketbook",
+  "version": "0.1.0",
+  "description": "Local-first ticket and plan tracking. Ships an MCP server and a single skill that teaches agents how to read, create, update, and review tickets and plans.",
+  "author": {
+    "name": "Daniel Holliday"
+  },
+  "mcpServers": {
+    "ticketbook": {
+      "command": "bunx",
+      "args": ["ticketbook", "--mcp"]
+    }
+  }
+}
