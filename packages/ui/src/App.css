@@ -7,20 +7,42 @@
    class on shadcn/ai-elements components, breaking message alignment and
    padding throughout the copilot panel. */
 
+/*
+ * Legacy theme compatibility shim — TKTB-069.
+ *
+ * Every selector below this block (~366 of them, ~2,800 lines) was written
+ * against a hand-rolled `--bg`/`--bg-panel`/`--text`/`--tb-*` palette of
+ * hardcoded hex values. Rather than touch every selector at once, we alias
+ * those legacy var names to the active shadcn theme tokens (defined in
+ * `./themes/<active>.css` and exposed by `./index.css`). This means the
+ * entire legacy surface picks up the active theme automatically — caffeine
+ * by default — and the copilot panel no longer looks like a transplant.
+ *
+ * NEW UI MUST NOT consume these vars or the legacy class names below.
+ * See CLAUDE.md "UI conventions" — use shadcn primitives + Tailwind utility
+ * classes (`bg-background`, `text-foreground`, `border-border`, etc.) that
+ * resolve to the same shadcn tokens directly.
+ *
+ * The long-term goal (TKTB-069 phase 2/3) is to migrate every selector below
+ * to shadcn + Tailwind, then delete this file entirely.
+ */
 :root {
-  --bg: #0f0f0f;
-  --bg-panel: #161616;
-  --bg-hover: #1e1e1e;
-  --bg-active: #252525;
-  --tb-border: #2a2a2a;
-  --text: #e4e4e4;
-  --text-muted: #888;
-  --text-dim: #666;
-  --tb-accent: #3b82f6;
-  --chip-bg: #1e293b;
-  --chip-text: #94a3b8;
-  --tb-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  --bg: var(--background);
+  --bg-panel: var(--card);
+  --bg-hover: var(--accent);
+  --bg-active: var(--accent);
+  --tb-border: var(--border);
+  --text: var(--foreground);
+  --text-muted: var(--muted-foreground);
+  --text-dim: var(--muted-foreground);
+  --tb-accent: var(--primary);
+  --chip-bg: var(--secondary);
+  --chip-text: var(--secondary-foreground);
+  /* Latent bug fix: `var(--hover)` was referenced by some selectors but
+     never defined in the original palette — it silently fell back to unset. */
+  --hover: var(--accent);
+  --tb-font-sans: var(--font-sans);
+  /* --font-mono is already defined by the active theme. */
 }
 
 html,

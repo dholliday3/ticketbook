@@ -5,6 +5,13 @@ import { useAppContext } from "../context/AppContext";
 import { TicketList } from "../components/TicketList";
 import { KanbanBoard } from "../components/KanbanBoard";
 import { TicketDetail } from "../components/TicketDetail";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 import type { Status, Ticket } from "../types";
 
 const ticketsSearchSchema = z.object({
@@ -74,6 +81,23 @@ function TicketsRoute() {
             onCreateInColumn={ctx.handleCreateInColumn}
           />
         )}
+        <Dialog
+          open={activeTicket != null}
+          onOpenChange={(open) => {
+            if (!open) ctx.setActiveTicketId(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-6 pt-10">
+            {activeTicket && (
+              <TicketDetail
+                ticket={activeTicket}
+                meta={ctx.meta}
+                onUpdated={ctx.loadTickets}
+                onDelete={ctx.handleDeleteRequest}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

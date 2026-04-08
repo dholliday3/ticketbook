@@ -2,6 +2,7 @@
 id: TKTB-068
 title: Workspace view — three-panel layout with polymorphic tabs
 status: open
+priority: high
 tags:
   - ui
   - workspace
@@ -14,7 +15,7 @@ relatedTo:
   - TKTB-026
   - TKTB-041
 created: '2026-04-08T05:51:19.290Z'
-updated: '2026-04-08T05:51:19.290Z'
+updated: '2026-04-08T06:37:42.709Z'
 ---
 
 ## Context

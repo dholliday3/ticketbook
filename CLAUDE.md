@@ -4,6 +4,12 @@ Because agents, not code files, have become the core primitive, the app is focus
 
 The goal is to build an app that has the right level of customizability and opinionated design that allows builders to maintain the flow state of building, similar to how developers have configured their code editors to maximize flow state of handwriting code. When we build, we want clean abstractions built around the fundamental primitives of being a builder that leverages agents. Humans need to evaluate, measure, and improve their agents over time, and most tools don't make that easy to do. 
 
+# UI conventions
+- **Always use shadcn components and Tailwind utility classes** for new UI. Compose from `packages/ui/src/components/ui/*` (shadcn primitives) and `packages/ui/src/components/ai-elements/*` (chat primitives) styled with Tailwind utilities that resolve to the active theme tokens (`bg-background`, `text-foreground`, `border-border`, `bg-card`, `bg-muted`, `text-muted-foreground`, `bg-accent`, `bg-primary`, `bg-secondary`, `bg-destructive`, etc.).
+- **Theming** lives in `packages/ui/src/themes/` (artisan-style: each theme is one self-contained CSS file). The active theme is selected by a single `@import` in `packages/ui/src/index.css`. Never hardcode colors, never introduce new CSS custom properties for color/spacing/radius — extend the theme tokens instead.
+- **Anti-pattern: `packages/ui/src/App.css` and the components that depend on it.** That file is ~2,800 lines of legacy hand-rolled CSS (`.ticket-row`, `.kanban-card`, `.dashboard`, `.dialog`, `.combobox`, `.meta-dropdown`, `.tab-bar`, `.terminal-*`, etc.) built against a parallel `--bg` / `--bg-panel` / `--text` palette. The legacy vars are aliased to shadcn tokens via a compatibility shim so the app stays visually unified, but **do not write new selectors there, do not add new components that consume those classes, and prefer migrating a surface to shadcn + Tailwind when you're already touching it for another reason.** The long-term goal is to delete `App.css` entirely.
+- When building net-new UI (e.g., PLAN-004 work), start from shadcn primitives. If a primitive doesn't exist, add it via `bunx shadcn add <component>` rather than hand-rolling one. **This project uses Bun** — always use `bun`/`bunx` (e.g., `bun install`, `bun run dev`, `bun test`, `bunx shadcn add button`), never `npm`/`pnpm`/`yarn`/`npx`.
+
 # Principles 
 - Be extremely open-minded and self-critical. 
 - Focus on moving the needle on productivity and quality, not enforcing rigid patterns. 
