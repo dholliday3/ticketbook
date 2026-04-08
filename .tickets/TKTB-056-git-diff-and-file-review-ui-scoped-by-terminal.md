@@ -6,8 +6,14 @@ tags:
   - terminal
   - ui
   - review
+  - v1-foundations
+blockedBy:
+  - TKTB-055
+relatedTo:
+  - TKTB-046
+  - TKTB-054
 created: '2026-04-06T07:29:45.406Z'
-updated: '2026-04-06T07:29:45.406Z'
+updated: '2026-04-08T05:18:45.483Z'
 ---
 
 ## Context

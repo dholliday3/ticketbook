@@ -4,8 +4,9 @@ title: Agent Editor App
 status: backlog
 tags:
   - brainstorm
+  - deferred-desktop
 created: '2026-04-04T11:31:26.966Z'
-updated: '2026-04-04T11:31:26.966Z'
+updated: '2026-04-08T05:19:40.067Z'
 ---
 
 I want an app where it's easy to view my plans and task tracking, agent sessions, branches and git worktrees, projects, and CI as well. 

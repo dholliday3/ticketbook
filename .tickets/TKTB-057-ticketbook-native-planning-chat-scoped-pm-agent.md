@@ -1,13 +1,14 @@
 ---
 id: TKTB-057
 title: TicketBook-native planning chat (scoped PM agent)
-status: open
+status: backlog
 tags:
   - agent-experience
   - chat
   - planning
+  - deferred-desktop
 created: '2026-04-06T07:30:04.583Z'
-updated: '2026-04-06T07:30:04.583Z'
+updated: '2026-04-08T05:19:40.772Z'
 ---
 
 ## Context

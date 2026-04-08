@@ -6,8 +6,15 @@ tags:
   - terminal
   - agent-experience
   - data-model
+  - v1-foundations
+blockedBy:
+  - TKTB-054
+relatedTo:
+  - TKTB-064
+  - TKTB-065
+  - TKTB-067
 created: '2026-04-06T07:29:26.491Z'
-updated: '2026-04-06T07:29:26.491Z'
+updated: '2026-04-08T05:18:44.054Z'
 ---
 
 ## Context

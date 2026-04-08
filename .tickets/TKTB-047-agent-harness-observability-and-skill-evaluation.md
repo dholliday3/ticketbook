@@ -2,11 +2,12 @@
 id: TKTB-047
 title: Agent harness observability and skill evaluation
 status: open
-created: '2026-04-05T07:15:00.000Z'
-updated: '2026-04-05T07:15:00.000Z'
 tags:
   - agent-experience
   - important
+  - deferred-desktop
+created: '2026-04-05T07:15:00.000Z'
+updated: '2026-04-08T05:19:38.877Z'
 ---
 
 ## The Problem

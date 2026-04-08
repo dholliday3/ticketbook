@@ -6,8 +6,13 @@ tags:
   - terminal
   - shell-integration
   - agent-experience
+  - v1-foundations
+relatedTo:
+  - TKTB-055
+  - TKTB-064
+  - TKTB-046
 created: '2026-04-06T07:28:38.615Z'
-updated: '2026-04-06T07:29:04.270Z'
+updated: '2026-04-08T05:18:43.256Z'
 ---
 
 ## Context
