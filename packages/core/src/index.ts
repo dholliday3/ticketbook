@@ -78,3 +78,6 @@ export {
 export type { CutTicketsResult } from "./plan-writer.js";
 
 export type { ClientMessage, ServerMessage } from "./terminal-protocol.js";
+
+export { initTicketbook, codexMcpInstructions } from "./init.js";
+export type { InitTicketbookOptions, InitTicketbookResult } from "./init.js";

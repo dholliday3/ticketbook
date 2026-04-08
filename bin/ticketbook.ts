@@ -2,7 +2,11 @@
 
 import { resolve, join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { stat, mkdir, writeFile, readFile, appendFile } from "node:fs/promises";
+import { stat } from "node:fs/promises";
+import {
+  initTicketbook,
+  codexMcpInstructions,
+} from "../packages/core/src/init.ts";
 
 interface CliArgs {
   command: "serve" | "init";
@@ -101,55 +105,45 @@ async function resolveTicketsDir(givenPath: string): Promise<string> {
   return withTickets;
 }
 
-/** Scaffold a new .tickets/ and .plans/ directory */
-async function initTicketbook(baseDir: string): Promise<string> {
-  const ticketsDir = join(baseDir, ".tickets");
-  const ticketsArchiveDir = join(ticketsDir, ".archive");
-  const plansDir = join(baseDir, ".plans");
-  const plansArchiveDir = join(plansDir, ".archive");
+/** Resolve the path to the bundled SKILL.md inside the ticketbook package. */
+function resolveSkillSourcePath(): string {
+  // This script lives at <package>/bin/ticketbook.ts; the skill lives at
+  // <package>/skills/ticketbook/SKILL.md. Same relative path whether we're
+  // running from the monorepo or an installed node_modules copy.
+  const scriptDir = dirname(fileURLToPath(import.meta.url));
+  return resolve(scriptDir, "..", "skills", "ticketbook", "SKILL.md");
+}
 
-  await mkdir(ticketsArchiveDir, { recursive: true });
-  await mkdir(plansArchiveDir, { recursive: true });
+/** Print a summary of what init created and next-step instructions. */
+function printInitSummary(
+  baseDir: string,
+  result: Awaited<ReturnType<typeof initTicketbook>>,
+): void {
+  console.log(`Initialized ticketbook at ${result.ticketsDir}`);
 
-  // Create .config.yaml with defaults (skip if exists)
-  const configPath = join(ticketsDir, ".config.yaml");
-  try {
-    await stat(configPath);
-  } catch {
-    await writeFile(configPath, "prefix: TKT\nplanPrefix: PLAN\ndeleteMode: archive\n", "utf-8");
+  const created: string[] = [];
+  if (result.wroteSkill) {
+    created.push("  .claude/skills/ticketbook/SKILL.md");
+    created.push("  .agents/skills/ticketbook/SKILL.md");
+  }
+  if (result.wroteMcpConfig) {
+    created.push("  .mcp.json");
+  } else if (result.mergedMcpConfig) {
+    created.push("  .mcp.json (merged ticketbook entry)");
+  }
+  if (result.wroteAgentsMd) {
+    created.push("  AGENTS.md");
   }
 
-  // Create .counter files initialized to 0
-  for (const dir of [ticketsDir, plansDir]) {
-    const counterPath = join(dir, ".counter");
-    try {
-      await stat(counterPath);
-    } catch {
-      await writeFile(counterPath, "0", "utf-8");
-    }
+  if (created.length > 0) {
+    console.log("\nAgent integration files:");
+    for (const line of created) console.log(line);
   }
 
-  // Add archive dirs to .gitignore
-  const gitignorePath = join(baseDir, ".gitignore");
-  const archivePatterns = [".tickets/.archive/", ".plans/.archive/"];
-  try {
-    let existing = await readFile(gitignorePath, "utf-8");
-    for (const pattern of archivePatterns) {
-      if (!existing.includes(pattern)) {
-        const sep = existing.endsWith("\n") ? "" : "\n";
-        existing += `${sep}${pattern}\n`;
-      }
-    }
-    await writeFile(gitignorePath, existing, "utf-8");
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-      await writeFile(gitignorePath, archivePatterns.join("\n") + "\n", "utf-8");
-    } else {
-      throw err;
-    }
-  }
-
-  return ticketsDir;
+  console.log(`\nClaude Code: the .mcp.json will auto-load on next session.`);
+  console.log(`\nCodex: add this to ~/.codex/config.toml:\n`);
+  console.log(codexMcpInstructions());
+  console.log("");
 }
 
 async function main(): Promise<void> {
@@ -158,8 +152,11 @@ async function main(): Promise<void> {
   // --- Init command ---
   if (args.command === "init") {
     const baseDir = args.dir ? resolve(args.dir) : process.cwd();
-    const ticketsDir = await initTicketbook(baseDir);
-    console.log(`Initialized ticketbook at ${ticketsDir}`);
+    const result = await initTicketbook({
+      baseDir,
+      skillSourcePath: resolveSkillSourcePath(),
+    });
+    printInitSummary(baseDir, result);
     return;
   }
 
@@ -176,8 +173,12 @@ async function main(): Promise<void> {
     console.log("No .tickets/ directory found.");
     const answer = prompt("Would you like to initialize one here? (y/N) ");
     if (answer?.toLowerCase() === "y") {
-      ticketsDir = await initTicketbook(process.cwd());
-      console.log(`Initialized ticketbook at ${ticketsDir}`);
+      const result = await initTicketbook({
+        baseDir: process.cwd(),
+        skillSourcePath: resolveSkillSourcePath(),
+      });
+      ticketsDir = result.ticketsDir;
+      printInitSummary(process.cwd(), result);
     } else {
       console.log("Run 'ticketbook init' to create a .tickets/ directory.");
       process.exit(1);
