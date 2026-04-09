@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import type { Plan, PlanStatus } from "../types";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const STATUS_ORDER: { key: PlanStatus; label: string }[] = [
   { key: "active", label: "Active" },
@@ -50,51 +53,68 @@ export function PlanList({ plans, activePlanId, onSelect }: PlanListProps) {
   }
 
   return (
-    <div className="ticket-list">
+    <div className="flex flex-col">
       {STATUS_ORDER.map(({ key, label }) => {
         const group = sortedGroups.get(key) ?? [];
         const isCollapsed = collapsed[key];
 
         return (
-          <div key={key} className="ticket-group">
-            <div className="ticket-group-header-row">
+          <div key={key}>
+            <div className="flex items-center">
               <button
-                className="ticket-group-header"
+                className="flex flex-1 items-center gap-1.5 border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
                 onClick={() => toggleGroup(key)}
                 aria-expanded={!isCollapsed}
               >
-                <span className={`chevron ${isCollapsed ? "collapsed" : ""}`}>&#9662;</span>
-                <span className="group-label">{label}</span>
-                <span className="group-count">{group.length}</span>
+                <CaretDownIcon
+                  className={cn(
+                    "size-2.5 transition-transform",
+                    isCollapsed && "-rotate-90",
+                  )}
+                />
+                <span>{label}</span>
+                <span className="ml-auto font-normal tabular-nums text-muted-foreground">
+                  {group.length}
+                </span>
               </button>
             </div>
             {!isCollapsed && (
-              <div className="ticket-group-items">
-                {group.map((plan) => (
-                  <button
-                    key={plan.id}
-                    className={`ticket-row ${plan.id === activePlanId ? "active" : ""}`}
-                    onClick={() => onSelect(plan)}
-                  >
-                    <div className="ticket-row-content">
-                      <div className="ticket-row-main">
-                        <span className="ticket-title">{plan.title}</span>
-                      </div>
-                      <div className="ticket-row-meta">
-                        <span className="ticket-id">{plan.id}</span>
-                        {plan.tasks && plan.tasks.length > 0 && (
-                          <span className="tag-chip">
-                            {plan.tasks.length} task{plan.tasks.length !== 1 ? "s" : ""}
+              <div>
+                {group.map((plan) => {
+                  const isActive = plan.id === activePlanId;
+                  return (
+                    <button
+                      key={plan.id}
+                      className={cn(
+                        "relative flex w-full items-center border-b border-border px-3 py-2 text-left transition-colors hover:bg-accent",
+                        isActive && "border-l-2 border-l-primary bg-accent pl-[10px]",
+                      )}
+                      onClick={() => onSelect(plan)}
+                    >
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-[13px] font-semibold">{plan.title}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono text-[11px] text-muted-foreground">{plan.id}</span>
+                          {plan.tasks && plan.tasks.length > 0 && (
+                            <Badge variant="secondary">
+                              {plan.tasks.length} task{plan.tasks.length !== 1 ? "s" : ""}
+                            </Badge>
+                          )}
+                          {plan.tags?.map((tag) => (
+                            <Badge key={tag} variant="secondary">
+                              {tag}
+                            </Badge>
+                          ))}
+                          <span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">
+                            {relativeTime(plan.updated)}
                           </span>
-                        )}
-                        {plan.tags?.map((tag) => (
-                          <span key={tag} className="tag-chip">{tag}</span>
-                        ))}
-                        <span className="ticket-time">{relativeTime(plan.updated)}</span>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

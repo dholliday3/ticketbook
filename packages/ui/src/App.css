@@ -811,18 +811,6 @@ kbd {
   color: var(--text-muted);
 }
 
-.assignee-indicator {
-  font-size: 10px;
-  color: var(--text-dim);
-  background: var(--bg-hover);
-  padding: 1px 5px;
-  border-radius: 8px;
-  white-space: nowrap;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* List content wrapper */
 .list-content {
   display: flex;
@@ -886,198 +874,12 @@ kbd {
   background: rgba(239, 68, 68, 0.08);
 }
 
-/* Ticket list */
-.ticket-list {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Group header */
-.ticket-group-header-row {
-  display: flex;
-  align-items: center;
-}
-
-.ticket-group-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid var(--tb-border);
-}
-
-.ticket-group-header {
-  transition: color 150ms ease;
-}
-
-.ticket-group-header:hover {
-  color: var(--text);
-}
-
-.group-add-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  border: none;
-  border-radius: 4px;
-  background: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 150ms ease, background 150ms ease, color 150ms ease;
-}
-
-.ticket-group-header-row:hover .group-add-btn {
-  opacity: 1;
-}
-
-.group-add-btn:hover {
-  background: var(--bg-hover);
-  color: var(--tb-accent);
-}
-
-.ticket-group-drop-over {
-  background: color-mix(in srgb, var(--tb-accent) 8%, transparent);
-  border-radius: 6px;
-  min-height: 28px;
-}
-
-.chevron {
-  font-size: 10px;
-  transition: transform 150ms ease;
-  display: inline-block;
-}
-
-.chevron.collapsed {
-  transform: rotate(-90deg);
-}
-
-.group-count {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
-  font-weight: 400;
-}
-
-/* Ticket row */
-.ticket-row {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  border-bottom: 1px solid var(--tb-border);
-  transition: background 150ms ease;
-  position: relative;
-}
-
-.ticket-row:hover {
-  background: var(--bg-hover);
-}
-
-.ticket-row.active {
-  background: var(--bg-active);
-  border-left: 2px solid var(--tb-accent);
-  padding-left: 10px;
-}
-
-.ticket-row.ticket-draft {
-  opacity: 0.55;
-  font-style: italic;
-}
-
-.ticket-row.ticket-draft.active {
-  opacity: 0.8;
-}
-
-.ticket-row-content {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  min-width: 0;
-}
-
-.ticket-row-main {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Drag handle */
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  flex-shrink: 0;
-  color: var(--text-dim);
-  cursor: grab;
-  opacity: 0;
-  transition: opacity 150ms ease;
-  padding: 2px 0;
-  margin-right: 4px;
-  touch-action: none;
-}
-
-.ticket-row:hover .drag-handle,
-.ticket-row.drag-active .drag-handle {
-  opacity: 1;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-/* Drag overlay (floating copy during drag) */
-.ticket-row.drag-overlay {
-  background: var(--bg-panel);
-  border: 1px solid var(--tb-accent);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  padding: 8px 12px;
-  opacity: 0.95;
-  width: 280px;
-}
-
+/* Legacy styles still consumed by Kanban (rows #21 in TKTB-069). */
 .priority-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-.ticket-title {
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ticket-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 
 .ticket-id {
@@ -1101,11 +903,15 @@ kbd {
   white-space: nowrap;
 }
 
-.ticket-time {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--text-dim);
-  white-space: nowrap;
+/* Legacy chevron still used by TaskDetail (row #19 in TKTB-069). */
+.chevron {
+  font-size: 10px;
+  transition: transform 150ms ease;
+  display: inline-block;
+}
+
+.chevron.collapsed {
+  transform: rotate(-90deg);
 }
 
 /* Board layout */

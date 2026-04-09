@@ -20,7 +20,15 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  CaretDownIcon,
+  DotsSixVerticalIcon,
+  PlusIcon,
+} from "@phosphor-icons/react";
 import type { Task, Status } from "../types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const STATUS_ORDER: { key: Status; label: string }[] = [
   { key: "in-progress", label: "In Progress" },
@@ -87,56 +95,43 @@ interface TaskListProps {
   onCreateInStatus?: (status: Status) => void;
 }
 
-function TaskRowContent({
-  task,
-  activeTaskId,
-  showHandle,
-}: {
-  task: Task;
-  activeTaskId: string | null;
-  showHandle?: boolean;
-}) {
+function TaskRowContent({ task }: { task: Task }) {
   return (
-    <>
-      {showHandle && (
-        <span className="drag-handle" aria-label="Drag to reorder">
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
-            <circle cx="2" cy="2" r="1.2" />
-            <circle cx="6" cy="2" r="1.2" />
-            <circle cx="2" cy="7" r="1.2" />
-            <circle cx="6" cy="7" r="1.2" />
-            <circle cx="2" cy="12" r="1.2" />
-            <circle cx="6" cy="12" r="1.2" />
-          </svg>
-        </span>
-      )}
-      <div className="ticket-row-content">
-        <div className="ticket-row-main">
-          {task.priority && PRIORITY_INDICATOR[task.priority] && (
-            <span
-              className="priority-dot"
-              style={{ backgroundColor: PRIORITY_INDICATOR[task.priority].color }}
-              title={PRIORITY_INDICATOR[task.priority].label}
-            />
-          )}
-          <span className="ticket-title">{task.title}</span>
-        </div>
-        <div className="ticket-row-meta">
-          <span className="ticket-id">{task.id}</span>
-          {task.assignee && (
-            <span className="assignee-indicator" title={task.assignee}>{task.assignee}</span>
-          )}
-          {task.tags && task.tags.length > 0 && (
-            <span className="ticket-tags">
-              {task.tags.map((tag) => (
-                <span key={tag} className="tag-chip">{tag}</span>
-              ))}
-            </span>
-          )}
-          <span className="ticket-time">{relativeTime(task.updated)}</span>
-        </div>
+    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex items-center gap-1.5">
+        {task.priority && PRIORITY_INDICATOR[task.priority] && (
+          <span
+            className="size-[7px] shrink-0 rounded-full"
+            style={{ backgroundColor: PRIORITY_INDICATOR[task.priority].color }}
+            title={PRIORITY_INDICATOR[task.priority].label}
+          />
+        )}
+        <span className="truncate text-[13px] font-semibold">{task.title}</span>
       </div>
-    </>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-mono text-[11px] text-muted-foreground">{task.id}</span>
+        {task.assignee && (
+          <span
+            className="max-w-[80px] truncate rounded-full bg-accent px-1.5 py-px text-[10px] text-muted-foreground"
+            title={task.assignee}
+          >
+            {task.assignee}
+          </span>
+        )}
+        {task.tags && task.tags.length > 0 && (
+          <span className="flex flex-wrap gap-1">
+            {task.tags.map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
+            ))}
+          </span>
+        )}
+        <span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">
+          {relativeTime(task.updated)}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -167,52 +162,34 @@ function SortableTaskRow({
     opacity: isDragging ? 0.3 : 1,
   };
 
+  const isActive = task.id === activeTaskId;
+  const isDraft = task.status === "draft";
+
   return (
     <button
       ref={setNodeRef}
       style={style}
-      className={`ticket-row ${task.id === activeTaskId ? "active" : ""} ${isDragActive ? "drag-active" : ""} ${task.status === "draft" ? "ticket-draft" : ""}`}
+      className={cn(
+        "group/row relative flex w-full items-center border-b border-border px-3 py-2 text-left transition-colors hover:bg-accent",
+        isActive && "border-l-2 border-l-primary bg-accent pl-[10px]",
+        isDraft && "italic opacity-60",
+        isDraft && isActive && "opacity-80",
+      )}
       onClick={() => onSelect(task)}
       {...attributes}
     >
       <span
         ref={setActivatorNodeRef}
-        className="drag-handle"
+        className={cn(
+          "mr-1 flex w-[18px] shrink-0 touch-none cursor-grab items-center justify-center py-0.5 text-muted-foreground opacity-0 transition-opacity active:cursor-grabbing group-hover/row:opacity-100",
+          isDragActive && "opacity-100",
+        )}
         aria-label="Drag to reorder"
         {...listeners}
       >
-        <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
-          <circle cx="2" cy="2" r="1.2" />
-          <circle cx="6" cy="2" r="1.2" />
-          <circle cx="2" cy="7" r="1.2" />
-          <circle cx="6" cy="7" r="1.2" />
-          <circle cx="2" cy="12" r="1.2" />
-          <circle cx="6" cy="12" r="1.2" />
-        </svg>
+        <DotsSixVerticalIcon className="size-3.5" />
       </span>
-      <div className="ticket-row-content">
-        <div className="ticket-row-main">
-          {task.priority && PRIORITY_INDICATOR[task.priority] && (
-            <span
-              className="priority-dot"
-              style={{ backgroundColor: PRIORITY_INDICATOR[task.priority].color }}
-              title={PRIORITY_INDICATOR[task.priority].label}
-            />
-          )}
-          <span className="ticket-title">{task.title}</span>
-        </div>
-        <div className="ticket-row-meta">
-          <span className="ticket-id">{task.id}</span>
-          {task.tags && task.tags.length > 0 && (
-            <span className="ticket-tags">
-              {task.tags.map((tag) => (
-                <span key={tag} className="tag-chip">{tag}</span>
-              ))}
-            </span>
-          )}
-          <span className="ticket-time">{relativeTime(task.updated)}</span>
-        </div>
-      </div>
+      <TaskRowContent task={task} />
     </button>
   );
 }
@@ -220,7 +197,13 @@ function SortableTaskRow({
 function DroppableGroup({ status, children }: { status: Status; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: `group-${status}` });
   return (
-    <div ref={setNodeRef} className={`ticket-group-items ${isOver ? "ticket-group-drop-over" : ""}`}>
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "min-h-0",
+        isOver && "min-h-7 rounded-md bg-primary/10",
+      )}
+    >
       {children}
     </div>
   );
@@ -286,29 +269,17 @@ export function TaskList({ tasks, activeTaskId, onSelect, onReorder, onMove, onC
     [sortedGroups],
   );
 
-  const [overGroupStatus, setOverGroupStatus] = useState<Status | null>(null);
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (!over) { setOverGroupStatus(null); return; }
-    const overIdStr = over.id as string;
-    // Check if hovering a group droppable
-    if (overIdStr.startsWith("group-")) {
-      setOverGroupStatus(overIdStr.replace("group-", "") as Status);
-    } else {
-      const status = findStatusGroup(overIdStr);
-      setOverGroupStatus(status);
-    }
+  const handleDragOver = (_event: DragOverEvent) => {
+    // DroppableGroup handles its own isOver styling via useDroppable
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
-    setOverGroupStatus(null);
 
     if (!over || active.id === over.id) return;
 
@@ -352,35 +323,44 @@ export function TaskList({ tasks, activeTaskId, onSelect, onReorder, onMove, onC
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="ticket-list">
+      <div className="flex flex-col">
         {STATUS_ORDER.map(({ key, label }) => {
           const group = sortedGroups.get(key) ?? [];
           const isCollapsed = collapsed[key];
 
           return (
-            <div key={key} className="ticket-group">
-              <div className="ticket-group-header-row">
+            <div key={key}>
+              <div className="group/header flex items-center">
                 <button
-                  className="ticket-group-header"
+                  className="flex flex-1 items-center gap-1.5 border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
                   onClick={() => toggleGroup(key)}
                   aria-expanded={!isCollapsed}
                 >
-                  <span className={`chevron ${isCollapsed ? "collapsed" : ""}`}>&#9662;</span>
-                  <span className="group-label">{label}</span>
-                  <span className="group-count">{group.length}</span>
+                  <CaretDownIcon
+                    className={cn(
+                      "size-2.5 transition-transform",
+                      isCollapsed && "-rotate-90",
+                    )}
+                  />
+                  <span>{label}</span>
+                  <span className="ml-auto font-normal tabular-nums text-muted-foreground">
+                    {group.length}
+                  </span>
                 </button>
                 {onCreateInStatus && (
-                  <button
-                    className="group-add-btn"
-                    onClick={(e) => { e.stopPropagation(); onCreateInStatus(key); }}
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="mr-2 size-5 opacity-0 transition-opacity group-hover/header:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCreateInStatus(key);
+                    }}
                     title={`New ${label} task`}
                     aria-label={`New ${label} task`}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
+                    <PlusIcon className="size-3" />
+                  </Button>
                 )}
               </div>
               {!isCollapsed && (
@@ -408,8 +388,8 @@ export function TaskList({ tasks, activeTaskId, onSelect, onReorder, onMove, onC
 
       <DragOverlay dropAnimation={null}>
         {activeTask ? (
-          <div className="ticket-row drag-overlay">
-            <TaskRowContent task={activeTask} activeTaskId={null} />
+          <div className="flex w-[280px] items-center rounded-md border border-primary bg-card px-3 py-2 opacity-95 shadow-lg">
+            <TaskRowContent task={activeTask} />
           </div>
         ) : null}
       </DragOverlay>
