@@ -582,36 +582,30 @@ function RootLayoutInner() {
       </div>
 
       {/* Status bar */}
-      <footer className="status-bar">
+      <footer className="flex shrink-0 items-center gap-4 border-t border-border bg-card px-3 py-1 text-[11px] text-muted-foreground">
         {isPlans ? (
           <>
-            <span className="status-bar-item">
-              <span className="status-bar-dot status-bar-dot-total" />
+            <StatusBarItem tone="muted">
               {ctx.plans.length} plan{ctx.plans.length !== 1 ? "s" : ""}
-            </span>
-            <span className="status-bar-item">
-              <span className="status-bar-dot status-bar-dot-open" />
+            </StatusBarItem>
+            <StatusBarItem tone="primary">
               {ctx.plans.filter((p) => p.status === "active").length} active
-            </span>
-            <span className="status-bar-item">
-              <span className="status-bar-dot status-bar-dot-in-progress" />
+            </StatusBarItem>
+            <StatusBarItem tone="warning">
               {ctx.plans.filter((p) => p.status === "draft").length} draft
-            </span>
+            </StatusBarItem>
           </>
         ) : (
           <>
-            <span className="status-bar-item">
-              <span className="status-bar-dot status-bar-dot-total" />
+            <StatusBarItem tone="muted">
               {ctx.tickets.length} ticket{ctx.tickets.length !== 1 ? "s" : ""}
-            </span>
-            <span className="status-bar-item">
-              <span className="status-bar-dot status-bar-dot-open" />
+            </StatusBarItem>
+            <StatusBarItem tone="primary">
               {ctx.tickets.filter((t) => t.status === "open").length} open
-            </span>
-            <span className="status-bar-item">
-              <span className="status-bar-dot status-bar-dot-in-progress" />
+            </StatusBarItem>
+            <StatusBarItem tone="warning">
               {ctx.tickets.filter((t) => t.status === "in-progress").length} in progress
-            </span>
+            </StatusBarItem>
           </>
         )}
       </footer>
@@ -649,5 +643,26 @@ function RootLayoutInner() {
         />
       )}
     </div>
+  );
+}
+
+function StatusBarItem({
+  tone,
+  children,
+}: {
+  tone: "muted" | "primary" | "warning";
+  children: React.ReactNode;
+}) {
+  const dotClass =
+    tone === "primary"
+      ? "bg-primary"
+      : tone === "warning"
+        ? "bg-amber-500"
+        : "bg-muted-foreground";
+  return (
+    <span className="flex items-center gap-1 whitespace-nowrap tabular-nums">
+      <span className={`size-1.5 shrink-0 rounded-full ${dotClass}`} />
+      {children}
+    </span>
   );
 }

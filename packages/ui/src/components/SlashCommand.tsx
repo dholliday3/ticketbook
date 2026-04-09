@@ -203,20 +203,24 @@ export function SlashMenu({
   if (!pos || items.length === 0) return null;
 
   return createPortal(
-    <div className="slash-menu" style={{ top: pos.top, left: pos.left }}>
+    <div
+      className="fixed z-[1000] flex min-w-[200px] flex-col gap-0.5 overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+      style={{ top: pos.top, left: pos.left }}
+    >
       {items.map((item, index) => (
         <button
           key={item.title}
-          className={`slash-menu-item ${index === selectedIndex ? "selected" : ""}`}
+          type="button"
+          data-selected={index === selectedIndex || undefined}
+          className="flex w-full flex-col gap-px rounded-sm px-2.5 py-2 text-left text-xs hover:bg-accent hover:text-accent-foreground data-[selected]:bg-accent data-[selected]:text-accent-foreground"
           onMouseDown={(e) => {
             e.preventDefault();
             command?.(item);
           }}
           onMouseEnter={() => setSelectedIndex(index)}
-          type="button"
         >
-          <span className="slash-menu-title">{item.title}</span>
-          <span className="slash-menu-desc">{item.description}</span>
+          <span className="font-medium">{item.title}</span>
+          <span className="text-[11px] text-muted-foreground">{item.description}</span>
         </button>
       ))}
     </div>,

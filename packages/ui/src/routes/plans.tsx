@@ -5,6 +5,7 @@ import { useAppContext } from "../context/AppContext";
 import { PlanList } from "../components/PlanList";
 import { PlanKanbanBoard } from "../components/PlanKanbanBoard";
 import { PlanDetail } from "../components/PlanDetail";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const plansSearchSchema = z.object({
   view: z.enum(["list", "board"]).catch("list"),
@@ -68,20 +69,14 @@ function PlansRoute() {
             onMove={ctx.handlePlanKanbanMove}
           />
         )}
-        {activePlan && (
-          <>
-            <div
-              className="board-modal-backdrop"
-              onClick={() => ctx.setActivePlanId(null)}
-            />
-            <div className="board-modal">
-              <button
-                className="board-modal-close"
-                onClick={() => ctx.setActivePlanId(null)}
-                aria-label="Close"
-              >
-                &times;
-              </button>
+        <Dialog
+          open={activePlan !== null}
+          onOpenChange={(open) => {
+            if (!open) ctx.setActivePlanId(null);
+          }}
+        >
+          <DialogContent className="flex max-h-[85vh] w-full max-w-[700px] flex-col gap-3 overflow-y-auto p-6 sm:max-w-[700px]">
+            {activePlan && (
               <PlanDetail
                 plan={activePlan}
                 planMeta={ctx.planMeta}
@@ -90,9 +85,9 @@ function PlansRoute() {
                 onTicketClick={ctx.handlePlanTicketClick}
                 onTicketsCreated={ctx.loadTickets}
               />
-            </div>
-          </>
-        )}
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
