@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
+import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import { Terminal } from "./Terminal";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface TerminalTab {
   id: string;
@@ -114,52 +117,65 @@ export function TerminalPane({ onClose }: TerminalPaneProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   return (
-    <div className="terminal-pane">
-      <div className="terminal-tab-bar">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`terminal-tab ${tab.id === activeTabId ? "terminal-tab-active" : ""}`}
-          >
-            <button
-              className="terminal-tab-label"
-              onClick={() => setActiveTabId(tab.id)}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center overflow-x-auto border-b border-white/10 bg-zinc-900 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {tabs.map((tab) => {
+          const isActive = tab.id === activeTabId;
+          return (
+            <div
+              key={tab.id}
+              className={cn(
+                "group/termtab flex max-w-[150px] shrink-0 items-center gap-0.5 border-r border-white/5",
+                isActive && "bg-zinc-950",
+              )}
             >
-              {tab.title}
-            </button>
-            <button
-              className="terminal-tab-close"
-              onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}
-              aria-label="Close terminal tab"
-            >
-              &times;
-            </button>
-          </div>
-        ))}
+              <button
+                type="button"
+                className={cn(
+                  "cursor-pointer truncate border-0 bg-transparent py-1.5 pl-2.5 pr-2 text-[11px] transition-colors",
+                  isActive ? "text-white/90" : "text-white/40 hover:text-white/70",
+                )}
+                onClick={() => setActiveTabId(tab.id)}
+              >
+                {tab.title}
+              </button>
+              <button
+                type="button"
+                className="cursor-pointer border-0 bg-transparent px-1 py-0.5 text-xs leading-none text-white/20 opacity-0 transition-opacity group-hover/termtab:opacity-100 hover:text-white/70"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseTab(tab.id);
+                }}
+                aria-label="Close terminal tab"
+              >
+                &times;
+              </button>
+            </div>
+          );
+        })}
         <button
-          className="terminal-tab-add"
+          type="button"
+          className="shrink-0 cursor-pointer border-0 bg-transparent px-2 py-1 text-sm text-white/30 hover:text-white/70"
           onClick={handleAddTab}
           title="New terminal"
           aria-label="New terminal"
         >
-          +
+          <PlusIcon className="size-3" />
         </button>
-        <div className="terminal-tab-spacer" />
+        <div className="flex-1" />
         {onClose && (
           <button
-            className="terminal-tab-close-pane"
+            type="button"
+            className="flex shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent px-2 py-1 text-white/30 hover:text-white/70"
             onClick={onClose}
             title="Close terminal"
             aria-label="Close terminal"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <XIcon className="size-3.5" />
           </button>
         )}
       </div>
-      <div className="terminal-content">
+      <div className="relative min-h-0 flex-1">
         {activeTab && <Terminal key={activeTab.id} sessionId={activeTab.id} />}
       </div>
     </div>

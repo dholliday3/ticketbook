@@ -172,7 +172,7 @@ export function Terminal({ sessionId }: TerminalProps) {
   return (
     <div
       ref={containerRef}
-      className="terminal-container"
+      className="box-border h-full w-full p-1"
     />
   );
 }

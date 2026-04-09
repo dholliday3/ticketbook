@@ -1,12 +1,16 @@
 import { createRootRoute, Outlet, useMatch, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import {
+  CaretLeftIcon,
+  CaretRightIcon,
   GearIcon,
   HouseIcon,
   KanbanIcon,
   ListIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  SparkleIcon,
+  TerminalIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { AppProvider, useAppContext } from "../context/AppContext";
@@ -27,6 +31,11 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Lazy-loaded so the ai-elements/streamdown/shiki tree (~1MB+) only loads
 // when the user opens the assistant panel for the first time. Without this
@@ -81,6 +90,7 @@ function RootLayoutInner() {
   // Search input with debounce
   const currentQ = isTasks ? (tasksSearch?.q ?? "") : isPlans ? (plansSearch?.q ?? "") : "";
   const [searchInput, setSearchInput] = useState(currentQ);
+  const [showFilters, setShowFilters] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync external q changes into local input
@@ -427,77 +437,87 @@ function RootLayoutInner() {
           </ButtonGroup>
         )}
         {!isHome && (
-          <div className="order-10 flex w-full shrink-0 items-center gap-1 overflow-x-auto md:order-none md:w-auto">
-            {isTasks ? (
-              <>
-                <FilterChip
-                  label="Status"
-                  options={["draft", "backlog", "open", "in-progress", "done", "cancelled"]}
-                  selected={taskFilters.status}
-                  onToggle={(v) => toggleTaskFilter("status", v)}
-                />
-                <FilterChip
-                  label="Project"
-                  options={ctx.meta.projects}
-                  selected={taskFilters.project}
-                  onToggle={(v) => toggleTaskFilter("project", v)}
-                />
-                <FilterChip
-                  label="Epic"
-                  options={ctx.meta.epics}
-                  selected={taskFilters.epic}
-                  onToggle={(v) => toggleTaskFilter("epic", v)}
-                />
-                <FilterChip
-                  label="Sprint"
-                  options={ctx.meta.sprints}
-                  selected={taskFilters.sprint}
-                  onToggle={(v) => toggleTaskFilter("sprint", v)}
-                />
-                <label
-                  className="ml-1 inline-flex shrink-0 items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground"
-                  title={ctx.hideItemBadges ? "Show plan and task badges" : "Hide plan and task badges"}
+          <Collapsible
+            open={showFilters}
+            onOpenChange={setShowFilters}
+            className="order-10 w-full shrink-0 md:order-none md:w-auto"
+          >
+            <div className="flex items-center gap-1 overflow-x-auto">
+              <CollapsibleContent
+                className="overflow-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-right-2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-right-2"
+              >
+                <div className="flex items-center gap-1 pr-1">
+                  {isTasks ? (
+                    <>
+                      <FilterChip
+                        label="Status"
+                        options={["draft", "backlog", "open", "in-progress", "done", "cancelled"]}
+                        selected={taskFilters.status}
+                        onToggle={(v) => toggleTaskFilter("status", v)}
+                      />
+                      <FilterChip
+                        label="Project"
+                        options={ctx.meta.projects}
+                        selected={taskFilters.project}
+                        onToggle={(v) => toggleTaskFilter("project", v)}
+                      />
+                      <FilterChip
+                        label="Epic"
+                        options={ctx.meta.epics}
+                        selected={taskFilters.epic}
+                        onToggle={(v) => toggleTaskFilter("epic", v)}
+                      />
+                      <FilterChip
+                        label="Sprint"
+                        options={ctx.meta.sprints}
+                        selected={taskFilters.sprint}
+                        onToggle={(v) => toggleTaskFilter("sprint", v)}
+                      />
+                    </>
+                  ) : isPlans ? (
+                    <>
+                      <FilterChip
+                        label="Status"
+                        options={["draft", "active", "completed", "archived"]}
+                        selected={planFilterState.status}
+                        onToggle={(v) => togglePlanFilter("status", v)}
+                      />
+                      <FilterChip
+                        label="Project"
+                        options={ctx.planMeta.projects}
+                        selected={planFilterState.project}
+                        onToggle={(v) => togglePlanFilter("project", v)}
+                      />
+                    </>
+                  ) : null}
+                </div>
+              </CollapsibleContent>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant={showFilters || hasActiveFilters ? "secondary" : "outline"}
+                  aria-expanded={showFilters}
+                  aria-label="Show filters"
+                  className="shrink-0"
                 >
-                  <Switch
-                    checked={ctx.hideItemBadges}
-                    onCheckedChange={(checked) => {
-                      if (checked !== ctx.hideItemBadges) ctx.toggleHideItemBadges();
-                    }}
-                    aria-label="Hide badges"
-                  />
-                  <span className="whitespace-nowrap">Hide badges</span>
-                </label>
-              </>
-            ) : isPlans ? (
-              <>
-                <FilterChip
-                  label="Status"
-                  options={["draft", "active", "completed", "archived"]}
-                  selected={planFilterState.status}
-                  onToggle={(v) => togglePlanFilter("status", v)}
+                  {showFilters ? <CaretLeftIcon /> : <CaretRightIcon />}
+                  <span className="whitespace-nowrap">Show filters</span>
+                </Button>
+              </CollapsibleTrigger>
+              <label
+                className="inline-flex shrink-0 items-center gap-2 px-2 py-1 text-[11px] text-muted-foreground"
+                title={ctx.hideItemBadges ? "Show plan and task badges" : "Hide plan and task badges"}
+              >
+                <Switch
+                  checked={ctx.hideItemBadges}
+                  onCheckedChange={(checked) => {
+                    if (checked !== ctx.hideItemBadges) ctx.toggleHideItemBadges();
+                  }}
+                  aria-label="Hide badges"
                 />
-                <FilterChip
-                  label="Project"
-                  options={ctx.planMeta.projects}
-                  selected={planFilterState.project}
-                  onToggle={(v) => togglePlanFilter("project", v)}
-                />
-                <label
-                  className="ml-1 inline-flex shrink-0 items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground"
-                  title={ctx.hideItemBadges ? "Show plan and task badges" : "Hide plan and task badges"}
-                >
-                  <Switch
-                    checked={ctx.hideItemBadges}
-                    onCheckedChange={(checked) => {
-                      if (checked !== ctx.hideItemBadges) ctx.toggleHideItemBadges();
-                    }}
-                    aria-label="Hide badges"
-                  />
-                  <span className="whitespace-nowrap">Hide badges</span>
-                </label>
-              </>
-            ) : null}
-          </div>
+                <span className="whitespace-nowrap">Hide badges</span>
+              </label>
+            </div>
+          </Collapsible>
         )}
         <div className="flex-1" />
         {!isHome && (
@@ -554,8 +574,8 @@ function RootLayoutInner() {
         </Button>
       </header>
 
-      <div className="main-with-terminal">
-        <div className="main-content">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Outlet />
         </div>
 
@@ -566,8 +586,14 @@ function RootLayoutInner() {
           <>
             {ctx.rightRailOpen && (
               <>
-                <div className="right-rail-drag-handle" onMouseDown={ctx.handleRightRailDragStart} />
-                <div className="right-rail-side" style={{ width: ctx.rightRailWidth }}>
+                <div
+                  className="z-[5] w-1 shrink-0 cursor-col-resize bg-border transition-colors hover:bg-primary active:bg-primary"
+                  onMouseDown={ctx.handleRightRailDragStart}
+                />
+                <div
+                  className="flex min-w-[240px] shrink-0 flex-col overflow-hidden border-l border-border bg-zinc-950"
+                  style={{ width: ctx.rightRailWidth }}
+                >
                   {ctx.terminalOpen && <TerminalPane onClose={ctx.handleToggleTerminal} />}
                   {ctx.assistantOpen && (
                     <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted-foreground">Loading assistant…</div>}>
@@ -577,32 +603,31 @@ function RootLayoutInner() {
                 </div>
               </>
             )}
-            <div className="right-rail-collapsed-bar" role="toolbar" aria-label="Right rail">
-              <button
-                className={`right-rail-btn ${ctx.terminalOpen ? "right-rail-btn-active" : ""}`}
+            <div
+              className="flex w-8 shrink-0 flex-col border-l border-border bg-card"
+              role="toolbar"
+              aria-label="Right rail"
+            >
+              <Button
+                variant="ghost"
+                className={`h-9 rounded-none text-muted-foreground hover:bg-accent hover:text-primary ${ctx.terminalOpen ? "bg-accent text-primary" : ""}`}
                 onClick={ctx.handleToggleTerminal}
                 title={ctx.terminalOpen ? "Close terminal" : "Open terminal"}
                 aria-label={ctx.terminalOpen ? "Close terminal" : "Open terminal"}
                 aria-pressed={ctx.terminalOpen}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="4 17 10 11 4 5" />
-                  <line x1="12" y1="19" x2="20" y2="19" />
-                </svg>
-              </button>
-              <button
-                className={`right-rail-btn ${ctx.assistantOpen ? "right-rail-btn-active" : ""}`}
+                <TerminalIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                className={`h-9 rounded-none text-muted-foreground hover:bg-accent hover:text-primary ${ctx.assistantOpen ? "bg-accent text-primary" : ""}`}
                 onClick={ctx.handleToggleAssistant}
                 title={ctx.assistantOpen ? "Close assistant" : "Open assistant"}
                 aria-label={ctx.assistantOpen ? "Close assistant" : "Open assistant"}
                 aria-pressed={ctx.assistantOpen}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  {/* Sparkle / assistant glyph */}
-                  <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
-                  <path d="M19 16l.7 1.8L21.5 18.5l-1.8.7L19 21l-.7-1.8L16.5 18.5l1.8-.7z" />
-                </svg>
-              </button>
+                <SparkleIcon />
+              </Button>
             </div>
           </>
         )}
