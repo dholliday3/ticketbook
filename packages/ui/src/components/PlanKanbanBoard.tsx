@@ -20,7 +20,11 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CaretDoubleLeftIcon } from "@phosphor-icons/react";
 import type { Plan, PlanStatus } from "../types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const KANBAN_COLUMNS: { key: PlanStatus; label: string }[] = [
   { key: "draft", label: "Draft" },
@@ -66,10 +70,42 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`kanban-column-body ${isOver ? "kanban-column-drag-over" : ""}`}
+      className={cn(
+        "flex min-h-[60px] flex-1 flex-col gap-1.5 overflow-y-auto p-2",
+        isOver && "bg-primary/5",
+      )}
     >
       {children}
     </div>
+  );
+}
+
+function PlanCardBody({ plan }: { plan: Plan }) {
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <span className="line-clamp-2 text-[13px] font-semibold leading-tight">
+          {plan.title}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-mono text-[11px] text-muted-foreground">{plan.id}</span>
+        {plan.tasks && plan.tasks.length > 0 && (
+          <Badge variant="secondary">
+            {plan.tasks.length} task{plan.tasks.length !== 1 ? "s" : ""}
+          </Badge>
+        )}
+        {plan.tags && plan.tags.length > 0 && (
+          <span className="flex flex-wrap gap-1">
+            {plan.tags.map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
+            ))}
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -99,33 +135,23 @@ function SortablePlanCard({
     opacity: isDragging ? 0.3 : 1,
   };
 
+  const isActive = plan.id === activePlanId;
+
   return (
-    <div ref={setNodeRef} style={style} className="kanban-card-wrapper">
-      {showDropIndicator && <div className="kanban-drop-indicator" />}
+    <div ref={setNodeRef} style={style} className="relative">
+      {showDropIndicator && (
+        <div className="mb-1 h-0.5 rounded-sm bg-primary" />
+      )}
       <button
-        className={`kanban-card ${plan.id === activePlanId ? "active" : ""}`}
+        className={cn(
+          "flex w-full cursor-pointer flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left text-foreground transition-colors hover:border-muted-foreground hover:bg-accent",
+          isActive && "border-primary bg-accent",
+        )}
         onClick={() => onSelect(plan)}
         {...attributes}
         {...listeners}
       >
-        <div className="kanban-card-title">
-          <span className="kanban-card-title-text">{plan.title}</span>
-        </div>
-        <div className="kanban-card-meta">
-          <span className="ticket-id">{plan.id}</span>
-          {plan.tasks && plan.tasks.length > 0 && (
-            <span className="tag-chip">
-              {plan.tasks.length} task{plan.tasks.length !== 1 ? "s" : ""}
-            </span>
-          )}
-          {plan.tags && plan.tags.length > 0 && (
-            <span className="ticket-tags">
-              {plan.tags.map((tag) => (
-                <span key={tag} className="tag-chip">{tag}</span>
-              ))}
-            </span>
-          )}
-        </div>
+        <PlanCardBody plan={plan} />
       </button>
     </div>
   );
@@ -133,13 +159,8 @@ function SortablePlanCard({
 
 function PlanCardOverlay({ plan }: { plan: Plan }) {
   return (
-    <div className="kanban-card kanban-card-overlay">
-      <div className="kanban-card-title">
-        <span className="kanban-card-title-text">{plan.title}</span>
-      </div>
-      <div className="kanban-card-meta">
-        <span className="ticket-id">{plan.id}</span>
-      </div>
+    <div className="flex w-[220px] flex-col gap-1.5 rounded-md border border-primary bg-card p-2.5 text-left opacity-95 shadow-lg">
+      <PlanCardBody plan={plan} />
     </div>
   );
 }
@@ -285,7 +306,7 @@ export function PlanKanbanBoard({ plans, activePlanId, onSelect, onMove }: PlanK
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="kanban-board">
+      <div className="flex min-h-0 flex-1 gap-px overflow-x-auto bg-border">
         {KANBAN_COLUMNS.map(({ key, label }) => {
           const groupIds = itemGroups[key] || [];
           const isCollapsed = collapsible(key) && collapsed[key];
@@ -293,32 +314,49 @@ export function PlanKanbanBoard({ plans, activePlanId, onSelect, onMove }: PlanK
 
           if (isCollapsed) {
             return (
-              <div key={key} className="kanban-column kanban-column-collapsed" onClick={() => toggleCollapse(key)}>
-                <div className="kanban-collapsed-strip">
-                  <span className="kanban-collapsed-label">{label}</span>
-                  <span className="kanban-collapsed-count">{groupIds.length}</span>
-                </div>
-              </div>
+              <button
+                type="button"
+                key={key}
+                className="flex min-h-0 w-10 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 bg-card py-3 transition-colors hover:bg-accent"
+                onClick={() => toggleCollapse(key)}
+                aria-label={`Expand ${label} column`}
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-rl]">
+                  {label}
+                </span>
+                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+                  {groupIds.length}
+                </span>
+              </button>
             );
           }
 
           return (
-            <div key={key} className={`kanban-column ${isColumnOver ? "kanban-column-highlight" : ""}`}>
-              <div className="kanban-column-header">
-                <span className="kanban-column-title">{label}</span>
-                <span className="kanban-column-count">{groupIds.length}</span>
+            <div
+              key={key}
+              className={cn(
+                "flex min-h-0 min-w-[200px] flex-1 flex-col bg-background",
+                isColumnOver && "ring-2 ring-inset ring-primary/30",
+              )}
+            >
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-border px-3 py-2.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </span>
+                <span className="rounded-full bg-accent px-1.5 py-px text-[11px] tabular-nums text-muted-foreground">
+                  {groupIds.length}
+                </span>
                 {collapsible(key) && (
-                  <button
-                    className="kanban-collapse-btn"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="ml-auto"
                     onClick={() => toggleCollapse(key)}
                     title={`Collapse ${label}`}
                     aria-label={`Collapse ${label} column`}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="11 17 6 12 11 7" />
-                      <polyline points="18 17 13 12 18 7" />
-                    </svg>
-                  </button>
+                    <CaretDoubleLeftIcon />
+                  </Button>
                 )}
               </div>
               <DroppableColumn status={key} isOver={isColumnOver}>
@@ -338,7 +376,7 @@ export function PlanKanbanBoard({ plans, activePlanId, onSelect, onMove }: PlanK
                   })}
                 </SortableContext>
                 {overId === `column-${key}` && activeId && (
-                  <div className="kanban-drop-indicator" />
+                  <div className="mb-1 h-0.5 rounded-sm bg-primary" />
                 )}
               </DroppableColumn>
             </div>

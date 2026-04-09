@@ -20,7 +20,11 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CaretDoubleLeftIcon, PlusIcon } from "@phosphor-icons/react";
 import type { Task, Status } from "../types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const KANBAN_COLUMNS: { key: Status; label: string }[] = [
   { key: "draft", label: "Draft" },
@@ -93,10 +97,44 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`kanban-column-body ${isOver ? "kanban-column-drag-over" : ""}`}
+      className={cn(
+        "flex min-h-[60px] flex-1 flex-col gap-1.5 overflow-y-auto p-2",
+        isOver && "bg-primary/5",
+      )}
     >
       {children}
     </div>
+  );
+}
+
+function TaskCardBody({ task }: { task: Task }) {
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        {task.priority && PRIORITY_INDICATOR[task.priority] && (
+          <span
+            className="size-[7px] shrink-0 rounded-full"
+            style={{ backgroundColor: PRIORITY_INDICATOR[task.priority].color }}
+            title={PRIORITY_INDICATOR[task.priority].label}
+          />
+        )}
+        <span className="line-clamp-2 text-[13px] font-semibold leading-tight">
+          {task.title}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-mono text-[11px] text-muted-foreground">{task.id}</span>
+        {task.tags && task.tags.length > 0 && (
+          <span className="flex flex-wrap gap-1">
+            {task.tags.map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
+            ))}
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -126,35 +164,25 @@ function SortableKanbanCard({
     opacity: isDragging ? 0.3 : 1,
   };
 
+  const isActive = task.id === activeTaskId;
+  const isDraft = task.status === "draft";
+
   return (
-    <div ref={setNodeRef} style={style} className="kanban-card-wrapper">
-      {showDropIndicator && <div className="kanban-drop-indicator" />}
+    <div ref={setNodeRef} style={style} className="relative">
+      {showDropIndicator && (
+        <div className="mb-1 h-0.5 rounded-sm bg-primary" />
+      )}
       <button
-        className={`kanban-card ${task.id === activeTaskId ? "active" : ""} ${task.status === "draft" ? "kanban-card-draft" : ""}`}
+        className={cn(
+          "flex w-full cursor-pointer flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left text-foreground transition-colors hover:border-muted-foreground hover:bg-accent",
+          isActive && "border-primary bg-accent",
+          isDraft && "border-dashed italic opacity-60",
+        )}
         onClick={() => onSelect(task)}
         {...attributes}
         {...listeners}
       >
-        <div className="kanban-card-title">
-          {task.priority && PRIORITY_INDICATOR[task.priority] && (
-            <span
-              className="priority-dot"
-              style={{ backgroundColor: PRIORITY_INDICATOR[task.priority].color }}
-              title={PRIORITY_INDICATOR[task.priority].label}
-            />
-          )}
-          <span className="kanban-card-title-text">{task.title}</span>
-        </div>
-        <div className="kanban-card-meta">
-          <span className="ticket-id">{task.id}</span>
-          {task.tags && task.tags.length > 0 && (
-            <span className="ticket-tags">
-              {task.tags.map((tag) => (
-                <span key={tag} className="tag-chip">{tag}</span>
-              ))}
-            </span>
-          )}
-        </div>
+        <TaskCardBody task={task} />
       </button>
     </div>
   );
@@ -162,19 +190,8 @@ function SortableKanbanCard({
 
 function KanbanCardOverlay({ task }: { task: Task }) {
   return (
-    <div className="kanban-card kanban-card-overlay">
-      <div className="kanban-card-title">
-        {task.priority && PRIORITY_INDICATOR[task.priority] && (
-          <span
-            className="priority-dot"
-            style={{ backgroundColor: PRIORITY_INDICATOR[task.priority].color }}
-          />
-        )}
-        <span className="kanban-card-title-text">{task.title}</span>
-      </div>
-      <div className="kanban-card-meta">
-        <span className="ticket-id">{task.id}</span>
-      </div>
+    <div className="flex w-[220px] flex-col gap-1.5 rounded-md border border-primary bg-card p-2.5 text-left opacity-95 shadow-lg">
+      <TaskCardBody task={task} />
     </div>
   );
 }
@@ -335,7 +352,7 @@ export function KanbanBoard({ tasks, activeTaskId, onSelect, onMove, onCreateInC
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="kanban-board">
+      <div className="flex min-h-0 flex-1 gap-px overflow-x-auto bg-border">
         {KANBAN_COLUMNS.map(({ key, label }) => {
           const groupIds = itemGroups[key] || [];
           const isCollapsed = collapsible(key) && collapsed[key];
@@ -343,45 +360,65 @@ export function KanbanBoard({ tasks, activeTaskId, onSelect, onMove, onCreateInC
 
           if (isCollapsed) {
             return (
-              <div key={key} className="kanban-column kanban-column-collapsed" onClick={() => toggleCollapse(key)}>
-                <div className="kanban-collapsed-strip">
-                  <span className="kanban-collapsed-label">{label}</span>
-                  <span className="kanban-collapsed-count">{groupIds.length}</span>
-                </div>
-              </div>
+              <button
+                type="button"
+                key={key}
+                className="flex min-h-0 w-10 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 bg-card py-3 transition-colors hover:bg-accent"
+                onClick={() => toggleCollapse(key)}
+                aria-label={`Expand ${label} column`}
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-rl]">
+                  {label}
+                </span>
+                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+                  {groupIds.length}
+                </span>
+              </button>
             );
           }
 
           return (
-            <div key={key} className={`kanban-column ${isColumnOver ? "kanban-column-highlight" : ""}`}>
-              <div className="kanban-column-header">
-                <span className="kanban-column-title">{label}</span>
-                <span className="kanban-column-count">{groupIds.length}</span>
+            <div
+              key={key}
+              className={cn(
+                "group/col flex min-h-0 flex-1 flex-col bg-background",
+                "min-w-[200px]",
+                isColumnOver && "ring-2 ring-inset ring-primary/30",
+              )}
+            >
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-border px-3 py-2.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </span>
+                <span className="rounded-full bg-accent px-1.5 py-px text-[11px] tabular-nums text-muted-foreground">
+                  {groupIds.length}
+                </span>
                 {collapsible(key) && (
-                  <button
-                    className="kanban-collapse-btn"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="ml-auto"
                     onClick={() => toggleCollapse(key)}
                     title={`Collapse ${label}`}
                     aria-label={`Collapse ${label} column`}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="11 17 6 12 11 7" />
-                      <polyline points="18 17 13 12 18 7" />
-                    </svg>
-                  </button>
+                    <CaretDoubleLeftIcon />
+                  </Button>
                 )}
                 {onCreateInColumn && (
-                  <button
-                    className="kanban-add-btn kanban-header-add"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn(
+                      "opacity-0 transition-opacity group-hover/col:opacity-100",
+                      !collapsible(key) && "ml-auto",
+                    )}
                     onClick={() => onCreateInColumn(key)}
                     title={`New ${label} task`}
                     aria-label={`New ${label} task`}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
+                    <PlusIcon />
+                  </Button>
                 )}
               </div>
               <DroppableColumn status={key} isOver={isColumnOver}>
@@ -401,19 +438,17 @@ export function KanbanBoard({ tasks, activeTaskId, onSelect, onMove, onCreateInC
                   })}
                 </SortableContext>
                 {overId === `column-${key}` && activeId && (
-                  <div className="kanban-drop-indicator" />
+                  <div className="mb-1 h-0.5 rounded-sm bg-primary" />
                 )}
                 {onCreateInColumn && (
-                  <button
-                    className="kanban-add-btn kanban-footer-add"
+                  <Button
+                    variant="ghost"
+                    className="mt-1 h-7 w-full justify-center opacity-0 transition-opacity group-hover/col:opacity-100"
                     onClick={() => onCreateInColumn(key)}
                     aria-label={`New ${label} task`}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
+                    <PlusIcon />
+                  </Button>
                 )}
               </DroppableColumn>
             </div>
