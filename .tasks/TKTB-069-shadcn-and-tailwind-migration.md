@@ -1,7 +1,7 @@
 ---
 id: TKTB-069
 title: Migrate UI off legacy App.css onto shadcn + Tailwind
-status: open
+status: in-progress
 tags:
   - ui
   - tech-debt
@@ -10,7 +10,7 @@ tags:
 relatedTo:
   - TKTB-068
 created: '2026-04-08T00:00:00.000Z'
-updated: '2026-04-09T08:00:00.000Z'
+updated: '2026-04-09T05:56:32.768Z'
 ---
 
 ## Context
@@ -107,7 +107,7 @@ Surfaces to migrate (rough estimate, in order of effort):
 | 19 | ☑ | Task detail view (`TaskDetail.tsx` + `PlanDetail.tsx`) | Tailwind utilities + shadcn `Collapsible`/`Button`/`Input`/`Textarea`/`Badge` + Phosphor `CaretDown`/`Trash`/`Scissors`/`X`; also purged orphan `.meta-*` / `.combobox-*` blocks (commit `fc61b28`) |
 | 20 | ☑ | New ticket button + create dialog | shadcn `Dialog` (`CreateTicketModal` + `CreatePlanModal`) (commit `7fae3ee`) |
 | 21 | ☑ | Kanban board + cards (`KanbanBoard.tsx` + `PlanKanbanBoard.tsx`) | Tailwind utilities + shadcn `Badge`/`Button` + Phosphor `CaretDoubleLeft`/`Plus`; dnd-kit multi-container drag preserved; [writing-mode:vertical-rl] for collapsed column labels (commit `ea80701`) |
-| 22 | ☐ | Dashboard | Tailwind utilities |
+| 22 | ☑ | Dashboard | Tailwind utilities + shadcn `Button` with extracted `StatCard`/`StatButton`/`GroupCard`/`DashListRow`/`SectionTitle` helpers (commit `789727a`) |
 | 23 | ☐ | Right rail + terminal chrome | Tailwind utilities |
 | 24 | ☐ | Tiptap editor styles | Move to `styles/tiptap.css`, rewrite on shadcn vars; replace hand-rolled `hljs-*` theme |
 | 25 | ☑ | Board modal (plans kanban detail overlay) | shadcn `Dialog` (commit `3a61090`) — added during migration; was not in original list |
@@ -116,7 +116,7 @@ Also fixed during this work: split `html, body, #root { font-size: 13px }` so `f
 
 Each row is its own PR. Mark off as completed inline in this ticket as they land.
 
-**Progress:** 16 of 25 rows complete (64%). App.css down from ~2,800 lines → 920 lines (67% reduction).
+**Progress:** 17 of 25 rows complete (68%). App.css down from ~2,800 lines → 727 lines (74% reduction).
 
 ### Phase 3 — delete the shim
 
