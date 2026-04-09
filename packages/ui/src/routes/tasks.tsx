@@ -1,17 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { z } from "zod";
+import { CaretLeftIcon } from "@phosphor-icons/react";
 import { useAppContext } from "../context/AppContext";
 import { TaskList } from "../components/TaskList";
 import { KanbanBoard } from "../components/KanbanBoard";
 import { TaskDetail } from "../components/TaskDetail";
+import { EmptyState, HintRow } from "../components/EmptyState";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "../components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { Status, Task } from "../types";
 
 const tasksSearchSchema = z.object({
@@ -54,28 +55,26 @@ function TasksRoute() {
 
   if (view === "board") {
     return (
-      <div className="board-content">
+      <div className="relative flex min-h-0 flex-1">
         {ctx.tasks.length === 0 ? (
-          <div className="empty-state" style={{ flex: 1 }}>
-            <div className="empty-state-content">
-              <p className="empty-state-title">Welcome to Ticketbook</p>
-              <p className="empty-state-subtitle">Create your first task to get started.</p>
-              <div className="empty-state-hints">
-                <span className="hint-row"><kbd>C</kbd> New task</span>
-              </div>
-            </div>
-          </div>
+          <EmptyState
+            className="flex-1"
+            title="Welcome to Ticketbook"
+            subtitle="Create your first task to get started."
+          >
+            <HintRow><kbd>C</kbd> New task</HintRow>
+          </EmptyState>
         ) : filteredTasks.length === 0 ? (
-          <div className="empty-state" style={{ flex: 1 }}>
-            <div className="empty-state-content">
-              <p className="empty-state-title">No tasks match</p>
-              <p className="empty-state-subtitle">Try adjusting your search or filters.</p>
-            </div>
-          </div>
+          <EmptyState
+            className="flex-1"
+            title="No tasks match"
+            subtitle="Try adjusting your search or filters."
+          />
         ) : (
           <KanbanBoard
             tasks={filteredTasks}
             activeTaskId={ctx.activeTaskId}
+            hideBadges={ctx.hideItemBadges}
             onSelect={ctx.handleSelect}
             onMove={ctx.handleKanbanMove}
             onCreateInColumn={ctx.handleCreateInColumn}
@@ -104,30 +103,26 @@ function TasksRoute() {
 
   // List view
   return (
-    <div className="list-content">
+    <div className="flex min-h-0 flex-1">
       {(!ctx.isMobile || !ctx.mobileShowDetail) && (
-        <aside className="list-panel">
+        <aside className="flex min-h-0 w-[300px] min-w-[300px] flex-col overflow-y-auto border-r border-border bg-card md:w-[300px] max-md:w-full max-md:min-w-0 max-md:border-r-0">
           {ctx.tasks.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-content">
-                <p className="empty-state-title">Welcome to Ticketbook</p>
-                <p className="empty-state-subtitle">Create your first task to get started.</p>
-                <div className="empty-state-hints">
-                  <span className="hint-row"><kbd>C</kbd> New task</span>
-                </div>
-              </div>
-            </div>
+            <EmptyState
+              title="Welcome to Ticketbook"
+              subtitle="Create your first task to get started."
+            >
+              <HintRow><kbd>C</kbd> New task</HintRow>
+            </EmptyState>
           ) : filteredTasks.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-content">
-                <p className="empty-state-title">No tasks match</p>
-                <p className="empty-state-subtitle">Try adjusting your search or filters.</p>
-              </div>
-            </div>
+            <EmptyState
+              title="No tasks match"
+              subtitle="Try adjusting your search or filters."
+            />
           ) : (
             <TaskList
               tasks={filteredTasks}
               activeTaskId={ctx.activeTaskId}
+              hideBadges={ctx.hideItemBadges}
               onSelect={ctx.handleSelect}
               onReorder={ctx.handleReorder}
               onMove={ctx.handleKanbanMove}
@@ -137,37 +132,37 @@ function TasksRoute() {
         </aside>
       )}
       {(!ctx.isMobile || ctx.mobileShowDetail) && (
-        <main className="detail-panel">
+        <main className="min-h-0 flex-1 overflow-y-auto p-6 max-md:w-full">
           {ctx.isMobile && (
-            <button className="mobile-back-btn" onClick={ctx.handleMobileBack}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mb-3"
+              onClick={ctx.handleMobileBack}
+            >
+              <CaretLeftIcon />
               Back
-            </button>
+            </Button>
           )}
           {ctx.openTabs.length > 0 && !ctx.isMobile && (
             <TabBar />
           )}
           {activeTask ? (
-            <TaskDetail
-              task={activeTask}
-              meta={ctx.meta}
-              onUpdated={ctx.loadTasks}
-              onDelete={ctx.handleDeleteRequest}
-            />
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-content">
-                <p className="empty-state-title">No task selected</p>
-                <div className="empty-state-hints">
-                  <span className="hint-row"><kbd>&uarr;</kbd> <kbd>&darr;</kbd> Navigate</span>
-                  <span className="hint-row"><kbd>Enter</kbd> Open</span>
-                  <span className="hint-row"><kbd>C</kbd> New task</span>
-                  <span className="hint-row"><kbd>Esc</kbd> Deselect</span>
-                </div>
-              </div>
+            <div className="pt-4">
+              <TaskDetail
+                task={activeTask}
+                meta={ctx.meta}
+                onUpdated={ctx.loadTasks}
+                onDelete={ctx.handleDeleteRequest}
+              />
             </div>
+          ) : (
+            <EmptyState title="No task selected">
+              <HintRow><kbd>&uarr;</kbd> <kbd>&darr;</kbd> Navigate</HintRow>
+              <HintRow><kbd>Enter</kbd> Open</HintRow>
+              <HintRow><kbd>C</kbd> New task</HintRow>
+              <HintRow><kbd>Esc</kbd> Deselect</HintRow>
+            </EmptyState>
           )}
         </main>
       )}
@@ -180,7 +175,7 @@ function TabBar() {
   const navigate = useNavigate();
 
   return (
-    <div className="tab-bar">
+    <div className="flex shrink-0 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {ctx.openTabs.map((tabId) => {
         const isTaskTab = ctx.tasks.some((tk) => tk.id === tabId);
         const isPlanTab = ctx.plans.some((p) => p.id === tabId);
@@ -189,15 +184,24 @@ function TabBar() {
           ctx.plans.find((p) => p.id === tabId)?.title ??
           tabId;
         const isActive = tabId === ctx.activeTaskId;
+        const isPlanOnly = isPlanTab && !isTaskTab;
         return (
           <div
             key={tabId}
-            className={`tab-item ${isActive ? "tab-active" : ""} ${isPlanTab && !isTaskTab ? "tab-plan" : ""}`}
+            className={cn(
+              "group/tab flex max-w-[180px] shrink-0 items-center gap-0.5 border-r border-border",
+              isActive && "border-b-2 border-b-primary bg-background",
+            )}
           >
             <button
-              className="tab-label"
+              type="button"
+              className={cn(
+                "cursor-pointer truncate border-0 bg-transparent py-1.5 pl-3 pr-2 text-xs transition-colors hover:text-foreground",
+                isActive ? "font-medium text-foreground" : "text-muted-foreground",
+                isPlanOnly && "italic",
+              )}
               onClick={() => {
-                if (isPlanTab && !isTaskTab) {
+                if (isPlanOnly) {
                   navigate({ to: "/plans", search: { view: "list", status: [], project: [] } });
                   ctx.setActivePlanId(tabId);
                 } else {
@@ -208,7 +212,8 @@ function TabBar() {
               {tabTitle}
             </button>
             <button
-              className="tab-close"
+              type="button"
+              className="cursor-pointer border-0 bg-transparent py-0.5 pl-0.5 pr-1.5 text-sm leading-none text-muted-foreground opacity-0 transition-opacity group-hover/tab:opacity-100 hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 ctx.handleCloseTab(tabId);

@@ -26,6 +26,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
+import { Switch } from "@/components/ui/switch";
 
 // Lazy-loaded so the ai-elements/streamdown/shiki tree (~1MB+) only loads
 // when the user opens the assistant panel for the first time. Without this
@@ -369,7 +370,7 @@ function RootLayoutInner() {
   const space = isPlans ? "plans" : "tasks";
 
   return (
-    <div className={`app-layout ${currentView === "board" && !isHome ? "app-layout-board" : ""}`}>
+    <div className="flex h-full flex-col">
       <header className="z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-1.5 md:flex-nowrap">
         <Button
           variant={isHome ? "secondary" : "ghost"}
@@ -453,6 +454,19 @@ function RootLayoutInner() {
                   selected={taskFilters.sprint}
                   onToggle={(v) => toggleTaskFilter("sprint", v)}
                 />
+                <label
+                  className="ml-1 inline-flex shrink-0 items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground"
+                  title={ctx.hideItemBadges ? "Show plan and task badges" : "Hide plan and task badges"}
+                >
+                  <Switch
+                    checked={ctx.hideItemBadges}
+                    onCheckedChange={(checked) => {
+                      if (checked !== ctx.hideItemBadges) ctx.toggleHideItemBadges();
+                    }}
+                    aria-label="Hide badges"
+                  />
+                  <span className="whitespace-nowrap">Hide badges</span>
+                </label>
               </>
             ) : isPlans ? (
               <>
@@ -468,6 +482,19 @@ function RootLayoutInner() {
                   selected={planFilterState.project}
                   onToggle={(v) => togglePlanFilter("project", v)}
                 />
+                <label
+                  className="ml-1 inline-flex shrink-0 items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground"
+                  title={ctx.hideItemBadges ? "Show plan and task badges" : "Hide plan and task badges"}
+                >
+                  <Switch
+                    checked={ctx.hideItemBadges}
+                    onCheckedChange={(checked) => {
+                      if (checked !== ctx.hideItemBadges) ctx.toggleHideItemBadges();
+                    }}
+                    aria-label="Hide badges"
+                  />
+                  <span className="whitespace-nowrap">Hide badges</span>
+                </label>
               </>
             ) : null}
           </div>

@@ -80,4 +80,28 @@
   html {
     @apply font-sans;
   }
+
+  /* Themed scrollbars — resolves against the active theme tokens. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+
+  kbd {
+    @apply inline-block min-w-[22px] rounded-sm border border-border bg-accent px-1.5 py-0.5 text-center font-mono text-[11px];
+  }
 }
