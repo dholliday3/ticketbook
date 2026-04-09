@@ -20,7 +20,7 @@ tickets:
   - TKTB-068
   - TKTB-041
 created: '2026-04-08T05:17:04.298Z'
-updated: '2026-04-08T05:52:02.140Z'
+updated: '2026-04-09T05:15:01.829Z'
 ---
 
 # V1 Foundations — Session & Workspace Primitives
@@ -52,6 +52,7 @@ Within a workspace, sessions are the children. Tickets and plans can also be sco
 ### 3. Session-ticket linking
 
 A session can be linked to a ticket. This can happen:
+
 - **Automatically:** if a ticket was "active" in the UI when the terminal session started
 - **Manually:** user links via a chip in the terminal pane or via MCP tool
 - **By agent:** the agent calls `link_session_to_ticket` via MCP
@@ -65,6 +66,7 @@ When an agent finishes work on a ticket, the session data (commands run, exit co
 ## Phases
 
 ### Phase 1: Session observation layer
+
 The data foundation. Terminal emits structured events, we persist them.
 
 - **TKTB-054** — OSC 133/633 shell integration (emit structured SessionEvents)
@@ -72,18 +74,21 @@ The data foundation. Terminal emits structured events, we persist them.
 - **New: Worktree/branch detection** — resolve session cwd → git repo/worktree/branch automatically
 
 ### Phase 2: Workspace grouping & UI
+
 The organizational layer. Sessions grouped by workspace, visible in the UI.
 
 - **New: Workspace model** — define the workspace primitive, discovery logic, persistence
 - **New: Session feed view** — simple list of sessions grouped by workspace with status indicators
 
 ### Phase 3: Agent feedback loop
+
 The validation layer. Human can review what the agent did and close the loop.
 
 - **TKTB-046** — feedback status + agent debrief + confidence levels
 - **TKTB-056** — diff review UI scoped by session
 
 ### Phase 4: MCP expansion
+
 Make sessions a first-class primitive for agents to interact with.
 
 - **New: Session MCP tools** — CRUD for sessions, linking, event queries
