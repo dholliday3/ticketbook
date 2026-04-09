@@ -140,6 +140,12 @@ function printInitSummary(
     for (const line of created) console.log(line);
   }
 
+  if (result.devMode) {
+    console.log(
+      `\nDetected ticketbook source repo — .mcp.json uses dev-mode command (bun bin/ticketbook.ts --mcp).`,
+    );
+  }
+
   console.log(`\nClaude Code: the .mcp.json will auto-load on next session.`);
   console.log(`\nCodex: add this to ~/.codex/config.toml:\n`);
   console.log(codexMcpInstructions());

@@ -36,6 +36,14 @@ export interface InitTicketbookResult {
   mergedMcpConfig: boolean;
   wroteAgentsMd: boolean;
   updatedGitignore: boolean;
+  /**
+   * True when init detected it was running against the ticketbook source
+   * repo itself (via package.json name + bin/ticketbook.ts presence) and
+   * wrote a dev-mode MCP command that runs the bin script directly instead
+   * of relying on `bunx ticketbook` (which won't resolve while the package
+   * is `"private": true`).
+   */
+  devMode: boolean;
 }
 
 const AGENTS_MD_CONTENT = `# AGENTS.md
@@ -70,10 +78,48 @@ Never hand-edit files in \`.tickets/\` or \`.plans/\` — the MCP server owns ID
 - **Plan status:** \`draft\`, \`active\`, \`completed\`, \`archived\`
 `;
 
-const TICKETBOOK_MCP_ENTRY = {
+/**
+ * Published-mode MCP command. Used when init scaffolds a foreign repo that
+ * has `ticketbook` available on its PATH (via a future binary install or an
+ * eventual npm publish). Until the package is actually published, this
+ * command will fail — so init auto-detects dev mode (running against the
+ * ticketbook source repo itself) and swaps to DEV_MCP_ENTRY below.
+ */
+const PUBLISHED_MCP_ENTRY = {
   command: "bunx",
   args: ["ticketbook", "--mcp"],
 } as const;
+
+/**
+ * Dev-mode MCP command. Used when init detects it's running against the
+ * ticketbook source repo. Paths are relative to the project root (which
+ * Claude Code uses as cwd when auto-loading .mcp.json), so this works for
+ * anyone who clones the repo without any additional setup.
+ */
+const DEV_MCP_ENTRY = {
+  command: "bun",
+  args: ["bin/ticketbook.ts", "--mcp"],
+} as const;
+
+/**
+ * Detect whether `baseDir` is the ticketbook source repo itself. Returns
+ * true only if both signals line up:
+ *   - package.json exists and its `name` field is "ticketbook"
+ *   - bin/ticketbook.ts exists (the entry point that --mcp mode relies on)
+ *
+ * Both checks together prevent false positives (e.g., a user's unrelated
+ * project happens to have a package named "ticketbook" in their deps).
+ */
+async function detectTicketbookSourceRepo(baseDir: string): Promise<boolean> {
+  try {
+    const pkgText = await readFile(join(baseDir, "package.json"), "utf-8");
+    const pkg = JSON.parse(pkgText);
+    if (pkg?.name !== "ticketbook") return false;
+  } catch {
+    return false;
+  }
+  return pathExists(join(baseDir, "bin", "ticketbook.ts"));
+}
 
 async function pathExists(p: string): Promise<boolean> {
   try {
@@ -98,11 +144,12 @@ async function ensureDir(p: string): Promise<boolean> {
  */
 async function writeMcpConfig(
   mcpPath: string,
+  entry: { command: string; args: readonly string[] },
 ): Promise<{ wrote: boolean; merged: boolean }> {
   if (!(await pathExists(mcpPath))) {
     const content = {
       mcpServers: {
-        ticketbook: TICKETBOOK_MCP_ENTRY,
+        ticketbook: entry,
       },
     };
     await writeFile(mcpPath, JSON.stringify(content, null, 2) + "\n", "utf-8");
@@ -125,7 +172,7 @@ async function writeMcpConfig(
     return { wrote: false, merged: false };
   }
 
-  parsed.mcpServers.ticketbook = TICKETBOOK_MCP_ENTRY;
+  parsed.mcpServers.ticketbook = entry;
   await writeFile(mcpPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8");
   return { wrote: false, merged: true };
 }
@@ -255,8 +302,15 @@ export async function initTicketbook(
     wroteSkill = claudeWrote || codexWrote;
   }
 
+  // Detect whether we're scaffolding ticketbook against itself (dogfooding)
+  // or against a foreign repo. Dev mode rewrites the MCP command so it runs
+  // the local bin script directly — `bunx ticketbook` won't resolve while
+  // the package is still `"private": true`.
+  const devMode = await detectTicketbookSourceRepo(baseDir);
+  const mcpEntry = devMode ? DEV_MCP_ENTRY : PUBLISHED_MCP_ENTRY;
+
   // .mcp.json — project-level MCP config Claude Code auto-loads.
-  const mcpResult = await writeMcpConfig(join(baseDir, ".mcp.json"));
+  const mcpResult = await writeMcpConfig(join(baseDir, ".mcp.json"), mcpEntry);
 
   // AGENTS.md — minimal pointer for non-plugin agents.
   const wroteAgentsMd = await writeAgentsMd(join(baseDir, "AGENTS.md"));
@@ -272,6 +326,7 @@ export async function initTicketbook(
     mergedMcpConfig: mcpResult.merged,
     wroteAgentsMd,
     updatedGitignore,
+    devMode,
   };
 }
 
@@ -287,4 +342,4 @@ args = ["ticketbook", "--mcp"]`;
 }
 
 // Re-export for tests.
-export { TICKETBOOK_MCP_ENTRY, AGENTS_MD_CONTENT };
+export { PUBLISHED_MCP_ENTRY, DEV_MCP_ENTRY, AGENTS_MD_CONTENT };

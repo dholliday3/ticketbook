@@ -105,17 +105,74 @@ describe("initTicketbook", () => {
     ).toBe(false);
   });
 
-  test("writes a fresh .mcp.json with the ticketbook entry", async () => {
+  test("writes a fresh .mcp.json with the published-mode ticketbook entry", async () => {
     const result = await initTicketbook({ baseDir: dir, skillSourcePath });
 
     expect(result.wroteMcpConfig).toBe(true);
     expect(result.mergedMcpConfig).toBe(false);
+    expect(result.devMode).toBe(false);
 
     const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
     expect(mcp.mcpServers.ticketbook).toEqual({
       command: "bunx",
       args: ["ticketbook", "--mcp"],
     });
+  });
+
+  test("writes a dev-mode .mcp.json when baseDir is the ticketbook source repo", async () => {
+    // Plant the signals that detectTicketbookSourceRepo looks for:
+    // a package.json with name "ticketbook" AND a bin/ticketbook.ts file.
+    await writeFile(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "ticketbook", version: "0.1.0" }),
+      "utf-8",
+    );
+    await mkdir(join(dir, "bin"), { recursive: true });
+    await writeFile(join(dir, "bin", "ticketbook.ts"), "// stub\n", "utf-8");
+
+    const result = await initTicketbook({ baseDir: dir, skillSourcePath });
+
+    expect(result.devMode).toBe(true);
+    expect(result.wroteMcpConfig).toBe(true);
+
+    const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
+    expect(mcp.mcpServers.ticketbook).toEqual({
+      command: "bun",
+      args: ["bin/ticketbook.ts", "--mcp"],
+    });
+  });
+
+  test("does not trigger dev mode when package.json name differs", async () => {
+    // The package.json exists but has the wrong name — should stay in published mode.
+    await writeFile(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "some-other-project" }),
+      "utf-8",
+    );
+    await mkdir(join(dir, "bin"), { recursive: true });
+    await writeFile(join(dir, "bin", "ticketbook.ts"), "// stub\n", "utf-8");
+
+    const result = await initTicketbook({ baseDir: dir, skillSourcePath });
+
+    expect(result.devMode).toBe(false);
+    const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
+    expect(mcp.mcpServers.ticketbook.command).toBe("bunx");
+  });
+
+  test("does not trigger dev mode when bin/ticketbook.ts is missing", async () => {
+    // package.json has the right name but no bin/ticketbook.ts — a user might
+    // legitimately have a package called "ticketbook" in an unrelated project.
+    await writeFile(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "ticketbook" }),
+      "utf-8",
+    );
+
+    const result = await initTicketbook({ baseDir: dir, skillSourcePath });
+
+    expect(result.devMode).toBe(false);
+    const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
+    expect(mcp.mcpServers.ticketbook.command).toBe("bunx");
   });
 
   test("merges ticketbook into an existing .mcp.json without clobbering other entries", async () => {
