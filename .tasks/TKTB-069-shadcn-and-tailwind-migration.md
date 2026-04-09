@@ -10,7 +10,7 @@ tags:
 relatedTo:
   - TKTB-068
 created: '2026-04-08T00:00:00.000Z'
-updated: '2026-04-09T00:00:00.000Z'
+updated: '2026-04-09T06:00:00.000Z'
 ---
 
 ## Context
@@ -103,8 +103,8 @@ Surfaces to migrate (rough estimate, in order of effort):
 | 15 | ☐ | Empty state | Tailwind utilities |
 | 16 | ☐ | App layout shells | Tailwind utilities |
 | 17 | ☐ | Agent notes / refs | Tailwind utilities |
-| 18 | ☐ | Ticket list rows | Tailwind utilities |
-| 19 | ☐ | Ticket detail view | Tailwind utilities |
+| 18 | ☑ | Task list rows (`TaskList.tsx` + `PlanList.tsx`) | Tailwind utilities + shadcn `Badge` + Phosphor `CaretDown`/`DotsSixVertical`/`Plus` icons; dnd-kit sortable preserved (commit `b8bcd2b`) |
+| 19 | ☐ | Task detail view | Tailwind utilities |
 | 20 | ☑ | New ticket button + create dialog | shadcn `Dialog` (`CreateTicketModal` + `CreatePlanModal`) (commit `7fae3ee`) |
 | 21 | ☐ | Kanban board + cards | Tailwind utilities |
 | 22 | ☐ | Dashboard | Tailwind utilities |
@@ -116,7 +116,7 @@ Also fixed during this work: split `html, body, #root { font-size: 13px }` so `f
 
 Each row is its own PR. Mark off as completed inline in this ticket as they land.
 
-**Progress:** 13 of 25 rows complete (52%). App.css down from ~2,800 lines → 1,868 lines.
+**Progress:** 14 of 25 rows complete (56%). App.css down from ~2,800 lines → 1,674 lines.
 
 ### Phase 3 — delete the shim
 
