@@ -1,7 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CaretDownIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import {
+  CaretDownIcon,
+  ChatCircleTextIcon,
+  CheckIcon,
+  CopyIcon,
+  SparkleIcon,
+  TrashIcon,
+  XIcon,
+} from "@phosphor-icons/react";
+import { renderContextRefMarker } from "@ticketbook/core/context-refs";
 import { patchTask, patchTaskBody } from "../api";
 import type { Task, Status, Priority, Meta } from "../types";
+import { useAppContext } from "../context/AppContext";
 import { TiptapEditor } from "./TiptapEditor";
 import { SelectChip, ComboboxChip, MultiComboboxChip, KebabMenu } from "./MetaFields";
 import { Badge } from "@/components/ui/badge";
@@ -40,12 +50,15 @@ interface TaskDetailProps {
 }
 
 export function TaskDetail({ task, meta, onUpdated, onDelete }: TaskDetailProps) {
+  const { insertIntoCopilotInput, prefillCopilotInput } = useAppContext();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(task.title);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const titleInputRef = useRef<HTMLInputElement>(null);
   const bodyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync drafts when task changes externally
   useEffect(() => {
@@ -63,6 +76,8 @@ export function TaskDetail({ task, meta, onUpdated, onDelete }: TaskDetailProps)
   // Reset save status when switching tasks
   useEffect(() => {
     setSaveStatus("idle");
+    setCopyStatus("idle");
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
   }, [task.id]);
 
   // Cleanup timers on unmount
@@ -70,6 +85,7 @@ export function TaskDetail({ task, meta, onUpdated, onDelete }: TaskDetailProps)
     return () => {
       if (bodyTimerRef.current) clearTimeout(bodyTimerRef.current);
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     };
   }, []);
 
@@ -125,34 +141,96 @@ export function TaskDetail({ task, meta, onUpdated, onDelete }: TaskDetailProps)
     [task.id, onUpdated],
   );
 
+  const handleCopyTaskLabel = useCallback(async () => {
+    try {
+      await copyToClipboard(`${task.id} ${task.title}`);
+      setCopyStatus("copied");
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopyStatus("idle"), 2000);
+    } catch (err) {
+      console.error("Failed to copy task label:", err);
+      setCopyStatus("idle");
+    }
+  }, [task.id, task.title]);
+
+  const handleAddToChat = useCallback(() => {
+    const marker = renderContextRefMarker({
+      kind: "task",
+      id: task.id,
+      title: task.title,
+    });
+    insertIntoCopilotInput(marker);
+  }, [task.id, task.title, insertIntoCopilotInput]);
+
+  const handleGetFeedback = useCallback(() => {
+    const marker = renderContextRefMarker({
+      kind: "task",
+      id: task.id,
+      title: task.title,
+    });
+    prefillCopilotInput(
+      `Please review ${marker} and give me feedback on scope, approach, and any gaps.`,
+    );
+  }, [task.id, task.title, prefillCopilotInput]);
+
   return (
     <div className="flex max-w-[800px] flex-col gap-4">
       {/* Task ID + save indicator + delete button */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <span className="font-mono text-xs text-muted-foreground">{task.id}</span>
-        {saveStatus !== "idle" && (
-          <span
-            className={cn(
-              "ml-2 text-[11px] transition-opacity",
-              saveStatus === "saving" && "text-muted-foreground",
-              saveStatus === "saved" && "text-emerald-400",
-            )}
-          >
-            {saveStatus === "saving" ? "Saving..." : "Saved"}
-          </span>
-        )}
-        {onDelete && (
+        <div className="ml-auto flex items-center gap-2">
+          {saveStatus !== "idle" && (
+            <span
+              className={cn(
+                "text-[11px] transition-opacity",
+                saveStatus === "saving" && "text-muted-foreground",
+                saveStatus === "saved" && "text-emerald-400",
+              )}
+            >
+              {saveStatus === "saving" ? "Saving..." : "Saved"}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => onDelete(task.id)}
-            className="text-muted-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
-            title="Delete task"
-            aria-label="Delete task"
+            onClick={handleAddToChat}
+            title="Add to copilot chat"
+            aria-label="Add to copilot chat"
           >
-            <TrashIcon />
+            <ChatCircleTextIcon />
           </Button>
-        )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleGetFeedback}
+            title="Get agent feedback on this task"
+            aria-label="Get agent feedback on this task"
+          >
+            <SparkleIcon />
+          </Button>
+          <Button
+            variant={copyStatus === "copied" ? "secondary" : "outline"}
+            size="sm"
+            onClick={handleCopyTaskLabel}
+            title={`Copy ${task.id} and title`}
+            aria-label={`Copy ${task.id} and title`}
+          >
+            {copyStatus === "copied" ? <CheckIcon /> : <CopyIcon />}
+            {copyStatus === "copied" ? "Copied" : "Copy"}
+          </Button>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onDelete(task.id)}
+              className="text-muted-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+              title="Delete task"
+              aria-label="Delete task"
+            >
+              <TrashIcon />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Inline editable title */}
@@ -306,6 +384,28 @@ export function TaskDetail({ task, meta, onUpdated, onDelete }: TaskDetailProps)
       />
     </div>
   );
+}
+
+async function copyToClipboard(value: string): Promise<void> {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const didCopy = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!didCopy) {
+    throw new Error("Clipboard API unavailable");
+  }
 }
 
 const AGENT_NOTES_MARKER = "<!-- agent-notes -->";

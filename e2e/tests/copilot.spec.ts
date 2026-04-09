@@ -40,8 +40,8 @@ async function openAssistant(page: Page): Promise<void> {
   if (await trigger.isVisible()) {
     await trigger.click();
   }
-  // Wait for the assistant panel to render its prompt input.
-  await expect(page.getByPlaceholder("Ask the assistant…")).toBeVisible();
+  // Wait for the assistant panel to render its Tiptap prompt editor.
+  await expect(page.getByTestId("copilot-prompt-editor")).toBeVisible();
 }
 
 /** Wait for the panel's status row to read "Ready" — the prompt input is
@@ -53,13 +53,14 @@ async function waitForReady(page: Page): Promise<void> {
   });
 }
 
-/** Type into the prompt input and submit via Enter. Always waits for the
- *  panel to be Ready first so the submit isn't silently dropped. */
+/** Type into the prompt editor and submit via Enter. Always waits for
+ *  the panel to be Ready first so the submit isn't silently dropped. */
 async function sendMessage(page: Page, text: string): Promise<void> {
   await waitForReady(page);
-  const textarea = page.getByPlaceholder("Ask the assistant…");
-  await textarea.fill(text);
-  await textarea.press("Enter");
+  const editor = page.getByTestId("copilot-prompt-editor");
+  await editor.click();
+  await page.keyboard.type(text);
+  await page.keyboard.press("Enter");
 }
 
 /** Count user messages currently rendered in the panel. */
@@ -94,7 +95,7 @@ test("empty state shows suggestions and the prompt input is enabled", async ({ p
 
   // Status row says Ready and the textarea is enabled.
   await expect(page.getByText("Ready", { exact: true })).toBeVisible();
-  await expect(page.getByPlaceholder("Ask the assistant…")).toBeEnabled();
+  await expect(page.getByTestId("copilot-prompt-editor")).toBeVisible();
 });
 
 test("sending a message streams a stub response with text + tool blocks", async ({ page }) => {

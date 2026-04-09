@@ -81,6 +81,8 @@ interface AppContextValue {
   // Settings
   showSettings: boolean;
   setShowSettings: (v: boolean) => void;
+  hideItemBadges: boolean;
+  toggleHideItemBadges: () => void;
 
   // Responsive
   isMobile: boolean;
@@ -96,6 +98,21 @@ interface AppContextValue {
   handleRightRailDragStart: (e: React.MouseEvent) => void;
   /** True iff either right-rail panel is currently expanded. */
   rightRailOpen: boolean;
+
+  // Copilot input insertion — drives @-mention quick-add and preset
+  // hand-off buttons. Detail views call `insertIntoCopilotInput(marker)`
+  // or `prefillCopilotInput(text)` and the CopilotPanel consumes the
+  // pending insertion on mount / when it changes.
+  pendingCopilotInsertion:
+    | { kind: "append"; text: string }
+    | { kind: "replace"; text: string }
+    | null;
+  /** Append a marker (or other text) to the current copilot input at the end, with a leading space if needed. Opens the assistant panel. */
+  insertIntoCopilotInput: (text: string) => void;
+  /** Replace the full copilot input with a pre-filled template (e.g. "Get feedback"). Opens the assistant panel. */
+  prefillCopilotInput: (text: string) => void;
+  /** Called by CopilotPanel after it has consumed a pending insertion. */
+  consumePendingCopilotInsertion: () => void;
 
   // Handlers
   handleSelect: (task: Task) => void;
@@ -122,6 +139,8 @@ interface AppContextValue {
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
+
+const HIDE_ITEM_BADGES_STORAGE_KEY = "ticketbook-hide-item-badges";
 
 export function useAppContext(): AppContextValue {
   const ctx = useContext(AppContext);
@@ -155,6 +174,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [createDefaultStatus, setCreateDefaultStatus] = useState<Status>("open");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [hideItemBadges, setHideItemBadges] = useState(() => {
+    return localStorage.getItem(HIDE_ITEM_BADGES_STORAGE_KEY) === "true";
+  });
 
   // Responsive
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
@@ -175,6 +197,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   })();
   const [terminalOpen, setTerminalOpen] = useState(initialRightRail === "terminal");
   const [assistantOpen, setAssistantOpen] = useState(initialRightRail === "assistant");
+  const [pendingCopilotInsertion, setPendingCopilotInsertion] = useState<
+    { kind: "append"; text: string } | { kind: "replace"; text: string } | null
+  >(null);
   const [rightRailWidth, setRightRailWidth] = useState(() => {
     const explicit = localStorage.getItem("ticketbook-right-rail-width");
     if (explicit) return parseInt(explicit, 10);
@@ -240,6 +265,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     : "";
   const deleteItemType: "task" | "plan" =
     confirmDelete && plans.some((p) => p.id === confirmDelete) ? "plan" : "task";
+
+  const toggleHideItemBadges = useCallback(() => {
+    setHideItemBadges((prev) => {
+      const next = !prev;
+      localStorage.setItem(HIDE_ITEM_BADGES_STORAGE_KEY, String(next));
+      return next;
+    });
+  }, []);
 
   // ---- Handlers ----
 
@@ -509,6 +542,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [persistRightRail]);
 
+  const openAssistant = useCallback(() => {
+    setAssistantOpen((prev) => {
+      if (prev) return prev;
+      setTerminalOpen(false);
+      persistRightRail("assistant");
+      return true;
+    });
+  }, [persistRightRail]);
+
+  const insertIntoCopilotInput = useCallback(
+    (text: string) => {
+      openAssistant();
+      setPendingCopilotInsertion({ kind: "append", text });
+    },
+    [openAssistant],
+  );
+
+  const prefillCopilotInput = useCallback(
+    (text: string) => {
+      openAssistant();
+      setPendingCopilotInsertion({ kind: "replace", text });
+    },
+    [openAssistant],
+  );
+
+  const consumePendingCopilotInsertion = useCallback(() => {
+    setPendingCopilotInsertion(null);
+  }, []);
+
   const handleRightRailDragStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -568,6 +630,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteItemType,
     showSettings,
     setShowSettings,
+    hideItemBadges,
+    toggleHideItemBadges,
     isMobile,
     mobileShowDetail,
     terminalOpen,
@@ -577,6 +641,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     handleToggleTerminal,
     handleToggleAssistant,
     handleRightRailDragStart,
+    pendingCopilotInsertion,
+    insertIntoCopilotInput,
+    prefillCopilotInput,
+    consumePendingCopilotInsertion,
     handleSelect,
     handleSelectPlan,
     handleNewTask,

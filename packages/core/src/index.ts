@@ -82,3 +82,23 @@ export type { ClientMessage, ServerMessage } from "./terminal-protocol.js";
 
 export { initTicketbook, codexMcpInstructions } from "./init.js";
 export type { InitTicketbookOptions, InitTicketbookResult } from "./init.js";
+
+export {
+  createContextRefRegex,
+  parseContextRefs,
+  splitByContextRefs,
+  renderContextRefMarker,
+  encodeTitleAttr,
+} from "./context-refs.js";
+export type {
+  ContextRef,
+  ContextRefKind,
+  ContextRefSpan,
+} from "./context-refs.js";
+
+// Server-only — pulls in gray-matter. Import via @ticketbook/core/expansion
+// in server code; don't import from the UI bundle.
+export {
+  renderContextRefExpansion,
+  renderDeletedContextRef,
+} from "./context-refs-expansion.js";

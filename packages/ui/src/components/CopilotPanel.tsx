@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDownIcon,
   PlusIcon,
@@ -7,6 +7,12 @@ import {
   WrenchIcon,
   XIcon,
 } from "lucide-react";
+import { splitByContextRefs } from "@ticketbook/core/context-refs";
+import { ContextRefChip } from "./copilot/ContextRefChip";
+import {
+  CopilotPromptEditor,
+  type CopilotPromptEditorRef,
+} from "./copilot/CopilotPromptEditor";
 import {
   Conversation,
   ConversationContent,
@@ -29,11 +35,13 @@ import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
+  PromptInputProvider,
   PromptInputSubmit,
-  PromptInputTextarea,
   PromptInputTools,
+  usePromptInputController,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
+import { useAppContext } from "@/context/AppContext";
 import {
   Suggestion,
   Suggestions,
@@ -93,7 +101,18 @@ interface CopilotPanelProps {
  * the server (TKTB-060 follow-up) would let us swap to the upstream <Tool>.
  */
 export function CopilotPanel({ onClose }: CopilotPanelProps) {
+  return (
+    <PromptInputProvider>
+      <CopilotPanelInner onClose={onClose} />
+    </PromptInputProvider>
+  );
+}
+
+function CopilotPanelInner({ onClose }: CopilotPanelProps) {
   const session = useCopilotSession(true);
+  // Pending-insertion draining happens inside CopilotPromptEditor
+  // itself so it can wait for the editor to become ready.
+  const editorRef = useRef<CopilotPromptEditorRef | null>(null);
 
   // Bumps every time a turn finishes streaming, used as a refetch key
   // for the conversations list so newly created or updated conversations
@@ -343,7 +362,20 @@ export function CopilotPanel({ onClose }: CopilotPanelProps) {
             <div className="w-full px-3 pb-3">
               <PromptInput onSubmit={handleSubmit}>
                 <PromptInputBody>
-                  <PromptInputTextarea placeholder="Ask the assistant…" />
+                  <CopilotPromptEditor
+                    ref={editorRef}
+                    placeholder="Ask the assistant… (type @ to reference a task or plan)"
+                    disabled={!session.sessionId}
+                    onSubmit={() => {
+                      // Find the form wrapping the editor and request a
+                      // submit so the existing PromptInput.handleSubmit
+                      // path runs (reads controller.textInput.value,
+                      // calls onSubmit, clears the controller).
+                      const el = document.activeElement as HTMLElement | null;
+                      const form = el?.closest("form");
+                      form?.requestSubmit();
+                    }}
+                  />
                 </PromptInputBody>
                 <PromptInputFooter>
                   <PromptInputTools>
@@ -389,7 +421,7 @@ function CopilotPartView({
     case "text":
       return (
         <MessageContent>
-          <MessageResponse>{part.content}</MessageResponse>
+          <TextWithContextRefs text={part.content} />
         </MessageContent>
       );
 
@@ -414,6 +446,37 @@ function CopilotPartView({
         </div>
       );
   }
+}
+
+/**
+ * Renders a text part from a copilot message, inlining `<task />` and
+ * `<plan />` context refs as interactive chips. Text slices between
+ * markers render via the standard MessageResponse (markdown) pipeline,
+ * so formatting around the chips is preserved.
+ */
+function TextWithContextRefs({ text }: { text: string }) {
+  const spans = useMemo(() => splitByContextRefs(text), [text]);
+
+  if (spans.length === 0) {
+    return <MessageResponse>{text}</MessageResponse>;
+  }
+  if (spans.length === 1 && spans[0].type === "text") {
+    return <MessageResponse>{spans[0].content}</MessageResponse>;
+  }
+
+  return (
+    <>
+      {spans.map((span, i) =>
+        span.type === "text" ? (
+          <MessageResponse key={`t-${i}`}>{span.content}</MessageResponse>
+        ) : (
+          <Fragment key={`r-${i}-${span.ref.id}`}>
+            <ContextRefChip refData={span.ref} />
+          </Fragment>
+        ),
+      )}
+    </>
+  );
 }
 
 function ToolBlock({

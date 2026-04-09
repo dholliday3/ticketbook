@@ -5,6 +5,16 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./context-refs": {
+      "types": "./src/context-refs.ts",
+      "default": "./src/context-refs.ts"
+    }
+  },
   "dependencies": {
     "gray-matter": "^4.0.3",
     "yaml": "^2.7.1",

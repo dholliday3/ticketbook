@@ -58,6 +58,7 @@
         "@tailwindcss/vite": "^4.2.2",
         "@tanstack/react-router": "^1.168.10",
         "@tanstack/router-plugin": "^1.167.12",
+        "@ticketbook/core": "workspace:*",
         "@tiptap/extension-code-block-lowlight": "^3.22.1",
         "@tiptap/extension-link": "^3.22.1",
         "@tiptap/extension-placeholder": "^3.22.1",

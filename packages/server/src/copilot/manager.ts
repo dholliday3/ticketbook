@@ -1,5 +1,6 @@
 import { ClaudeCodeProvider } from "./claude-code.js";
 import { buildTicketbookMcpConfig, writeMcpConfigFile } from "./mcp-config.js";
+import { expandContextRefs } from "./context-refs.js";
 import type {
   CopilotMessagePart,
   CopilotProvider,
@@ -21,6 +22,12 @@ import {
 
 export interface CopilotManagerConfig {
   tasksDir: string;
+  /**
+   * Directory holding plan markdown files. Required for expanding
+   * `<plan id="..." />` context refs — if omitted, plan markers are
+   * forwarded to the provider as-is instead of being expanded.
+   */
+  plansDir?: string;
   binPath?: string;
   cwd?: string;
   providers?: CopilotProvider[];
@@ -206,6 +213,9 @@ export class CopilotManager {
       session.pendingTitle = truncateTitle(text);
     }
 
+    // Persist the user's *original* text with markers intact. The DB
+    // stays small and conversations re-expand to the latest primitive
+    // state on every send. Only the provider sees the expanded form.
     session.stagedMessages.push({
       id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       role: "user",
@@ -216,8 +226,15 @@ export class CopilotManager {
     session.currentAssistantParts = [];
     session.currentAssistantCreatedAt = null;
 
+    const forwardText = this.config.plansDir
+      ? await expandContextRefs(text, {
+          tasksDir: this.config.tasksDir,
+          plansDir: this.config.plansDir,
+        })
+      : text;
+
     const provider = this.getProvider(session.providerId);
-    await provider.sendMessage(sessionId, text);
+    await provider.sendMessage(sessionId, forwardText);
     session.providerConversationId = provider.getConversationId(sessionId);
     this.ensureConversationRecord(session);
   }

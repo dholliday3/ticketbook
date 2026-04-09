@@ -77,6 +77,7 @@ export function startServer(config: ServerConfig): ServerHandle {
   const useStub = process.env.COPILOT_PROVIDER === "stub";
   const copilot = new CopilotManager({
     tasksDir,
+    plansDir,
     binPath,
     providers: useStub ? [new StubCopilotProvider()] : [new ClaudeCodeProvider(), new CodexProvider()],
   });

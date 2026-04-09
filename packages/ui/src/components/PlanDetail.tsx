@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ScissorsIcon, TrashIcon } from "@phosphor-icons/react";
+import {
+  BrainIcon,
+  ChatCircleTextIcon,
+  ScissorsIcon,
+  SparkleIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
+import { renderContextRefMarker } from "@ticketbook/core/context-refs";
 import { patchPlan, patchPlanBody, cutTasksFromPlan } from "../api";
 import type { Plan, PlanStatus, PlanMeta } from "../types";
+import { useAppContext } from "../context/AppContext";
 import { TiptapEditor } from "./TiptapEditor";
 import { SelectChip, ComboboxChip, MultiComboboxChip } from "./MetaFields";
 import { Button } from "@/components/ui/button";
@@ -24,6 +32,7 @@ interface PlanDetailProps {
 }
 
 export function PlanDetail({ plan, planMeta, onUpdated, onDelete, onTaskClick, onTasksCreated }: PlanDetailProps) {
+  const { insertIntoCopilotInput, prefillCopilotInput } = useAppContext();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(plan.title);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -100,6 +109,37 @@ export function PlanDetail({ plan, planMeta, onUpdated, onDelete, onTaskClick, o
     }
   }, [plan.id, onUpdated, onTasksCreated]);
 
+  const handleAddToChat = useCallback(() => {
+    const marker = renderContextRefMarker({
+      kind: "plan",
+      id: plan.id,
+      title: plan.title,
+    });
+    insertIntoCopilotInput(marker);
+  }, [plan.id, plan.title, insertIntoCopilotInput]);
+
+  const handleGetFeedback = useCallback(() => {
+    const marker = renderContextRefMarker({
+      kind: "plan",
+      id: plan.id,
+      title: plan.title,
+    });
+    prefillCopilotInput(
+      `Please review ${marker} and give me feedback on scope, approach, and any gaps.`,
+    );
+  }, [plan.id, plan.title, prefillCopilotInput]);
+
+  const handleBrainstorm = useCallback(() => {
+    const marker = renderContextRefMarker({
+      kind: "plan",
+      id: plan.id,
+      title: plan.title,
+    });
+    prefillCopilotInput(
+      `Let's brainstorm ${marker}. Walk me through your thinking and help me refine it.`,
+    );
+  }, [plan.id, plan.title, prefillCopilotInput]);
+
   const handleBodyChange = useCallback(
     (newBody: string) => {
       if (bodyTimerRef.current) clearTimeout(bodyTimerRef.current);
@@ -138,6 +178,33 @@ export function PlanDetail({ plan, planMeta, onUpdated, onDelete, onTaskClick, o
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleAddToChat}
+            title="Add to copilot chat"
+            aria-label="Add to copilot chat"
+          >
+            <ChatCircleTextIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleBrainstorm}
+            title="Brainstorm this plan with the agent"
+            aria-label="Brainstorm this plan with the agent"
+          >
+            <BrainIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleGetFeedback}
+            title="Get agent feedback on this plan"
+            aria-label="Get agent feedback on this plan"
+          >
+            <SparkleIcon />
+          </Button>
           <Button
             variant="outline"
             size="sm"
