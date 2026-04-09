@@ -231,18 +231,18 @@ export function startServer(config: ServerConfig): ServerHandle {
             }),
             origin,
           );
-          dbgApi("→", { method: req.method, path: url.pathname, status: 404, ms: Date.now() - t0 });
+          dbgApi(`${req.method} ${url.pathname} 404 ${Date.now() - t0}ms`);
           return resp;
         }
 
         try {
           const response = await matched.handler(req, matched.params);
           const resp = addCors(response, origin);
-          dbgApi("→", { method: req.method, path: url.pathname, status: resp.status, ms: Date.now() - t0 });
+          dbgApi(`${req.method} ${url.pathname} ${resp.status} ${Date.now() - t0}ms`);
           return resp;
         } catch (err) {
           const resp = addCors(handleError(err), origin);
-          dbgApi("→", { method: req.method, path: url.pathname, status: resp.status, ms: Date.now() - t0 });
+          dbgApi(`${req.method} ${url.pathname} ${resp.status} ${Date.now() - t0}ms`);
           return resp;
         }
       }
