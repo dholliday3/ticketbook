@@ -10,7 +10,7 @@ tags:
 relatedTo:
   - TKTB-068
 created: '2026-04-08T00:00:00.000Z'
-updated: '2026-04-08T00:00:00.000Z'
+updated: '2026-04-09T00:00:00.000Z'
 ---
 
 ## Context
@@ -84,34 +84,39 @@ Migrate each legacy surface to shadcn primitives + Tailwind utility classes when
 
 Surfaces to migrate (rough estimate, in order of effort):
 
-| # | Surface | App.css range | Notes |
+| # | ✓ | Surface | Notes |
 |---|---|---|---|
-| 1 | Scrollbar theming | 38–59 | Move to `styles/scrollbar.css` on shadcn vars |
-| 2 | `kbd` element | 116–127 | Tailwind utilities |
-| 3 | Mobile back button | 1847–1898 | Tailwind utilities |
-| 4 | Status bar | 1800–1845 | Tailwind utilities |
-| 5 | Slash menu | 1757–1798 | Tailwind utilities |
-| 6 | Home button / shared header | 796–834 | Tailwind utilities |
-| 7 | View segmented control | 1408–1448 | shadcn `ToggleGroup` |
-| 8 | Filter chips | 906–1018 | shadcn `Toggle` |
-| 9 | Search container | 842–905 | shadcn `Input` |
-| 10 | Tab bar | 592–660 | shadcn `Tabs` or utilities |
-| 11 | Dialogs (delete confirm, generic) | 1103–1185 | shadcn `Dialog` |
-| 12 | Settings dialog | 1901–1998 | shadcn `Dialog` + `Input` + `ToggleGroup` |
-| 13 | Combobox + tag input | 218–368 | shadcn `Command` + custom tag input |
-| 14 | Meta dropdowns + kebab | 2000–2192 | shadcn `DropdownMenu` |
-| 15 | Empty state | 84–115 | Tailwind utilities |
-| 16 | App layout shells | 62–83 | Tailwind utilities |
-| 17 | Agent notes / refs | 662–793 | Tailwind utilities |
-| 18 | Ticket list rows | 1186–1407 | Tailwind utilities |
-| 19 | Ticket detail view | 129–217 | Tailwind utilities |
-| 20 | New ticket button + create dialog | 1020–1185, 2194–2349 | shadcn `Dialog` + `Button` |
-| 21 | Kanban board + cards | 1450–1755 | Tailwind utilities |
-| 22 | Dashboard | 2351–2542 | Tailwind utilities |
-| 23 | Right rail + terminal chrome | 2544–2813 | Tailwind utilities |
-| 24 | Tiptap editor styles | 370–590 | Move to `styles/tiptap.css`, rewrite on shadcn vars; replace hand-rolled `hljs-*` theme |
+| 1 | ☐ | Scrollbar theming | Move to `styles/scrollbar.css` on shadcn vars |
+| 2 | ☐ | `kbd` element | Tailwind utilities |
+| 3 | ☐ | Mobile back button | Tailwind utilities |
+| 4 | ☑ | Status bar | Tailwind utilities + `StatusBarItem` helper (commit `3a61090`) |
+| 5 | ☑ | Slash menu | Tailwind utilities + `bg-popover`/`bg-accent`; kept `createPortal` for TipTap suggestion plugin (commit `3a61090`) |
+| 6 | ☑ | Home button / shared header | shadcn `Button` + `ButtonGroup` + `InputGroup` (commit `7fae3ee`) |
+| 7 | ☑ | View segmented control | shadcn `ButtonGroup` (commit `7fae3ee`) |
+| 8 | ☑ | Filter chips | shadcn `DropdownMenu` + `Button` + `Badge` (commit `7fae3ee`) |
+| 9 | ☑ | Search container | shadcn `InputGroup` family (commit `7fae3ee`) |
+| 10 | ☐ | Tab bar | shadcn `Tabs` or utilities |
+| 11 | ☑ | Dialogs (delete confirm, generic) | shadcn `Dialog` (commit `7fae3ee`) |
+| 12 | ☑ | Settings dialog | shadcn `Dialog` + `Input` + `ButtonGroup` (commit `7fae3ee`) |
+| 13 | ☑ | Combobox + tag input | shadcn `Popover` + `Command` + `Badge` in `MetaFields.tsx` (commit `7fae3ee`) |
+| 14 | ☑ | Meta dropdowns + kebab | shadcn `Select` + `Popover` in `MetaFields.tsx` (commit `7fae3ee`) |
+| 15 | ☐ | Empty state | Tailwind utilities |
+| 16 | ☐ | App layout shells | Tailwind utilities |
+| 17 | ☐ | Agent notes / refs | Tailwind utilities |
+| 18 | ☐ | Ticket list rows | Tailwind utilities |
+| 19 | ☐ | Ticket detail view | Tailwind utilities |
+| 20 | ☑ | New ticket button + create dialog | shadcn `Dialog` (`CreateTicketModal` + `CreatePlanModal`) (commit `7fae3ee`) |
+| 21 | ☐ | Kanban board + cards | Tailwind utilities |
+| 22 | ☐ | Dashboard | Tailwind utilities |
+| 23 | ☐ | Right rail + terminal chrome | Tailwind utilities |
+| 24 | ☐ | Tiptap editor styles | Move to `styles/tiptap.css`, rewrite on shadcn vars; replace hand-rolled `hljs-*` theme |
+| 25 | ☑ | Board modal (plans kanban detail overlay) | shadcn `Dialog` (commit `3a61090`) — added during migration; was not in original list |
+
+Also fixed during this work: split `html, body, #root { font-size: 13px }` so `font-size: 13px` is scoped to `#root` only. The original cascade shrunk every Tailwind rem-based utility (`text-sm`, `h-7`, `gap-2`, etc.) by `13/16×`, which is why shadcn primitives initially rendered undersized.
 
 Each row is its own PR. Mark off as completed inline in this ticket as they land.
+
+**Progress:** 13 of 25 rows complete (52%). App.css down from ~2,800 lines → 1,868 lines.
 
 ### Phase 3 — delete the shim
 
