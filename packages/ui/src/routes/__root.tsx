@@ -54,7 +54,7 @@ function RootLayoutInner() {
   const navigate = useNavigate();
 
   // Detect current route
-  const ticketsMatch = useMatch({ from: "/tickets", shouldThrow: false });
+  const ticketsMatch = useMatch({ from: "/tasks", shouldThrow: false });
   const plansMatch = useMatch({ from: "/plans", shouldThrow: false });
   const indexMatch = useMatch({ from: "/", shouldThrow: false });
 
@@ -93,7 +93,7 @@ function RootLayoutInner() {
     searchTimerRef.current = setTimeout(() => {
       if (searchInput !== currentQ) {
         if (isTickets) {
-          navigate({ to: "/tickets", search: (prev: any) => ({ ...prev, q: searchInput || undefined }) });
+          navigate({ to: "/tasks", search: (prev: any) => ({ ...prev, q: searchInput || undefined }) });
         } else if (isPlans) {
           navigate({ to: "/plans", search: (prev: any) => ({ ...prev, q: searchInput || undefined }) });
         }
@@ -156,7 +156,7 @@ function RootLayoutInner() {
   const toggleTicketFilter = useCallback(
     (key: string, value: string) => {
       navigate({
-        to: "/tickets",
+        to: "/tasks",
         search: (prev: any) => {
           const current: string[] = prev[key] ?? [];
           const next = current.includes(value) ? current.filter((v: string) => v !== value) : [...current, value];
@@ -185,7 +185,7 @@ function RootLayoutInner() {
   const handleViewModeChange = useCallback(
     (mode: ViewMode) => {
       if (isTickets) {
-        navigate({ to: "/tickets", search: (prev: any) => ({ ...prev, view: mode === "list" ? undefined : mode }) });
+        navigate({ to: "/tasks", search: (prev: any) => ({ ...prev, view: mode === "list" ? undefined : mode }) });
       } else if (isPlans) {
         navigate({ to: "/plans", search: (prev: any) => ({ ...prev, view: mode === "list" ? undefined : mode }) });
       }
@@ -384,12 +384,12 @@ function RootLayoutInner() {
         <ButtonGroup aria-label="Space">
           <Button
             variant={isTickets ? "default" : "outline"}
-            onClick={() => navigate({ to: "/tickets", search: { view: "list", status: [], project: [], epic: [], sprint: [] } })}
+            onClick={() => navigate({ to: "/tasks", search: { view: "list", status: [], project: [], epic: [], sprint: [] } })}
             role="radio"
             aria-checked={isTickets}
-            aria-label="Tickets"
+            aria-label="Tasks"
           >
-            Tickets
+            Tasks
           </Button>
           <Button
             variant={isPlans ? "default" : "outline"}

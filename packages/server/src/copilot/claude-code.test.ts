@@ -173,7 +173,7 @@ describe("ClaudeCodeProvider.parseStreamJsonLine", () => {
         content: [
           {
             type: "tool_use",
-            name: "create_ticket",
+            name: "create_task",
             input: { title: "Hello", status: "open" },
           },
         ],
@@ -182,7 +182,7 @@ describe("ClaudeCodeProvider.parseStreamJsonLine", () => {
     const parts = p.parseStreamJsonLine(line, session);
     expect(parts).toHaveLength(1);
     expect(parts[0].type).toBe("tool_use");
-    expect(parts[0].toolName).toBe("create_ticket");
+    expect(parts[0].toolName).toBe("create_task");
     expect(parts[0].content).toBe(JSON.stringify({ title: "Hello", status: "open" }));
   });
 

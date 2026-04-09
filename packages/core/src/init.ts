@@ -252,7 +252,7 @@ export async function initTicketbook(
   if (!(await pathExists(configPath))) {
     await writeFile(
       configPath,
-      "prefix: TKT\nplanPrefix: PLAN\ndeleteMode: archive\n",
+      "prefix: TASK\nplanPrefix: PLAN\ndeleteMode: archive\n",
       "utf-8",
     );
     wroteConfig = true;

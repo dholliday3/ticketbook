@@ -145,8 +145,8 @@ export function createRoutes(
     });
   });
 
-  // GET /api/tickets — list with optional filters
-  route("GET", "/tickets", async (req) => {
+  // GET /api/tasks — list with optional filters
+  route("GET", "/tasks", async (req) => {
     const url = new URL(req.url);
     const rawFilters: Record<string, unknown> = {};
 
@@ -171,31 +171,31 @@ export function createRoutes(
     return json(sortTickets(tickets));
   });
 
-  // GET /api/tickets/:id
-  route("GET", "/tickets/:id", async (_req, params) => {
+  // GET /api/tasks/:id
+  route("GET", "/tasks/:id", async (_req, params) => {
     const ticket = await getTicket(ticketsDir, params.id);
     if (!ticket) return errorResponse(`Ticket not found: ${params.id}`, 404);
     return json(ticket);
   });
 
-  // POST /api/tickets
-  route("POST", "/tickets", async (req) => {
+  // POST /api/tasks
+  route("POST", "/tasks", async (req) => {
     const body = await readJsonBody(req);
     const input = CreateTicketInputSchema.parse(body);
     const ticket = await createTicket(ticketsDir, input);
     return json(ticket, 201);
   });
 
-  // PATCH /api/tickets/:id — update frontmatter fields
-  route("PATCH", "/tickets/:id", async (req, params) => {
+  // PATCH /api/tasks/:id — update frontmatter fields
+  route("PATCH", "/tasks/:id", async (req, params) => {
     const body = await readJsonBody(req);
     const patch = TicketPatchSchema.parse(body);
     const ticket = await updateTicket(ticketsDir, params.id, patch);
     return json(ticket);
   });
 
-  // PATCH /api/tickets/:id/body — update ticket body only
-  route("PATCH", "/tickets/:id/body", async (req, params) => {
+  // PATCH /api/tasks/:id/body — update task body only
+  route("PATCH", "/tasks/:id/body", async (req, params) => {
     const body = (await readJsonBody(req)) as { body?: string };
     if (typeof body.body !== "string") {
       return errorResponse("Missing 'body' field", 400);
@@ -206,20 +206,20 @@ export function createRoutes(
     return json(ticket);
   });
 
-  // DELETE /api/tickets/:id
-  route("DELETE", "/tickets/:id", async (_req, params) => {
+  // DELETE /api/tasks/:id
+  route("DELETE", "/tasks/:id", async (_req, params) => {
     await deleteTicket(ticketsDir, params.id);
     return json({ ok: true });
   });
 
-  // POST /api/tickets/:id/restore
-  route("POST", "/tickets/:id/restore", async (_req, params) => {
+  // POST /api/tasks/:id/restore
+  route("POST", "/tasks/:id/restore", async (_req, params) => {
     const ticket = await restoreTicket(ticketsDir, params.id);
     return json(ticket);
   });
 
-  // PATCH /api/tickets/:id/reorder
-  route("PATCH", "/tickets/:id/reorder", async (req, params) => {
+  // PATCH /api/tasks/:id/reorder
+  route("PATCH", "/tasks/:id/reorder", async (req, params) => {
     const body = (await readJsonBody(req)) as {
       afterId?: string | null;
       beforeId?: string | null;
@@ -233,8 +233,8 @@ export function createRoutes(
     return json(ticket);
   });
 
-  // PATCH /api/tickets/:id/subtask
-  route("PATCH", "/tickets/:id/subtask", async (req, params) => {
+  // PATCH /api/tasks/:id/subtask
+  route("PATCH", "/tasks/:id/subtask", async (req, params) => {
     const body = (await readJsonBody(req)) as {
       action?: string;
       index?: number;
@@ -360,12 +360,12 @@ export function createRoutes(
       return json(plan);
     });
 
-    // POST /api/plans/:id/cut-tickets — create tickets from unchecked checkboxes
-    route("POST", "/plans/:id/cut-tickets", async (_req, params) => {
+    // POST /api/plans/:id/cut-tasks — create tasks from unchecked checkboxes
+    route("POST", "/plans/:id/cut-tasks", async (_req, params) => {
       const result = await cutTicketsFromPlan(ticketsDir, plansDir, params.id);
       return json({
         plan: result.plan,
-        createdTickets: result.createdTickets,
+        createdTasks: result.createdTickets,
         count: result.createdTickets.length,
       });
     });

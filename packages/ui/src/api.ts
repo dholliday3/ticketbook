@@ -3,34 +3,34 @@ import type { Ticket, TicketPatch, Meta, TicketbookConfig, CreateTicketInput, Pl
 const BASE = "/api";
 
 export async function fetchTickets(): Promise<Ticket[]> {
-  const res = await fetch(`${BASE}/tickets`);
-  if (!res.ok) throw new Error(`Failed to fetch tickets: ${res.status}`);
+  const res = await fetch(`${BASE}/tasks`);
+  if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`);
   return res.json();
 }
 
 export async function fetchTicket(id: string): Promise<Ticket> {
-  const res = await fetch(`${BASE}/tickets/${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error(`Failed to fetch ticket: ${res.status}`);
+  const res = await fetch(`${BASE}/tasks/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`Failed to fetch task: ${res.status}`);
   return res.json();
 }
 
 export async function patchTicket(id: string, patch: TicketPatch): Promise<Ticket> {
-  const res = await fetch(`${BASE}/tickets/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${BASE}/tasks/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
   });
-  if (!res.ok) throw new Error(`Failed to patch ticket: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to patch task: ${res.status}`);
   return res.json();
 }
 
 export async function patchTicketBody(id: string, body: string): Promise<Ticket> {
-  const res = await fetch(`${BASE}/tickets/${encodeURIComponent(id)}/body`, {
+  const res = await fetch(`${BASE}/tasks/${encodeURIComponent(id)}/body`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ body }),
   });
-  if (!res.ok) throw new Error(`Failed to patch ticket body: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to patch task body: ${res.status}`);
   return res.json();
 }
 
@@ -41,20 +41,20 @@ export async function fetchMeta(): Promise<Meta> {
 }
 
 export async function createTicket(input: CreateTicketInput): Promise<Ticket> {
-  const res = await fetch(`${BASE}/tickets`, {
+  const res = await fetch(`${BASE}/tasks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error(`Failed to create ticket: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to create task: ${res.status}`);
   return res.json();
 }
 
 export async function deleteTicket(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/tickets/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${BASE}/tasks/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error(`Failed to delete ticket: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`);
 }
 
 export async function fetchConfig(): Promise<TicketbookConfig> {
@@ -78,12 +78,12 @@ export async function reorderTicket(
   afterId: string | null,
   beforeId: string | null,
 ): Promise<Ticket> {
-  const res = await fetch(`${BASE}/tickets/${encodeURIComponent(id)}/reorder`, {
+  const res = await fetch(`${BASE}/tasks/${encodeURIComponent(id)}/reorder`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ afterId, beforeId }),
   });
-  if (!res.ok) throw new Error(`Failed to reorder ticket: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to reorder task: ${res.status}`);
   return res.json();
 }
 
@@ -144,11 +144,11 @@ export async function fetchPlanMeta(): Promise<PlanMeta> {
   return res.json();
 }
 
-export async function cutTicketsFromPlan(planId: string): Promise<{ plan: Plan; createdTickets: any[]; count: number }> {
-  const res = await fetch(`${BASE}/plans/${encodeURIComponent(planId)}/cut-tickets`, {
+export async function cutTicketsFromPlan(planId: string): Promise<{ plan: Plan; createdTasks: any[]; count: number }> {
+  const res = await fetch(`${BASE}/plans/${encodeURIComponent(planId)}/cut-tasks`, {
     method: "POST",
   });
-  if (!res.ok) throw new Error(`Failed to cut tickets: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to cut tasks: ${res.status}`);
   return res.json();
 }
 

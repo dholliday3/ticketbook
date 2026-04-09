@@ -17,7 +17,7 @@ describe("getConfig", () => {
 
   test("returns defaults when config file is missing", async () => {
     const config = await getConfig(dir);
-    expect(config.prefix).toBe("TKT");
+    expect(config.prefix).toBe("TASK");
     expect(config.deleteMode).toBe("archive");
   });
 

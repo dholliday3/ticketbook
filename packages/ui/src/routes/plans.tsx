@@ -187,7 +187,7 @@ function PlanTabBar() {
               className="tab-label"
               onClick={() => {
                 if (isTicketTab && !isPlanTab) {
-                  navigate({ to: "/tickets", search: { view: "list", status: [], project: [], epic: [], sprint: [] } });
+                  navigate({ to: "/tasks", search: { view: "list", status: [], project: [], epic: [], sprint: [] } });
                   ctx.setActiveTicketId(tabId);
                 } else {
                   ctx.setActivePlanId(tabId);

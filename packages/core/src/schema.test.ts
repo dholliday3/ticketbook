@@ -165,7 +165,7 @@ describe("TicketFiltersSchema", () => {
 describe("TicketbookConfigSchema", () => {
   test("provides defaults for empty object", () => {
     const result = TicketbookConfigSchema.parse({});
-    expect(result.prefix).toBe("TKT");
+    expect(result.prefix).toBe("TASK");
     expect(result.deleteMode).toBe("archive");
   });
 

@@ -27,7 +27,7 @@ const assistantThinkingToolLine = JSON.stringify({
       {
         type: "tool_use",
         id: "toolu_abc",
-        name: "mcp__ticketbook__list_tickets",
+        name: "mcp__ticketbook__list_tasks",
         input: { status: "in-progress" },
       },
     ],
@@ -116,7 +116,7 @@ describe("parseClaudeJsonl", () => {
     });
     expect(messages[0].parts[1]).toMatchObject({
       type: "tool_use",
-      toolName: "mcp__ticketbook__list_tickets",
+      toolName: "mcp__ticketbook__list_tasks",
     });
   });
 

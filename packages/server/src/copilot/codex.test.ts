@@ -100,7 +100,7 @@ describe("CodexProvider.parseJsonLine", () => {
           id: "item_3",
           type: "mcp_tool_call",
           server: "ticketbook",
-          tool: "list_tickets",
+          tool: "list_tasks",
           arguments: { status: "open" },
           result: null,
           error: null,
@@ -112,7 +112,7 @@ describe("CodexProvider.parseJsonLine", () => {
     expect(started).toEqual([
       {
         type: "tool_use",
-        toolName: "ticketbook.list_tickets",
+        toolName: "ticketbook.list_tasks",
         toolInput: '{\n  "status": "open"\n}',
         content: '{\n  "status": "open"\n}',
       },
@@ -125,7 +125,7 @@ describe("CodexProvider.parseJsonLine", () => {
           id: "item_3",
           type: "mcp_tool_call",
           server: "ticketbook",
-          tool: "list_tickets",
+          tool: "list_tasks",
           arguments: { status: "open" },
           result: {
             content: [{ type: "text", text: "TKTB-040" }],
@@ -140,7 +140,7 @@ describe("CodexProvider.parseJsonLine", () => {
     expect(completed).toEqual([
       {
         type: "tool_result",
-        toolName: "ticketbook.list_tickets",
+        toolName: "ticketbook.list_tasks",
         content: "TKTB-040",
       },
     ]);
@@ -156,7 +156,7 @@ describe("CodexProvider.parseJsonLine", () => {
           id: "item_4",
           type: "mcp_tool_call",
           server: "ticketbook",
-          tool: "list_tickets",
+          tool: "list_tasks",
           arguments: { status: "open" },
           result: null,
           error: { message: "user cancelled MCP tool call" },
@@ -168,7 +168,7 @@ describe("CodexProvider.parseJsonLine", () => {
     expect(completed).toEqual([
       {
         type: "tool_result",
-        toolName: "ticketbook.list_tickets",
+        toolName: "ticketbook.list_tasks",
         content: "Error: user cancelled MCP tool call",
       },
     ]);

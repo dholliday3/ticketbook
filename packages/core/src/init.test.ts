@@ -59,7 +59,7 @@ describe("initTicketbook", () => {
       join(dir, ".tickets", ".config.yaml"),
       "utf-8",
     );
-    expect(config).toContain("prefix: TKT");
+    expect(config).toContain("prefix: TASK");
     expect(config).toContain("planPrefix: PLAN");
 
     const ticketsCounter = await readFile(

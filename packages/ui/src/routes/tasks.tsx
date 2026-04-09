@@ -23,7 +23,7 @@ const ticketsSearchSchema = z.object({
   q: z.string().optional().catch(undefined),
 });
 
-export const Route = createFileRoute("/tickets")({
+export const Route = createFileRoute("/tasks")({
   validateSearch: (search) => ticketsSearchSchema.parse(search),
   component: TicketsRoute,
 });

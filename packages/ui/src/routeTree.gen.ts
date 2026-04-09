@@ -9,13 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as TicketsRouteImport } from './routes/tasks'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TicketsRoute = TicketsRouteImport.update({
-  id: '/tickets',
-  path: '/tickets',
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlansRoute = PlansRouteImport.update({
@@ -32,25 +32,25 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/plans': typeof PlansRoute
-  '/tickets': typeof TicketsRoute
+  '/tasks': typeof TicketsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/plans': typeof PlansRoute
-  '/tickets': typeof TicketsRoute
+  '/tasks': typeof TicketsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/plans': typeof PlansRoute
-  '/tickets': typeof TicketsRoute
+  '/tasks': typeof TicketsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/plans' | '/tickets'
+  fullPaths: '/' | '/plans' | '/tasks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/plans' | '/tickets'
-  id: '__root__' | '/' | '/plans' | '/tickets'
+  to: '/' | '/plans' | '/tasks'
+  id: '__root__' | '/' | '/plans' | '/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -61,10 +61,10 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tickets': {
-      id: '/tickets'
-      path: '/tickets'
-      fullPath: '/tickets'
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
       preLoaderRoute: typeof TicketsRouteImport
       parentRoute: typeof rootRouteImport
     }

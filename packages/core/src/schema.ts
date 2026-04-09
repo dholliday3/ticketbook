@@ -80,7 +80,7 @@ export const DeleteModeEnum = z.enum(["archive", "hard"]);
 export const DebriefStyleEnum = z.enum(["very-concise", "concise", "detailed", "lengthy"]);
 
 export const TicketbookConfigSchema = z.object({
-  prefix: z.string().default("TKT"),
+  prefix: z.string().default("TASK"),
   planPrefix: z.string().default("PLAN"),
   deleteMode: DeleteModeEnum.default("archive"),
   debriefStyle: DebriefStyleEnum.default("very-concise"),

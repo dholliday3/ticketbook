@@ -140,7 +140,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [config, setConfig] = useState<TicketbookConfig>({
-    prefix: "TKT",
+    prefix: "TASK",
     deleteMode: "archive",
     debriefStyle: "very-concise",
   });
@@ -464,7 +464,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const handlePlanTicketClick = useCallback(
     (ticketId: string) => {
-      navigate({ to: "/tickets", search: { view: "list", status: [], project: [], epic: [], sprint: [] } });
+      navigate({ to: "/tasks", search: { view: "list", status: [], project: [], epic: [], sprint: [] } });
       setActiveTicketId(ticketId);
       setOpenTabs((tabs) => (tabs.includes(ticketId) ? tabs : [...tabs, ticketId]));
     },

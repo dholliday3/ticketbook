@@ -96,7 +96,7 @@ function formatPlanFull(p: Plan): string {
   ];
   if (p.project) lines.push(`- Project: ${p.project}`);
   if (p.tags && p.tags.length > 0) lines.push(`- Tags: ${p.tags.join(", ")}`);
-  if (p.tickets && p.tickets.length > 0) lines.push(`- Linked tickets: ${p.tickets.join(", ")}`);
+  if (p.tickets && p.tickets.length > 0) lines.push(`- Linked tasks: ${p.tickets.join(", ")}`);
   if (p.refs && p.refs.length > 0) lines.push(`- Refs: ${p.refs.join(", ")}`);
   lines.push(`- Created: ${p.created.toISOString()}`);
   lines.push(`- Updated: ${p.updated.toISOString()}`);
@@ -112,12 +112,12 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     version: "0.1.0",
   });
 
-  // --- Agent workflow instructions (exposed via list_tickets description) ---
+  // --- Agent workflow instructions (exposed via list_tasks description) ---
 
-  // --- list_tickets ---
+  // --- list_tasks ---
   server.tool(
-    "list_tickets",
-    "List tickets with optional filters. Returns compact summaries sorted by order/priority/date. Agent workflow: when picking up a ticket, set its status to 'in-progress' and assignee to your agent name. When done, set status to 'done' and add a debrief to agent notes (body after '<!-- agent-notes -->' marker).",
+    "list_tasks",
+    "List tasks with optional filters. Returns compact summaries sorted by order/priority/date. Agent workflow: when picking up a ticket, set its status to 'in-progress' and assignee to your agent name. When done, set status to 'done' and add a debrief to agent notes (body after '<!-- agent-notes -->' marker).",
     {
       status: z
         .enum(["draft", "backlog", "open", "in-progress", "done", "cancelled"])
@@ -151,31 +151,31 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
       const sorted = sortTickets(tickets);
 
       if (sorted.length === 0) {
-        return { content: [{ type: "text", text: "No tickets found." }] };
+        return { content: [{ type: "text", text: "No tasks found." }] };
       }
 
       const text = sorted.map((t) => ticketSummary(t)).join("\n");
       return {
         content: [
-          { type: "text", text: `${sorted.length} ticket(s):\n\n${text}` },
+          { type: "text", text: `${sorted.length} task(s):\n\n${text}` },
         ],
       };
     },
   );
 
-  // --- get_ticket ---
+  // --- get_task ---
   server.tool(
-    "get_ticket",
-    "Get full details of a ticket by ID, including body content.",
+    "get_task",
+    "Get full details of a task by ID, including body content.",
     {
-      id: z.string().describe("Ticket ID (e.g. TKT-001)"),
+      id: z.string().describe("Task ID (e.g. TKT-001)"),
     },
     async (args) => {
       const ticket = await getTicket(ticketsDir, args.id);
       if (!ticket) {
         return {
           content: [
-            { type: "text", text: `Ticket not found: ${args.id}` },
+            { type: "text", text: `Task not found: ${args.id}` },
           ],
           isError: true,
         };
@@ -184,12 +184,12 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     },
   );
 
-  // --- create_ticket ---
+  // --- create_task ---
   server.tool(
-    "create_ticket",
-    "Create a new ticket. Returns the created ticket details.",
+    "create_task",
+    "Create a new task. Returns the created ticket details.",
     {
-      title: z.string().min(1).describe("Ticket title (required)"),
+      title: z.string().min(1).describe("Task title (required)"),
       status: z
         .enum(["draft", "backlog", "open", "in-progress", "done", "cancelled"])
         .optional()
@@ -203,8 +203,8 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
       epic: z.string().optional().describe("Epic name"),
       sprint: z.string().optional().describe("Sprint name"),
       body: z.string().optional().describe("Markdown body content"),
-      blockedBy: z.array(z.string()).optional().describe("Ticket IDs that block this ticket"),
-      relatedTo: z.array(z.string()).optional().describe("Related ticket IDs"),
+      blockedBy: z.array(z.string()).optional().describe("Task IDs that block this ticket"),
+      relatedTo: z.array(z.string()).optional().describe("Related task IDs"),
       assignee: z.string().optional().describe("Assignee name (use your agent name when picking up a ticket)"),
     },
     async (args) => {
@@ -220,12 +220,12 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     },
   );
 
-  // --- update_ticket ---
+  // --- update_task ---
   server.tool(
-    "update_ticket",
-    "Update an existing ticket's fields. Only provided fields are changed.",
+    "update_task",
+    "Update an existing task's fields. Only provided fields are changed.",
     {
-      id: z.string().describe("Ticket ID to update"),
+      id: z.string().describe("Task ID to update"),
       title: z.string().min(1).optional().describe("New title"),
       status: z
         .enum(["draft", "backlog", "open", "in-progress", "done", "cancelled"])
@@ -256,8 +256,8 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
         .optional()
         .describe("New sprint (null to clear)"),
       body: z.string().optional().describe("New markdown body content"),
-      blockedBy: z.array(z.string()).optional().describe("Ticket IDs that block this ticket"),
-      relatedTo: z.array(z.string()).optional().describe("Related ticket IDs"),
+      blockedBy: z.array(z.string()).optional().describe("Task IDs that block this ticket"),
+      relatedTo: z.array(z.string()).optional().describe("Related task IDs"),
       assignee: z.string().nullable().optional().describe("Assignee (null to clear). Set to your agent name when starting work."),
     },
     async (args) => {
@@ -277,15 +277,15 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
   // --- link_ref ---
   server.tool(
     "link_ref",
-    "Link a commit SHA or PR URL to a ticket. Use this after creating a commit or PR that addresses a ticket. Convention: include the ticket ID in your commit message (e.g. 'TKTB-015: fix bug').",
+    "Link a commit SHA or PR URL to a task. Use this after creating a commit or PR that addresses a ticket. Convention: include the task ID in your commit message (e.g. 'TKTB-015: fix bug').",
     {
-      id: z.string().describe("Ticket ID to link to"),
+      id: z.string().describe("Task ID to link to"),
       ref: z.string().describe("Commit SHA or PR URL to link"),
     },
     async (args) => {
       const ticket = await getTicket(ticketsDir, args.id);
       if (!ticket) {
-        return { content: [{ type: "text", text: `Ticket not found: ${args.id}` }] };
+        return { content: [{ type: "text", text: `Task not found: ${args.id}` }] };
       }
       const existingRefs = ticket.refs ?? [];
       if (existingRefs.includes(args.ref)) {
@@ -298,12 +298,12 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     },
   );
 
-  // --- delete_ticket ---
+  // --- delete_task ---
   server.tool(
-    "delete_ticket",
-    "Delete (archive) a ticket by ID.",
+    "delete_task",
+    "Delete (archive) a task by ID.",
     {
-      id: z.string().describe("Ticket ID to delete"),
+      id: z.string().describe("Task ID to delete"),
     },
     async (args) => {
       await deleteTicket(ticketsDir, args.id);
@@ -318,7 +318,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     "complete_subtask",
     "Mark a subtask as done. Provide either the subtask index (0-based) or a text substring to match.",
     {
-      id: z.string().describe("Ticket ID"),
+      id: z.string().describe("Task ID"),
       index: z
         .number()
         .int()
@@ -342,7 +342,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
         if (!ticket) {
           return {
             content: [
-              { type: "text", text: `Ticket not found: ${args.id}` },
+              { type: "text", text: `Task not found: ${args.id}` },
             ],
             isError: true,
           };
@@ -395,7 +395,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
       if (!ticket) {
         return {
           content: [
-            { type: "text", text: `Ticket not found: ${args.id}` },
+            { type: "text", text: `Task not found: ${args.id}` },
           ],
           isError: true,
         };
@@ -441,7 +441,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     "add_subtask",
     "Add a new subtask (checkbox item) to a ticket.",
     {
-      id: z.string().describe("Ticket ID"),
+      id: z.string().describe("Task ID"),
       text: z.string().min(1).describe("Subtask text"),
     },
     async (args) => {
@@ -457,22 +457,22 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     },
   );
 
-  // --- reorder_ticket ---
+  // --- reorder_task ---
   server.tool(
-    "reorder_ticket",
-    "Reorder a ticket by placing it between two neighbors within its status group.",
+    "reorder_task",
+    "Reorder a task by placing it between two neighbors within its status group.",
     {
-      id: z.string().describe("Ticket ID to move"),
+      id: z.string().describe("Task ID to move"),
       afterId: z
         .string()
         .nullable()
         .optional()
-        .describe("Ticket ID above (null for top)"),
+        .describe("Task ID above (null for top)"),
       beforeId: z
         .string()
         .nullable()
         .optional()
-        .describe("Ticket ID below (null for bottom)"),
+        .describe("Task ID below (null for bottom)"),
     },
     async (args) => {
       const updated = await reorderTicket(
@@ -492,29 +492,29 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
     },
   );
 
-  // --- Resource: tickets://list ---
+  // --- Resource: tasks://list ---
   server.resource(
-    "ticket-list",
-    "tickets://list",
+    "task-list",
+    "tasks://list",
     { description: "Full ticket list in compact format", mimeType: "text/plain" },
     async () => {
       const tickets = await listTickets(ticketsDir);
       const sorted = sortTickets(tickets);
       const text =
         sorted.length === 0
-          ? "No tickets found."
+          ? "No tasks found."
           : sorted.map((t) => ticketSummary(t)).join("\n");
       return {
-        contents: [{ uri: "tickets://list", text, mimeType: "text/plain" }],
+        contents: [{ uri: "tasks://list", text, mimeType: "text/plain" }],
       };
     },
   );
 
   // --- Prompt: ticket-context ---
   server.prompt(
-    "ticket-context",
-    "Get formatted context for working on a specific ticket, including details, subtasks, and related tickets",
-    { id: z.string().describe("Ticket ID (e.g. TKT-001)") },
+    "task-context",
+    "Get formatted context for working on a specific task, including details, subtasks, and related tickets",
+    { id: z.string().describe("Task ID (e.g. TKT-001)") },
     async (args) => {
       const ticket = await getTicket(ticketsDir, args.id);
       if (!ticket) {
@@ -522,7 +522,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
           messages: [
             {
               role: "user" as const,
-              content: { type: "text" as const, text: `Ticket not found: ${args.id}` },
+              content: { type: "text" as const, text: `Task not found: ${args.id}` },
             },
           ],
         };
@@ -545,7 +545,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
         );
       }
 
-      // Related tickets (same project or epic)
+      // Related tasks (same project or epic)
       const related: string[] = [];
       if (ticket.project || ticket.epic) {
         const allTickets = await listTickets(ticketsDir);
@@ -569,7 +569,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
             role: "user" as const,
             content: {
               type: "text" as const,
-              text: `Here is the context for ticket ${ticket.id}. Please review and begin work.\n\n${sections.join("\n")}`,
+              text: `Here is the context for task ${ticket.id}. Please review and begin work.\n\n${sections.join("\n")}`,
             },
           },
         ],
@@ -649,7 +649,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
           .describe("Initial status (default: draft)"),
         tags: z.array(z.string()).optional().describe("Tags (lowercase)"),
         project: z.string().optional().describe("Project name"),
-        tickets: z.array(z.string()).optional().describe("Linked ticket IDs"),
+        tickets: z.array(z.string()).optional().describe("Linked task IDs"),
         body: z.string().optional().describe("Markdown body content"),
       },
       async (args) => {
@@ -688,7 +688,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
         tickets: z
           .array(z.string())
           .optional()
-          .describe("Linked ticket IDs (replaces existing)"),
+          .describe("Linked task IDs (replaces existing)"),
         body: z.string().optional().describe("New markdown body content"),
       },
       async (args) => {
@@ -720,13 +720,13 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
       },
     );
 
-    // --- link_ticket_to_plan ---
+    // --- link_task_to_plan ---
     server.tool(
-      "link_ticket_to_plan",
-      "Link a ticket ID to a plan. Adds the ticket to the plan's linked tickets list.",
+      "link_task_to_plan",
+      "Link a task ID to a plan. Adds the ticket to the plan's linked tickets list.",
       {
         planId: z.string().describe("Plan ID"),
-        ticketId: z.string().describe("Ticket ID to link"),
+        ticketId: z.string().describe("Task ID to link"),
       },
       async (args) => {
         const plan = await getPlan(plansDir, args.planId);
@@ -751,12 +751,12 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
       },
     );
 
-    // --- cut_tickets_from_plan ---
+    // --- cut_tasks_from_plan ---
     server.tool(
-      "cut_tickets_from_plan",
-      "Parse unchecked checkboxes from a plan's body, create a ticket for each, link them to the plan, and check off the items. Great for converting brainstorm items into actionable tickets.",
+      "cut_tasks_from_plan",
+      "Parse unchecked checkboxes from a plan's body, create a task for each, link them to the plan, and check off the items. Great for converting brainstorm items into actionable tasks.",
       {
-        planId: z.string().describe("Plan ID to cut tickets from"),
+        planId: z.string().describe("Plan ID to cut tasks from"),
       },
       async (args) => {
         const result = await cutTicketsFromPlan(ticketsDir, plansDir, args.planId);
@@ -772,7 +772,7 @@ export async function startMcpServer(ticketsDir: string, plansDir?: string): Pro
           content: [
             {
               type: "text",
-              text: `Cut ${result.createdTickets.length} ticket(s) from plan ${args.planId}:\n${ticketList}`,
+              text: `Cut ${result.createdTickets.length} task(s) from plan ${args.planId}:\n${ticketList}`,
             },
           ],
         };

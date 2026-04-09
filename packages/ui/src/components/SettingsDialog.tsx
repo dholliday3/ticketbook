@@ -57,18 +57,18 @@ export function SettingsDialog({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="settings-prefix" className="text-xs font-medium text-foreground">
-              Ticket ID prefix
+              Task ID prefix
             </label>
             <Input
               id="settings-prefix"
               type="text"
               value={prefix}
               onChange={(e) => setPrefix(e.target.value)}
-              placeholder="e.g. TKT, ART"
+              placeholder="e.g. TASK, ART"
             />
             <span className="text-[11px] text-muted-foreground">
-              New tickets will be created as {prefix || "TKT"}-001, {prefix || "TKT"}-002, etc.
-            </span>
+            New tasks will be created as {prefix || "TASK"}-001, {prefix || "TASK"}-002, etc.
+          </span>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -93,8 +93,8 @@ export function SettingsDialog({
             </ButtonGroup>
             <span className="text-[11px] text-muted-foreground">
               {deleteMode === "archive"
-                ? "Deleted tickets are moved to an archive and can be restored."
-                : "Deleted tickets are permanently removed from disk."}
+                ? "Deleted tasks are moved to an archive and can be restored."
+                : "Deleted tasks are permanently removed from disk."}
             </span>
           </div>
 
