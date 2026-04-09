@@ -32,8 +32,11 @@ import {
   PlanPatchSchema,
   PlanFiltersSchema,
 } from "@ticketbook/core";
+import { createDebug } from "./debug.js";
 import type { TaskChangeEvent } from "./watcher.js";
 import type { CopilotManager, CopilotProviderId } from "./copilot/index.js";
+
+const dbgApi = createDebug("api");
 
 type RouteHandler = (
   req: Request,
@@ -183,6 +186,7 @@ export function createRoutes(
     const body = await readJsonBody(req);
     const input = CreateTaskInputSchema.parse(body);
     const task = await createTask(tasksDir, input);
+    dbgApi("taskCreate", { id: task.id, title: task.title });
     return json(task, 201);
   });
 
@@ -191,6 +195,7 @@ export function createRoutes(
     const body = await readJsonBody(req);
     const patch = TaskPatchSchema.parse(body);
     const task = await updateTask(tasksDir, params.id, patch);
+    dbgApi("taskPatch", { id: params.id, fields: Object.keys(patch) });
     return json(task);
   });
 
@@ -203,11 +208,13 @@ export function createRoutes(
     const task = await updateTask(tasksDir, params.id, {
       body: body.body,
     });
+    dbgApi("taskBody", { id: params.id });
     return json(task);
   });
 
   // DELETE /api/tasks/:id
   route("DELETE", "/tasks/:id", async (_req, params) => {
+    dbgApi("taskDelete", { id: params.id });
     await deleteTask(tasksDir, params.id);
     return json({ ok: true });
   });
@@ -215,6 +222,7 @@ export function createRoutes(
   // POST /api/tasks/:id/restore
   route("POST", "/tasks/:id/restore", async (_req, params) => {
     const task = await restoreTask(tasksDir, params.id);
+    dbgApi("taskRestore", { id: params.id });
     return json(task);
   });
 
@@ -230,6 +238,7 @@ export function createRoutes(
       body.afterId ?? null,
       body.beforeId ?? null,
     );
+    dbgApi("taskReorder", { id: params.id, afterId: body.afterId, beforeId: body.beforeId });
     return json(task);
   });
 
@@ -246,6 +255,7 @@ export function createRoutes(
         return errorResponse("Missing 'text' field for add action", 400);
       }
       const task = await addSubtask(tasksDir, params.id, body.text);
+      dbgApi("subtaskAdd", { id: params.id, text: body.text });
       return json(task);
     }
 
@@ -254,6 +264,7 @@ export function createRoutes(
       return errorResponse("Missing 'index' field", 400);
     }
     const task = await toggleSubtask(tasksDir, params.id, body.index);
+    dbgApi("subtaskToggle", { id: params.id, index: body.index });
     return json(task);
   });
 
@@ -327,6 +338,7 @@ export function createRoutes(
       const body = await readJsonBody(req);
       const input = CreatePlanInputSchema.parse(body);
       const plan = await createPlan(tasksDir, plansDir, input);
+      dbgApi("planCreate", { id: plan.id, title: plan.title });
       return json(plan, 201);
     });
 
@@ -335,6 +347,7 @@ export function createRoutes(
       const body = await readJsonBody(req);
       const patch = PlanPatchSchema.parse(body);
       const plan = await updatePlan(plansDir, params.id, patch);
+      dbgApi("planPatch", { id: params.id, fields: Object.keys(patch) });
       return json(plan);
     });
 
@@ -345,11 +358,13 @@ export function createRoutes(
         return errorResponse("Missing 'body' field", 400);
       }
       const plan = await updatePlan(plansDir, params.id, { body: body.body });
+      dbgApi("planBody", { id: params.id });
       return json(plan);
     });
 
     // DELETE /api/plans/:id
     route("DELETE", "/plans/:id", async (_req, params) => {
+      dbgApi("planDelete", { id: params.id });
       await deletePlan(tasksDir, plansDir, params.id);
       return json({ ok: true });
     });
@@ -357,12 +372,14 @@ export function createRoutes(
     // POST /api/plans/:id/restore
     route("POST", "/plans/:id/restore", async (_req, params) => {
       const plan = await restorePlan(plansDir, params.id);
+      dbgApi("planRestore", { id: params.id });
       return json(plan);
     });
 
     // POST /api/plans/:id/cut-tasks — create tasks from unchecked checkboxes
     route("POST", "/plans/:id/cut-tasks", async (_req, params) => {
       const result = await cutTasksFromPlan(tasksDir, plansDir, params.id);
+      dbgApi("planCutTasks", { id: params.id, count: result.createdTasks.length });
       return json({
         plan: result.plan,
         createdTasks: result.createdTasks,
@@ -400,6 +417,7 @@ export function createRoutes(
       const conversationId = typeof body.conversationId === "string" ? body.conversationId : undefined;
       const result = await copilot.startSession({ providerId, conversationId });
       const meta = copilot.getSession(result.sessionId);
+      dbgApi("copilotSessionStart", { sessionId: result.sessionId, providerId: meta?.providerId, conversationId });
       return json({ sessionId: result.sessionId, session: meta }, 201);
     });
 
@@ -417,6 +435,7 @@ export function createRoutes(
     });
 
     route("DELETE", "/copilot/conversations/:id", async (_req, params) => {
+      dbgApi("copilotConvDelete", { id: params.id });
       copilot.deleteConversation(params.id);
       return json({ ok: true });
     });
@@ -427,6 +446,7 @@ export function createRoutes(
       if (typeof body.text !== "string" || !body.text.trim()) {
         return errorResponse("Missing 'text' field", 400);
       }
+      dbgApi("copilotMessage", { id: params.id, len: body.text.length });
       try {
         await copilot.sendMessage(params.id, body.text);
       } catch (err) {
@@ -440,6 +460,7 @@ export function createRoutes(
     });
 
     route("DELETE", "/copilot/sessions/:id", async (_req, params) => {
+      dbgApi("copilotSessionStop", { id: params.id });
       await copilot.stopSession(params.id);
       return json({ ok: true });
     });

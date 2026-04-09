@@ -221,22 +221,29 @@ export function startServer(config: ServerConfig): ServerHandle {
 
       // API routes
       if (url.pathname.startsWith("/api")) {
+        const t0 = Date.now();
         const matched = matchRoute(routes, req);
         if (!matched) {
-          return addCors(
+          const resp = addCors(
             new Response(JSON.stringify({ error: "Not found" }), {
               status: 404,
               headers: { "Content-Type": "application/json" },
             }),
             origin,
           );
+          dbgApi("→", { method: req.method, path: url.pathname, status: 404, ms: Date.now() - t0 });
+          return resp;
         }
 
         try {
           const response = await matched.handler(req, matched.params);
-          return addCors(response, origin);
+          const resp = addCors(response, origin);
+          dbgApi("→", { method: req.method, path: url.pathname, status: resp.status, ms: Date.now() - t0 });
+          return resp;
         } catch (err) {
-          return addCors(handleError(err), origin);
+          const resp = addCors(handleError(err), origin);
+          dbgApi("→", { method: req.method, path: url.pathname, status: resp.status, ms: Date.now() - t0 });
+          return resp;
         }
       }
 
