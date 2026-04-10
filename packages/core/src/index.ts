@@ -115,6 +115,8 @@ export type { DoctorOptions, DoctorResult, DiagnosticItem, Severity } from "./do
 export { sync } from "./sync.js";
 export type { SyncOptions, SyncResult } from "./sync.js";
 export { resolveWorktreeRoot, findTasksDirWithWorktree } from "./worktree.js";
+export { setupGitIntegration } from "./git-setup.js";
+export type { GitSetupResult } from "./git-setup.js";
 
 export type { ClientMessage, ServerMessage } from "./terminal-protocol.js";
 

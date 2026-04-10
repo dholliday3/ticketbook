@@ -108,6 +108,12 @@ function resolveSkillSourcePath(): string {
   return resolve(scriptDir, "..", "skills", "ticketbook", "SKILL.md");
 }
 
+/** Resolve the path to the merge driver script. */
+function resolveMergeDriverPath(): string {
+  const scriptDir = dirname(fileURLToPath(import.meta.url));
+  return resolve(scriptDir, "..", "scripts", "merge-driver.ts");
+}
+
 /** Print a summary of what init created and next-step instructions. */
 function printInitSummary(
   baseDir: string,
@@ -134,6 +140,16 @@ function printInitSummary(
     for (const line of created) console.log(line);
   }
 
+  // Git integration summary
+  const gitSetup: string[] = [];
+  if (result.registeredMergeDriver) gitSetup.push("  Registered custom merge driver");
+  if (result.installedPostMergeHook) gitSetup.push("  Installed post-merge hook (auto-reconcile counters)");
+  if (result.updatedGitattributes) gitSetup.push("  Updated .gitattributes (artifact merge strategy)");
+  if (gitSetup.length > 0) {
+    console.log("\nGit integration:");
+    for (const line of gitSetup) console.log(line);
+  }
+
   if (result.devMode) {
     console.log(
       `\nDetected ticketbook source repo — .mcp.json uses dev-mode command (bun bin/ticketbook.ts --mcp).`,
@@ -155,6 +171,7 @@ async function main(): Promise<void> {
     const result = await initTicketbook({
       baseDir,
       skillSourcePath: resolveSkillSourcePath(),
+      mergeDriverPath: resolveMergeDriverPath(),
     });
     printInitSummary(baseDir, result);
     return;
