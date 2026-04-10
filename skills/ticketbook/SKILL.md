@@ -118,6 +118,12 @@ Use docs for reference material that should stay true or useful beyond a single 
 | `update_doc` | Change any doc field |
 | `delete_doc` | Archive a doc |
 
+**Maintenance**
+| Tool | Purpose |
+|---|---|
+| `doctor` | Validate artifact integrity (counters, duplicates, dangling refs, stale locks, .gitattributes). Pass `fix: true` to auto-repair fixable issues. |
+| `sync` | Stage and commit all pending artifact changes with a structured message. `dry_run: true` to preview; `push: true` to push after committing. |
+
 ## Rules of thumb
 
 - **Never edit `.tasks/*.md`, `.plans/*.md`, or `.docs/*.md` directly.** Use the MCP tools.

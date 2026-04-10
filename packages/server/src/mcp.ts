@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { dirname } from "node:path";
 import {
   listTasks,
   getTask,
@@ -1012,7 +1013,7 @@ export async function startMcpServer(
     },
     async (args) => {
       // Derive project root from tasksDir (parent of .tasks/)
-      const projectRoot = tasksDir.replace(/[/\\]\.tasks\/?$/, "") || tasksDir;
+      const projectRoot = dirname(tasksDir);
       const result = await runDoctor({
         tasksDir,
         plansDir: plansDir ?? undefined,
@@ -1034,7 +1035,7 @@ export async function startMcpServer(
       push: z.boolean().optional().describe("Push to remote after committing (default: false)"),
     },
     async (args) => {
-      const projectRoot = tasksDir.replace(/[/\\]\.tasks\/?$/, "") || tasksDir;
+      const projectRoot = dirname(tasksDir);
       const result = await sync({
         tasksDir,
         plansDir: plansDir ?? undefined,
