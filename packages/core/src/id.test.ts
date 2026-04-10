@@ -97,4 +97,16 @@ describe("nextId", () => {
     const result = await nextId(dir);
     expect(result.filename("My Cool Feature")).toBe("TASK-001-my-cool-feature.md");
   });
+
+  test("concurrent calls produce unique IDs", async () => {
+    // Fire N nextId calls at the same time — the lock must serialize them
+    // so every call sees a distinct counter value.
+    const N = 10;
+    const results = await Promise.all(
+      Array.from({ length: N }, () => nextId(dir)),
+    );
+    const ids = results.map((r) => r.id);
+    const unique = new Set(ids);
+    expect(unique.size).toBe(N);
+  });
 });

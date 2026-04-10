@@ -170,7 +170,7 @@ async function parseArtifacts(
 ): Promise<{ artifacts: ParsedArtifact[]; fixed: number }> {
   const entries = await safeReaddir(dir);
   const artifacts: ParsedArtifact[] = [];
-  let fixed = 0;
+  const fixed = 0;
 
   for (const entry of entries) {
     if (IGNORED.has(entry) || IGNORED_DIRS.has(entry)) continue;

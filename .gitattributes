@@ -9,10 +9,3 @@
 .tasks/.counter merge=ours
 .plans/.counter merge=ours
 .docs/.counter merge=ours
-
-# Ticketbook: custom merge driver for artifact files
-# Auto-merges non-overlapping frontmatter fields, unions array fields
-# Register the driver locally via: ticketbook init
-.tasks/*.md merge=ticketbook
-.plans/*.md merge=ticketbook
-.docs/*.md merge=ticketbook

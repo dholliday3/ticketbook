@@ -6,7 +6,6 @@ import {
   readFile,
   copyFile,
 } from "node:fs/promises";
-import { setupGitIntegration } from "./git-setup.js";
 
 /**
  * Options for scaffolding a ticketbook installation into a target project.
@@ -20,12 +19,6 @@ export interface InitTicketbookOptions {
    * If the file does not exist, skill installation is skipped with a warning.
    */
   skillSourcePath?: string;
-  /**
-   * Path to `scripts/merge-driver.ts` inside the ticketbook package.
-   * Used to register the custom git merge driver for artifact files.
-   * If omitted, git merge integration is skipped.
-   */
-  mergeDriverPath?: string;
 }
 
 /**
@@ -45,12 +38,6 @@ export interface InitTicketbookResult {
   mergedMcpConfig: boolean;
   wroteAgentsMd: boolean;
   updatedGitignore: boolean;
-  /** Whether the custom merge driver was registered in local git config. */
-  registeredMergeDriver: boolean;
-  /** Whether the post-merge hook was installed. */
-  installedPostMergeHook: boolean;
-  /** Whether .gitattributes was updated with merge driver entries. */
-  updatedGitattributes: boolean;
   /**
    * True when init detected it was running against the ticketbook source
    * repo itself (via package.json name + bin/ticketbook.ts presence) and
@@ -335,22 +322,6 @@ export async function initTicketbook(
   // AGENTS.md — minimal pointer for non-plugin agents.
   const wroteAgentsMd = await writeAgentsMd(join(baseDir, "AGENTS.md"));
 
-  // Git integration — merge driver + post-merge hook.
-  // Only set up if a merge driver path was provided and the file exists.
-  let registeredMergeDriver = false;
-  let installedPostMergeHook = false;
-  let updatedGitattributes = false;
-  if (options.mergeDriverPath && (await pathExists(options.mergeDriverPath))) {
-    try {
-      const gitResult = await setupGitIntegration(baseDir, options.mergeDriverPath);
-      registeredMergeDriver = gitResult.registeredMergeDriver;
-      installedPostMergeHook = gitResult.installedPostMergeHook;
-      updatedGitattributes = gitResult.updatedGitattributes;
-    } catch {
-      // Not a git repo or git not available — skip silently
-    }
-  }
-
   return {
     tasksDir,
     plansDir,
@@ -364,9 +335,6 @@ export async function initTicketbook(
     mergedMcpConfig: mcpResult.merged,
     wroteAgentsMd,
     updatedGitignore,
-    registeredMergeDriver,
-    installedPostMergeHook,
-    updatedGitattributes,
     devMode,
   };
 }

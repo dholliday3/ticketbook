@@ -1,8 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readdir, readFile } from "node:fs/promises";
-import { join, extname, relative } from "node:path";
-import matter from "gray-matter";
+import { extname, relative } from "node:path";
 
 const exec = promisify(execFile);
 
@@ -51,7 +49,6 @@ async function git(
 async function changedArtifactIds(
   projectRoot: string,
   dir: string,
-  prefix: string,
 ): Promise<{ files: string[]; ids: string[] }> {
   const relDir = relative(projectRoot, dir);
   let stdout: string;
@@ -116,12 +113,12 @@ export async function sync(options: SyncOptions): Promise<SyncResult> {
   const { tasksDir, plansDir, docsDir, projectRoot, dryRun = false, push = false } = options;
 
   // Gather changes across all artifact directories
-  const tasks = await changedArtifactIds(projectRoot, tasksDir, "task");
+  const tasks = await changedArtifactIds(projectRoot, tasksDir);
   const plans = plansDir
-    ? await changedArtifactIds(projectRoot, plansDir, "plan")
+    ? await changedArtifactIds(projectRoot, plansDir)
     : { files: [], ids: [] };
   const docs = docsDir
-    ? await changedArtifactIds(projectRoot, docsDir, "doc")
+    ? await changedArtifactIds(projectRoot, docsDir)
     : { files: [], ids: [] };
 
   const allFiles = [...tasks.files, ...plans.files, ...docs.files];
