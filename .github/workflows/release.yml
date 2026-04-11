@@ -1,0 +1,153 @@
+name: Release
+
+# Triggers:
+#   - push of a `v*` tag      → full test + build + release pipeline
+#   - pull_request (narrow)   → test + build (no release) to validate the
+#                               workflow itself when the release-adjacent
+#                               files change
+#   - workflow_dispatch       → manual dry-run capability; defaults to
+#                               dry-run=true so accidental clicks don't
+#                               publish anything
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'scripts/build-binary.sh'
+      - 'scripts/generate-embedded-ui.ts'
+      - 'bin/ticketbook.ts'
+      - 'packages/**'
+      - 'package.json'
+      - 'bun.lock'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build binaries without publishing a release
+        type: boolean
+        default: true
+
+# Default: read-only. Individual jobs narrow further or widen as needed.
+# The `release` job widens to contents:write on tag pushes only.
+permissions:
+  contents: read
+
+jobs:
+  # ----------------------------------------------------------------------
+  # test — typecheck + unit tests. Gate for build.
+  # ----------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Run unit tests
+        run: bun test
+
+  # ----------------------------------------------------------------------
+  # build — cross-compile 4 binaries (darwin-arm64, darwin-x64, linux-x64,
+  # linux-arm64) on ubuntu-latest. Bun's --target flag supports all four
+  # from a single Linux runner, so no cross-host matrix needed. SHA256
+  # checksums go alongside each binary. Artifacts are uploaded for the
+  # release job to download.
+  #
+  # Permissions are scoped to contents:read only — this job never needs
+  # id-token or attestations, which closes the "trusted-contributor
+  # compromise lets a malicious build step mint a repo-identity OIDC
+  # token" window that plannotator's release workflow documents.
+  # ----------------------------------------------------------------------
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build UI bundle
+        run: bun --filter "@ticketbook/ui" build
+
+      - name: Generate embedded-ui.gen.ts
+        run: bun run scripts/generate-embedded-ui.ts
+
+      - name: Cross-compile binaries
+        run: |
+          mkdir -p dist
+          for target in bun-darwin-arm64 bun-darwin-x64 bun-linux-x64 bun-linux-arm64; do
+            suffix="${target#bun-}"
+            outfile="dist/ticketbook-${suffix}"
+            echo "==> Compiling $outfile (target: $target)..."
+            bun build bin/ticketbook.ts \
+              --compile \
+              --target="$target" \
+              --outfile "$outfile"
+            (cd dist && sha256sum "ticketbook-${suffix}" > "ticketbook-${suffix}.sha256")
+          done
+          echo ""
+          echo "==> Built artifacts:"
+          ls -lh dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: binaries
+          path: |
+            dist/ticketbook-darwin-arm64
+            dist/ticketbook-darwin-arm64.sha256
+            dist/ticketbook-darwin-x64
+            dist/ticketbook-darwin-x64.sha256
+            dist/ticketbook-linux-x64
+            dist/ticketbook-linux-x64.sha256
+            dist/ticketbook-linux-arm64
+            dist/ticketbook-linux-arm64.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  # ----------------------------------------------------------------------
+  # release — download artifacts, publish a GitHub Release. Tag pushes
+  # only. Pre-release flag is auto-set for tags that contain a hyphen
+  # (v0.1.0-rc.1 is a pre-release; v0.1.0 is not).
+  # ----------------------------------------------------------------------
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: binaries
+          path: artifacts
+
+      - name: List artifacts
+        run: ls -lh artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}
