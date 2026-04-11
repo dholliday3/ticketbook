@@ -280,6 +280,12 @@ async function main(): Promise<void> {
 
   // --- HTTP server mode ---
   const { startServer } = await import("../packages/server/src/index.ts");
+  const { isAddressInUseError } = await import(
+    "../packages/server/src/port-bind.ts"
+  );
+  const { describePortSquatter, formatPortInUseMessage } = await import(
+    "../packages/server/src/port-diagnose.ts"
+  );
 
   const uiDistDir = args.noUi
     ? undefined
@@ -297,15 +303,31 @@ async function main(): Promise<void> {
   // setups get a deterministic sequence (4242 → 4243 → …) instead of random
   // OS-assigned ports. When the user passes --port explicitly, disable
   // auto-increment so a collision surfaces clearly instead of being hidden.
-  const handle = startServer({
-    tasksDir,
-    plansDir,
-    docsDir,
-    port: args.port ?? 4242,
-    autoIncrement: args.port == null,
-    staticDir: uiDistDir,
-    binPath,
-  });
+  //
+  // On the explicit-port path, EADDRINUSE is the most common "first contact"
+  // failure — usually an orphaned `bun dev` from a previous session. Catch it
+  // here and replace the stack trace with a friendly message that identifies
+  // the squatter by PID and shows the exact `kill` command to run.
+  const serverPort = args.port ?? 4242;
+  let handle: ReturnType<typeof startServer>;
+  try {
+    handle = startServer({
+      tasksDir,
+      plansDir,
+      docsDir,
+      port: serverPort,
+      autoIncrement: args.port == null,
+      staticDir: uiDistDir,
+      binPath,
+    });
+  } catch (err) {
+    if (isAddressInUseError(err)) {
+      const squatter = await describePortSquatter(serverPort);
+      console.error(formatPortInUseMessage(serverPort, squatter));
+      process.exit(1);
+    }
+    throw err;
+  }
 
   if (handle.triedPorts.length > 0) {
     console.log(
