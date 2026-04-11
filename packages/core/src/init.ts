@@ -4,7 +4,6 @@ import {
   mkdir,
   writeFile,
   readFile,
-  copyFile,
 } from "node:fs/promises";
 
 /**
@@ -55,8 +54,8 @@ export interface InitTicketbookResult {
  * ticketbook source repo itself) and swaps to DEV_MCP_ENTRY below.
  */
 const PUBLISHED_MCP_ENTRY = {
-  command: "bunx",
-  args: ["ticketbook", "--mcp"],
+  command: "ticketbook",
+  args: ["--mcp"],
 } as const;
 
 /**
@@ -152,7 +151,12 @@ async function writeSkillFile(
 ): Promise<boolean> {
   if (await pathExists(targetPath)) return false;
   await mkdir(dirname(targetPath), { recursive: true });
-  await copyFile(skillSourcePath, targetPath);
+  // readFile + writeFile instead of copyFile — works for both real
+  // filesystem paths (dev mode) and Bun's $bunfs/ virtual paths (compiled
+  // binary). Bun's docs explicitly support Bun.file()/readFile() on
+  // embedded assets; copyFile is undocumented on virtual paths.
+  const content = await readFile(skillSourcePath);
+  await writeFile(targetPath, content);
   return true;
 }
 
@@ -313,8 +317,8 @@ export async function initTicketbook(
  */
 export function codexMcpInstructions(): string {
   return `[mcp_servers.ticketbook]
-command = "bunx"
-args = ["ticketbook", "--mcp"]`;
+command = "ticketbook"
+args = ["--mcp"]`;
 }
 
 // Re-export for tests.

@@ -126,8 +126,8 @@ describe("initTicketbook", () => {
 
     const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
     expect(mcp.mcpServers.ticketbook).toEqual({
-      command: "bunx",
-      args: ["ticketbook", "--mcp"],
+      command: "ticketbook",
+      args: ["--mcp"],
     });
   });
 
@@ -168,7 +168,7 @@ describe("initTicketbook", () => {
 
     expect(result.devMode).toBe(false);
     const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
-    expect(mcp.mcpServers.ticketbook.command).toBe("bunx");
+    expect(mcp.mcpServers.ticketbook.command).toBe("ticketbook");
   });
 
   test("does not trigger dev mode when bin/ticketbook.ts is missing", async () => {
@@ -184,7 +184,7 @@ describe("initTicketbook", () => {
 
     expect(result.devMode).toBe(false);
     const mcp = JSON.parse(await readFile(join(dir, ".mcp.json"), "utf-8"));
-    expect(mcp.mcpServers.ticketbook.command).toBe("bunx");
+    expect(mcp.mcpServers.ticketbook.command).toBe("ticketbook");
   });
 
   test("merges ticketbook into an existing .mcp.json without clobbering other entries", async () => {
@@ -210,8 +210,8 @@ describe("initTicketbook", () => {
       args: ["--foo"],
     });
     expect(mcp.mcpServers.ticketbook).toEqual({
-      command: "bunx",
-      args: ["ticketbook", "--mcp"],
+      command: "ticketbook",
+      args: ["--mcp"],
     });
   });
 
@@ -327,7 +327,7 @@ describe("initTicketbook", () => {
   test("codexMcpInstructions returns a valid TOML snippet", () => {
     const toml = codexMcpInstructions();
     expect(toml).toContain("[mcp_servers.ticketbook]");
-    expect(toml).toContain('command = "bunx"');
-    expect(toml).toContain('args = ["ticketbook", "--mcp"]');
+    expect(toml).toContain('command = "ticketbook"');
+    expect(toml).toContain('args = ["--mcp"]');
   });
 });

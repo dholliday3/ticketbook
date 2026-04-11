@@ -6,6 +6,7 @@ import { BunPtyHeadlessBackend, type TerminalSession } from "./terminal/index.js
 import { listTerminalTabs, upsertTerminalTab, getNextTabNumber, deleteTerminalTab } from "./db.js";
 import { createDebug } from "./debug.js";
 import { bindWithIncrementUsing } from "./port-bind.js";
+import { EMBEDDED_UI } from "./embedded-ui.gen.js";
 import {
   ClaudeCodeProvider,
   CodexProvider,
@@ -119,30 +120,51 @@ export function startServer(config: ServerConfig): ServerHandle {
   }
 
   async function tryServeStatic(pathname: string): Promise<Response | null> {
-    if (!staticDir) return null;
+    // Normalize: "/" → "/index.html" so SPA root serving works against
+    // both the embedded map (compiled binary) and the filesystem (dev).
+    const cleanPath = pathname === "/" ? "/index.html" : pathname;
 
-    // Prevent directory traversal
-    const filePath = resolve(staticDir, pathname.replace(/^\/+/, ""));
-    if (!filePath.startsWith(staticDir)) return null;
-
-    try {
-      const fileStat = await stat(filePath);
-      if (fileStat.isFile()) {
-        return new Response(Bun.file(filePath));
-      }
-    } catch {
-      // File doesn't exist
+    // 1. Exact match in the embedded UI map. Populated at binary-build
+    //    time by scripts/generate-embedded-ui.ts; an empty stub in dev
+    //    mode, so this lookup is a no-op there. Bun.file() reads both
+    //    real and $bunfs/ virtual paths transparently.
+    const embeddedPath = EMBEDDED_UI[cleanPath];
+    if (embeddedPath) {
+      return new Response(Bun.file(embeddedPath));
     }
 
-    // SPA fallback: try serving index.html for non-file paths
-    try {
-      const indexPath = join(staticDir, "index.html");
-      const indexStat = await stat(indexPath);
-      if (indexStat.isFile()) {
-        return new Response(Bun.file(indexPath));
+    // 2. Exact match against the real filesystem (dev mode, or when
+    //    a --static-dir override has been passed).
+    if (staticDir) {
+      const filePath = resolve(staticDir, cleanPath.replace(/^\/+/, ""));
+      if (filePath.startsWith(staticDir)) {
+        try {
+          const fileStat = await stat(filePath);
+          if (fileStat.isFile()) {
+            return new Response(Bun.file(filePath));
+          }
+        } catch {
+          // file not found — fall through to SPA fallback
+        }
       }
-    } catch {
-      // No index.html
+    }
+
+    // 3. SPA fallback: serve index.html for any unmatched path. Prefer
+    //    the embedded copy when available; otherwise use the filesystem.
+    const embeddedIndex = EMBEDDED_UI["/index.html"];
+    if (embeddedIndex) {
+      return new Response(Bun.file(embeddedIndex));
+    }
+    if (staticDir) {
+      try {
+        const indexPath = join(staticDir, "index.html");
+        const indexStat = await stat(indexPath);
+        if (indexStat.isFile()) {
+          return new Response(Bun.file(indexPath));
+        }
+      } catch {
+        // no index.html — nothing left to serve
+      }
     }
 
     return null;

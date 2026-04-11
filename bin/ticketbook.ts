@@ -8,6 +8,20 @@ import {
   codexMcpInstructions,
 } from "../packages/core/src/init.ts";
 import { findTasksDirWithWorktree } from "../packages/core/src/worktree.ts";
+import { runOnboard } from "../packages/core/src/onboard.ts";
+import { startMcpServer } from "../packages/server/src/mcp.ts";
+import { startServer } from "../packages/server/src/index.ts";
+import { isAddressInUseError } from "../packages/server/src/port-bind.ts";
+import {
+  describePortSquatter,
+  formatPortInUseMessage,
+} from "../packages/server/src/port-diagnose.ts";
+// Embed SKILL.md via Bun's `with { type: "file" }` import attribute.
+// In dev mode this returns the real filesystem path; inside a compiled
+// binary it returns a `$bunfs/` virtual path. Both forms are readable
+// via Bun.file() and node:fs's readFile(), which is how initTicketbook
+// copies the skill into a target project's .claude/skills/ directory.
+import SKILL_SOURCE from "../skills/ticketbook/SKILL.md" with { type: "file" };
 
 interface CliArgs {
   command: "serve" | "init" | "onboard";
@@ -124,13 +138,14 @@ async function resolveTasksDir(givenPath: string): Promise<string> {
   return withTasks;
 }
 
-/** Resolve the path to the bundled SKILL.md inside the ticketbook package. */
+/**
+ * Resolve the path to the bundled SKILL.md. Just returns the embedded
+ * path from the top-of-file `with { type: "file" }` import — Bun handles
+ * both dev-mode (real path) and compiled-binary (`$bunfs/`) resolution
+ * transparently, so the caller doesn't need to care which mode we're in.
+ */
 function resolveSkillSourcePath(): string {
-  // This script lives at <package>/bin/ticketbook.ts; the skill lives at
-  // <package>/skills/ticketbook/SKILL.md. Same relative path whether we're
-  // running from the monorepo or an installed node_modules copy.
-  const scriptDir = dirname(fileURLToPath(import.meta.url));
-  return resolve(scriptDir, "..", "skills", "ticketbook", "SKILL.md");
+  return SKILL_SOURCE;
 }
 
 /** Print a summary of what init created and next-step instructions. */
@@ -187,7 +202,6 @@ async function main(): Promise<void> {
 
   // --- Onboard command ---
   if (args.command === "onboard") {
-    const { runOnboard } = await import("../packages/core/src/onboard.ts");
     const baseDir = args.dir ? resolve(args.dir) : process.cwd();
     const result = await runOnboard({
       baseDir,
@@ -268,7 +282,6 @@ async function main(): Promise<void> {
 
   // --- MCP mode ---
   if (args.mcp) {
-    const { startMcpServer } = await import("../packages/server/src/mcp.ts");
     const mcpPlansDir = join(dirname(tasksDir), ".plans");
     const mcpDocsDir = join(dirname(tasksDir), ".docs");
     console.error(
@@ -279,14 +292,6 @@ async function main(): Promise<void> {
   }
 
   // --- HTTP server mode ---
-  const { startServer } = await import("../packages/server/src/index.ts");
-  const { isAddressInUseError } = await import(
-    "../packages/server/src/port-bind.ts"
-  );
-  const { describePortSquatter, formatPortInUseMessage } = await import(
-    "../packages/server/src/port-diagnose.ts"
-  );
-
   const uiDistDir = args.noUi
     ? undefined
     : resolve(join(import.meta.dir, "../packages/ui/dist"));
