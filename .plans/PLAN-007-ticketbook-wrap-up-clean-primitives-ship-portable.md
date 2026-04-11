@@ -9,7 +9,7 @@ tags:
   - agent-handoff
 project: ticketbook
 created: '2026-04-09T05:12:56.550Z'
-updated: '2026-04-09T13:08:11.533Z'
+updated: '2026-04-11T06:47:33.845Z'
 ---
 
 # Ticketbook wrap-up — clean primitives, ship portable
@@ -30,7 +30,7 @@ Most of PLAN-004 (V1 Foundations — sessions, workspaces, terminal, shell integ
 1. Clean up the primitives: rename tickets → tasks, add docs as a lightweight third primitive
 2. Nail the artifact ↔ agent handoff pattern — agents should be able to pick up, work on, and hand back plans/tasks/docs cleanly
 3. QoL polish on the existing UI — small wins, not a full redesign
-4. Package Ticketbook as a standalone binary that can be installed and initialized in any repo
+4. Package Ticketbook as a standalone binary that can be installed, initialized, and onboarded in any repo
 5. Explicitly defer everything that belongs to Agent Editor
 
 ## Non-goals
@@ -92,16 +92,19 @@ Small, high-impact fixes. No redesign, no migration.
 
 ### Phase 5: Package and ship
 
-Subsumes PLAN-005. Make Ticketbook installable anywhere.
+Subsumes PLAN-005. Make Ticketbook installable *and properly onboardable* in any repo. PLAN-005 now has five sub-phases — the first ships independently of any binary work, the rest are the compiled-binary path.
 
-- Compile to standalone binary via `bun build --compile`
-- Cross-compile for darwin-arm64, darwin-x64, linux-x64, linux-arm64
-- GitHub Releases workflow (tag push → build → upload)
-- `scripts/install.sh` for curl one-liner install
-- Claude Code plugin marketplace registration
-- README with clear install + init instructions
+- **Phase 0 (seeds-inspired init/onboard layer).** Split `ticketbook init` (data scaffold) from a new `ticketbook onboard` command (agent instructions). Agent instructions get wrapped in versioned HTML-comment markers (`<!-- ticketbook:start -->` / `<!-- ticketbook:end -->`) so re-running `onboard` after a version bump surgically replaces the bracketed section in existing CLAUDE.md / AGENTS.md files without touching content outside the markers. Candidate file walk: `CLAUDE.md` → `.claude/CLAUDE.md` → `AGENTS.md`. Support `--check` and `--stdout` dry-run modes. Ships without any binary work — pattern lifted from `~/workspace/resources/seeds`.
+- Compile to standalone binary via `bun build --compile`; embed `skills/ticketbook/SKILL.md` and `packages/ui/dist/`; verify `bun:sqlite` survives compile
+- Cross-compile for darwin-arm64, darwin-x64, linux-x64, linux-arm64 via `ubuntu-latest` CI
+- GitHub Releases workflow (tag push → test → build → upload binaries + `.sha256`)
+- `scripts/install.sh` for curl one-liner install; drops binary at `$HOME/.local/bin/ticketbook`; supports `--version <tag>` pinning
+- `ticketbook upgrade` and `ticketbook upgrade --check` self-update command (models seeds' `sd upgrade`; re-invokes `install.sh` under the hood)
+- Flip `PUBLISHED_MCP_ENTRY` in `packages/core/src/init.ts:90` from `bunx ticketbook` to `ticketbook` once the binary is on PATH
+- Delete `.claude-plugin/plugin.json` — the Claude Code plugin marketplace path is explicitly dropped; project-level `.mcp.json` auto-loading + project-level skills cover Claude Code without a plugin
+- README with clear install + init + onboard + upgrade instructions
 
-**Linked:** PLAN-005 (full details there)
+**Linked:** PLAN-005 (full details there — Phase 0 through Phase 4 with acceptance criteria, open questions, risks, and seeds/plannotator reference files)
 
 ## Deferred to Agent Editor
 
@@ -143,7 +146,9 @@ The following are explicitly out of scope and should be ported to the Agent Edit
 - The MCP tools use consistent `task` (not `ticket`) naming
 - Agents can pick up, work on, debrief, and hand back artifacts via MCP
 - The UI is functional and navigable (command menu, filters, clickable tasks)
-- A user on any supported platform can `curl | bash` to install, then `ticketbook init` in any repo
+- A user on any supported platform can `curl | bash` to install, then `ticketbook init` + `ticketbook onboard` in any repo to get a fully scaffolded and agent-onboarded setup
+- Re-running `ticketbook onboard` after a version bump surgically updates agent instructions in CLAUDE.md/AGENTS.md without clobbering user edits outside the markers
+- `ticketbook upgrade` self-updates users to the latest release
 - All Agent Editor work is cleanly cataloged and ready to port to the next project
 - CLAUDE.md, README, and skill docs reflect the shipped state
 
@@ -152,11 +157,11 @@ The following are explicitly out of scope and should be ported to the Agent Edit
 - **Phase 1 (rename) touches everything** — high blast radius, but PLAN-006 already has a detailed migration plan. Do it first so everything after builds on clean naming.
 - **Docs primitive scope creep** — keep it dead simple. It's markdown files with frontmatter and MCP tools, not a wiki or knowledge base.
 - **Agent handoff is hard to validate without real usage** — dogfood aggressively during Phase 3. Use agents to work on Phase 4 and Phase 5 tasks via the handoff workflow.
-- **Packaging rabbit holes** — PLAN-005 Phase 1 (binary compilation) is where surprises live. Budget accordingly.
+- **Packaging rabbit holes** — PLAN-005 Phase 1 (binary compilation) is where surprises live. Phase 0 (seeds-inspired init/onboard) ships independently so we get value from the packaging work even if Phase 1 drags. Budget accordingly.
 
 ## Related plans
 
 - **PLAN-006** — Detailed primitive rename spec (Phase 1 details)
-- **PLAN-005** — Detailed packaging spec (Phase 5 details)
+- **PLAN-005** — Detailed packaging + init/onboard/upgrade spec (Phase 5 details). Recently expanded to include the seeds-inspired Phase 0.
 - **PLAN-004** — V1 Foundations, to be archived/deferred to Agent Editor
 - **PLAN-003** — Flexible UI exploration, already deferred
