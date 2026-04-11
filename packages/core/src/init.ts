@@ -36,7 +36,6 @@ export interface InitTicketbookResult {
   wroteSkill: boolean;
   wroteMcpConfig: boolean;
   mergedMcpConfig: boolean;
-  wroteAgentsMd: boolean;
   updatedGitignore: boolean;
   /**
    * True when init detected it was running against the ticketbook source
@@ -47,38 +46,6 @@ export interface InitTicketbookResult {
    */
   devMode: boolean;
 }
-
-const AGENTS_MD_CONTENT = `# AGENTS.md
-
-This project uses **ticketbook** for task and plan tracking. Tasks live in \`.tasks/\`, plans live in \`.plans/\`, and reference docs live in \`.docs/\` as markdown files with YAML frontmatter.
-
-## If your agent supports Skills
-
-The \`ticketbook\` skill at \`.claude/skills/ticketbook/SKILL.md\` (Claude Code) and \`.agents/skills/ticketbook/SKILL.md\` (Codex) covers the full workflow. Nothing to configure — just ask about tasks, plans, or docs and the skill will load on demand.
-
-## If your agent does not support Skills
-
-Use the \`ticketbook\` MCP server for all task, plan, and doc operations. Start it with:
-
-\`\`\`
-bunx ticketbook --mcp
-\`\`\`
-
-Never hand-edit files in \`.tasks/\`, \`.plans/\`, or \`.docs/\` — the MCP server owns ID assignment, file naming, ordering, and watcher sync. Direct edits will desync state.
-
-## Workflow basics
-
-- **Start work:** set task \`status: "in-progress"\` and \`assignee: "<your agent name>"\`.
-- **Finish work:** set \`status: "done"\`, append a debrief under a \`<!-- agent-notes -->\` marker in the body, and call \`link_ref\` with the commit SHA or PR URL.
-- **Plans → tasks:** call \`cut_tasks_from_plan\` to parse unchecked checkboxes in a plan body into linked tasks in one step.
-- **Commit convention:** include the task ID in the commit message (e.g. \`TKTB-015: fix kanban reorder bug\`).
-
-## Enums
-
-- **Task status:** \`draft\`, \`backlog\`, \`open\`, \`in-progress\`, \`done\`, \`cancelled\`
-- **Task priority:** \`low\`, \`medium\`, \`high\`, \`urgent\`
-- **Plan status:** \`draft\`, \`active\`, \`completed\`, \`archived\`
-`;
 
 /**
  * Published-mode MCP command. Used when init scaffolds a foreign repo that
@@ -189,12 +156,6 @@ async function writeSkillFile(
   return true;
 }
 
-async function writeAgentsMd(targetPath: string): Promise<boolean> {
-  if (await pathExists(targetPath)) return false;
-  await writeFile(targetPath, AGENTS_MD_CONTENT, "utf-8");
-  return true;
-}
-
 async function updateGitignore(
   baseDir: string,
   patterns: string[],
@@ -230,8 +191,12 @@ async function updateGitignore(
  *   - .claude/skills/ticketbook/SKILL.md (Claude Code skill discovery)
  *   - .agents/skills/ticketbook/SKILL.md (Codex skill discovery)
  *   - .mcp.json (or merges a ticketbook entry into an existing one)
- *   - AGENTS.md (minimal pointer for agents without skill support)
  *   - .gitignore entries for .tasks/.archive/, .plans/.archive/, and .docs/.archive/
+ *
+ * Agent instructions are a separate concern — the new `runOnboard` in
+ * ./onboard.ts writes a versioned, marker-wrapped section into CLAUDE.md or
+ * AGENTS.md. Callers should invoke `ticketbook onboard` as a follow-up step
+ * (the CLI's `printInitSummary` advertises this).
  */
 export async function initTicketbook(
   options: InitTicketbookOptions,
@@ -325,9 +290,6 @@ export async function initTicketbook(
   // .mcp.json — project-level MCP config Claude Code auto-loads.
   const mcpResult = await writeMcpConfig(join(baseDir, ".mcp.json"), mcpEntry);
 
-  // AGENTS.md — minimal pointer for non-plugin agents.
-  const wroteAgentsMd = await writeAgentsMd(join(baseDir, "AGENTS.md"));
-
   return {
     tasksDir,
     plansDir,
@@ -339,7 +301,6 @@ export async function initTicketbook(
     wroteSkill,
     wroteMcpConfig: mcpResult.wrote,
     mergedMcpConfig: mcpResult.merged,
-    wroteAgentsMd,
     updatedGitignore,
     devMode,
   };
@@ -357,4 +318,4 @@ args = ["ticketbook", "--mcp"]`;
 }
 
 // Re-export for tests.
-export { PUBLISHED_MCP_ENTRY, DEV_MCP_ENTRY, AGENTS_MD_CONTENT };
+export { PUBLISHED_MCP_ENTRY, DEV_MCP_ENTRY };

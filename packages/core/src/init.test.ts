@@ -238,23 +238,14 @@ describe("initTicketbook", () => {
     });
   });
 
-  test("writes AGENTS.md when absent and leaves it alone when present", async () => {
-    const first = await initTicketbook({ baseDir: dir, skillSourcePath });
-    expect(first.wroteAgentsMd).toBe(true);
-
-    const agentsMd = await readFile(join(dir, "AGENTS.md"), "utf-8");
-    expect(agentsMd).toContain("ticketbook");
-    expect(agentsMd).toContain(".tasks/");
-    expect(agentsMd).toContain(".docs/");
-
-    // Simulate user editing the file.
-    await writeFile(join(dir, "AGENTS.md"), "# Custom\n", "utf-8");
-
-    const second = await initTicketbook({ baseDir: dir, skillSourcePath });
-    expect(second.wroteAgentsMd).toBe(false);
-
-    const after = await readFile(join(dir, "AGENTS.md"), "utf-8");
-    expect(after).toBe("# Custom\n");
+  test("does not write AGENTS.md (onboard owns agent instructions)", async () => {
+    // Regression test for the TKTB-073 init/onboard split: init scaffolds data
+    // and MCP config only; writing agent instructions into CLAUDE.md or
+    // AGENTS.md is the job of `ticketbook onboard`. If init ever starts
+    // touching AGENTS.md again, that's a scope violation and this test
+    // catches it.
+    await initTicketbook({ baseDir: dir, skillSourcePath });
+    expect(await fileExists(join(dir, "AGENTS.md"))).toBe(false);
   });
 
   test("adds archive patterns to .gitignore, creating it if needed", async () => {
@@ -317,7 +308,6 @@ describe("initTicketbook", () => {
     expect(second.wroteConfig).toBe(false);
     expect(second.wroteSkill).toBe(false);
     expect(second.wroteMcpConfig).toBe(false);
-    expect(second.wroteAgentsMd).toBe(false);
 
     const afterSkill = await readFile(claudeSkillPath, "utf-8");
     expect(afterSkill).toBe("# modified by user\n");

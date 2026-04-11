@@ -10,22 +10,37 @@ import {
 import { findTasksDirWithWorktree } from "../packages/core/src/worktree.ts";
 
 interface CliArgs {
-  command: "serve" | "init";
+  command: "serve" | "init" | "onboard";
   dir?: string;
   port?: number;
   noUi: boolean;
   mcp: boolean;
+  /** --check (onboard only) — report state without modifying files. */
+  check: boolean;
+  /** --stdout (onboard only) — print the wrapped section to stdout, touch no files. */
+  stdout: boolean;
+  /** --json — emit structured JSON instead of human-readable lines (onboard mode). */
+  json: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
   const args = argv.slice(2);
-  const result: CliArgs = { command: "serve", noUi: false, mcp: false };
+  const result: CliArgs = {
+    command: "serve",
+    noUi: false,
+    mcp: false,
+    check: false,
+    stdout: false,
+    json: false,
+  };
 
   let i = 0;
   while (i < args.length) {
     const arg = args[i];
     if (arg === "init") {
       result.command = "init";
+    } else if (arg === "onboard") {
+      result.command = "onboard";
     } else if (arg === "--dir" && i + 1 < args.length) {
       result.dir = args[++i];
     } else if (arg === "--port" && i + 1 < args.length) {
@@ -34,6 +49,12 @@ function parseArgs(argv: string[]): CliArgs {
       result.noUi = true;
     } else if (arg === "--mcp") {
       result.mcp = true;
+    } else if (arg === "--check") {
+      result.check = true;
+    } else if (arg === "--stdout") {
+      result.stdout = true;
+    } else if (arg === "--json") {
+      result.json = true;
     } else if (arg === "--help" || arg === "-h") {
       printUsage();
       process.exit(0);
@@ -50,7 +71,8 @@ function printUsage(): void {
   console.log(`Usage: ticketbook [command] [options] [path]
 
 Commands:
-  init        Scaffold a new .tasks/ directory
+  init        Scaffold .tasks/, .plans/, .docs/, .mcp.json, and skill files
+  onboard     Write/update the ticketbook agent instructions section in CLAUDE.md (or AGENTS.md)
   (default)   Start the server and open the UI
 
 Options:
@@ -58,6 +80,9 @@ Options:
   --port <num>   Server port (default: 4242, auto-increment on collision)
   --no-ui        Server only, no static UI serving
   --mcp          Start MCP server mode (stdio transport, no HTTP)
+  --check        (onboard only) Report status without modifying files; exits 1 if stale
+  --stdout       (onboard only) Print the onboarding section to stdout, touching no files
+  --json         Emit structured JSON output (onboard mode)
   -h, --help     Show this help message`);
 }
 
@@ -125,9 +150,6 @@ function printInitSummary(
   } else if (result.mergedMcpConfig) {
     created.push("  .mcp.json (merged ticketbook entry)");
   }
-  if (result.wroteAgentsMd) {
-    created.push("  AGENTS.md");
-  }
 
   if (created.length > 0) {
     console.log("\nAgent integration files:");
@@ -144,6 +166,9 @@ function printInitSummary(
   console.log(`\nCodex: add this to ~/.codex/config.toml:\n`);
   console.log(codexMcpInstructions());
   console.log("");
+  console.log(
+    `Next: run 'ticketbook onboard' to add agent instructions to CLAUDE.md.`,
+  );
 }
 
 async function main(): Promise<void> {
@@ -157,6 +182,62 @@ async function main(): Promise<void> {
       skillSourcePath: resolveSkillSourcePath(),
     });
     printInitSummary(baseDir, result);
+    return;
+  }
+
+  // --- Onboard command ---
+  if (args.command === "onboard") {
+    const { runOnboard } = await import("../packages/core/src/onboard.ts");
+    const baseDir = args.dir ? resolve(args.dir) : process.cwd();
+    const result = await runOnboard({
+      baseDir,
+      check: args.check,
+      stdout: args.stdout,
+    });
+
+    // --stdout already printed the wrapped snippet; nothing more to say.
+    if (result.action === "stdout") return;
+
+    if (args.json) {
+      // Mirror seeds' envelope shape: always success=true on the happy
+      // path, command name, plus whatever action-specific fields exist.
+      const envelope: Record<string, unknown> = {
+        success: true,
+        command: "onboard",
+        action: result.action,
+      };
+      if ("file" in result) envelope.file = result.file;
+      if ("status" in result) envelope.status = result.status;
+      console.log(JSON.stringify(envelope));
+    } else {
+      switch (result.action) {
+        case "created":
+          console.log(`Created ${result.file} with ticketbook section`);
+          break;
+        case "updated":
+          console.log(`Updated ticketbook section in ${result.file}`);
+          break;
+        case "unchanged":
+          console.log(
+            `Ticketbook section is already up to date (${result.file})`,
+          );
+          break;
+        case "appended":
+          console.log(`Added ticketbook section to ${result.file}`);
+          break;
+        case "checked":
+          console.log(
+            `Status: ${result.status}${result.file ? ` (${result.file})` : " (no candidate file)"}`,
+          );
+          break;
+      }
+    }
+
+    // --check mode: exit 1 when the section is missing or outdated so CI
+    // can use it as a freshness gate (mirrors seeds' sd onboard --check).
+    if (result.action === "checked" && result.status !== "current") {
+      process.exitCode = 1;
+    }
     return;
   }
 
