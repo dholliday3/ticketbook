@@ -173,4 +173,14 @@ describe("TicketbookConfigSchema", () => {
     const result = TicketbookConfigSchema.parse({ prefix: "ART" });
     expect(result.prefix).toBe("ART");
   });
+
+  test("name is undefined when omitted", () => {
+    const result = TicketbookConfigSchema.parse({});
+    expect(result.name).toBeUndefined();
+  });
+
+  test("parses name when provided", () => {
+    const result = TicketbookConfigSchema.parse({ name: "projA" });
+    expect(result.name).toBe("projA");
+  });
 });

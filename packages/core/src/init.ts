@@ -1,4 +1,4 @@
-import { join, dirname, resolve } from "node:path";
+import { join, dirname, resolve, basename } from "node:path";
 import {
   stat,
   mkdir,
@@ -253,12 +253,18 @@ export async function initTicketbook(
   await ensureDir(docsArchiveDir);
 
   // .config.yaml (tasks)
+  // On first init we auto-populate `name` with the basename of the target
+  // directory. It's used by the MCP server to give each instance a per-project
+  // identity (`ticketbook-<name>`) so multi-repo setups are distinguishable in
+  // `claude mcp list` and error logs. Existing configs are left alone — the
+  // MCP server tolerates a missing `name` field and falls back to `ticketbook`.
   let wroteConfig = false;
   const configPath = join(tasksDir, ".config.yaml");
   if (!(await pathExists(configPath))) {
+    const projectName = basename(baseDir);
     await writeFile(
       configPath,
-      "prefix: TASK\nplanPrefix: PLAN\ndocPrefix: DOC\ndeleteMode: archive\n",
+      `name: "${projectName}"\nprefix: TASK\nplanPrefix: PLAN\ndocPrefix: DOC\ndeleteMode: archive\n`,
       "utf-8",
     );
     wroteConfig = true;

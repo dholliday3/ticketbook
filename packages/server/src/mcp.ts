@@ -26,6 +26,7 @@ import {
   runDoctor,
   formatDoctorReport,
   sync,
+  getConfig,
 } from "@ticketbook/core";
 import type { Doc, Plan } from "@ticketbook/core";
 
@@ -135,13 +136,37 @@ function formatDocFull(doc: Doc): string {
   return lines.join("\n");
 }
 
+/**
+ * Load `name` from `.tasks/.config.yaml` and derive the MCP server identity.
+ *
+ * Returns `ticketbook-<name>` when the config has a non-empty `name` field so
+ * multi-repo setups have distinguishable MCP identities at handshake time.
+ * Falls back to plain `"ticketbook"` when the config is missing, unparseable,
+ * or has no `name` — **never throws**, because a bad config must not prevent
+ * the server from booting. Parse errors are logged to stderr as a warning.
+ */
+export async function resolveMcpServerName(tasksDir: string): Promise<string> {
+  try {
+    const cfg = await getConfig(tasksDir);
+    if (cfg.name && cfg.name.trim().length > 0) {
+      return `ticketbook-${cfg.name}`;
+    }
+  } catch (err) {
+    console.error(
+      `[ticketbook-mcp] failed to read ${tasksDir}/.config.yaml — falling back to default server name. ${(err as Error).message}`,
+    );
+  }
+  return "ticketbook";
+}
+
 export async function startMcpServer(
   tasksDir: string,
   plansDir?: string,
   docsDir?: string,
 ): Promise<void> {
+  const serverName = await resolveMcpServerName(tasksDir);
   const server = new McpServer({
-    name: "ticketbook",
+    name: serverName,
     version: "0.1.0",
   });
 

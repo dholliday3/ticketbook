@@ -7,7 +7,7 @@ import {
   mkdir,
   stat,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { tmpdir } from "node:os";
 import { initTicketbook, codexMcpInstructions } from "./init.js";
 
@@ -64,6 +64,9 @@ describe("initTicketbook", () => {
     expect(config).toContain("prefix: TASK");
     expect(config).toContain("planPrefix: PLAN");
     expect(config).toContain("docPrefix: DOC");
+    // name is auto-populated from basename(baseDir) so each repo gets a
+    // distinguishable MCP identity.
+    expect(config).toContain(`name: "${basename(dir)}"`);
 
     const ticketsCounter = await readFile(
       join(dir, ".tasks", ".counter"),
@@ -279,6 +282,21 @@ describe("initTicketbook", () => {
     expect(gitignore).toContain(".tasks/.archive/");
     expect(gitignore).toContain(".plans/.archive/");
     expect(gitignore).toContain(".docs/.archive/");
+  });
+
+  test("leaves an existing .config.yaml without a name field alone on re-init", async () => {
+    // Simulate a pre-0.x project whose config was written before the `name`
+    // field existed. Re-running init should not overwrite or augment it.
+    const preexisting = "prefix: TASK\nplanPrefix: PLAN\ndocPrefix: DOC\ndeleteMode: archive\n";
+    await mkdir(join(dir, ".tasks"), { recursive: true });
+    await writeFile(join(dir, ".tasks", ".config.yaml"), preexisting, "utf-8");
+
+    const result = await initTicketbook({ baseDir: dir, skillSourcePath });
+    expect(result.wroteConfig).toBe(false);
+
+    const after = await readFile(join(dir, ".tasks", ".config.yaml"), "utf-8");
+    expect(after).toBe(preexisting);
+    expect(after).not.toContain("name:");
   });
 
   test("is idempotent — running twice does not overwrite anything", async () => {

@@ -38,6 +38,22 @@ describe("getConfig", () => {
     expect(config.prefix).toBe("BUG");
     expect(config.deleteMode).toBe("archive");
   });
+
+  test("reads optional name field when present", async () => {
+    await writeFile(
+      join(dir, ".config.yaml"),
+      'name: "projA"\nprefix: TASK\n',
+      "utf-8",
+    );
+    const config = await getConfig(dir);
+    expect(config.name).toBe("projA");
+  });
+
+  test("name is undefined (not empty string) when absent", async () => {
+    await writeFile(join(dir, ".config.yaml"), "prefix: TASK\n", "utf-8");
+    const config = await getConfig(dir);
+    expect(config.name).toBeUndefined();
+  });
 });
 
 describe("updateConfig", () => {
