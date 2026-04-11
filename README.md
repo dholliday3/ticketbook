@@ -30,7 +30,19 @@ curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/
 
 ### Upgrade
 
-Re-run the installer — it overwrites the existing binary. (A dedicated `ticketbook upgrade` command is tracked as PLAN-005 Phase 4.)
+```bash
+ticketbook upgrade --check   # is a newer release available? (exits 1 if stale)
+ticketbook upgrade           # if stale, re-invokes install.sh to fetch + verify + replace
+```
+
+`--check` is safe to call from shell prompt integrations or CI — it only reads the GitHub releases API and reports without touching the binary. `ticketbook upgrade` (no flag) performs the actual upgrade by re-invoking `install.sh`, which handles SHA256 verification and atomic replacement.
+
+Add `--json` to either form to get a structured envelope:
+
+```bash
+$ ticketbook upgrade --check --json
+{"success":true,"command":"upgrade","action":"checked","current":"0.1.0","latest":"0.2.0","upToDate":false}
+```
 
 ### Manual install
 

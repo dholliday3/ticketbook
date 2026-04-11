@@ -9,6 +9,7 @@ import {
 } from "../packages/core/src/init.ts";
 import { findTasksDirWithWorktree } from "../packages/core/src/worktree.ts";
 import { runOnboard } from "../packages/core/src/onboard.ts";
+import { runUpgrade } from "../packages/core/src/upgrade.ts";
 import { startMcpServer } from "../packages/server/src/mcp.ts";
 import { startServer } from "../packages/server/src/index.ts";
 import { isAddressInUseError } from "../packages/server/src/port-bind.ts";
@@ -24,16 +25,16 @@ import {
 import SKILL_SOURCE from "../skills/ticketbook/SKILL.md" with { type: "file" };
 
 interface CliArgs {
-  command: "serve" | "init" | "onboard";
+  command: "serve" | "init" | "onboard" | "upgrade";
   dir?: string;
   port?: number;
   noUi: boolean;
   mcp: boolean;
-  /** --check (onboard only) — report state without modifying files. */
+  /** --check — report state without side effects. Used by onboard + upgrade. */
   check: boolean;
   /** --stdout (onboard only) — print the wrapped section to stdout, touch no files. */
   stdout: boolean;
-  /** --json — emit structured JSON instead of human-readable lines (onboard mode). */
+  /** --json — emit structured JSON instead of human-readable lines (onboard + upgrade). */
   json: boolean;
 }
 
@@ -55,6 +56,8 @@ function parseArgs(argv: string[]): CliArgs {
       result.command = "init";
     } else if (arg === "onboard") {
       result.command = "onboard";
+    } else if (arg === "upgrade") {
+      result.command = "upgrade";
     } else if (arg === "--dir" && i + 1 < args.length) {
       result.dir = args[++i];
     } else if (arg === "--port" && i + 1 < args.length) {
@@ -87,6 +90,7 @@ function printUsage(): void {
 Commands:
   init        Scaffold .tasks/, .plans/, .docs/, .mcp.json, and skill files
   onboard     Write/update the ticketbook agent instructions section in CLAUDE.md (or AGENTS.md)
+  upgrade     Upgrade ticketbook to the latest release from GitHub
   (default)   Start the server and open the UI
 
 Options:
@@ -94,9 +98,9 @@ Options:
   --port <num>   Server port (default: 4242, auto-increment on collision)
   --no-ui        Server only, no static UI serving
   --mcp          Start MCP server mode (stdio transport, no HTTP)
-  --check        (onboard only) Report status without modifying files; exits 1 if stale
+  --check        Report status without side effects (onboard + upgrade); exits 1 if stale
   --stdout       (onboard only) Print the onboarding section to stdout, touching no files
-  --json         Emit structured JSON output (onboard mode)
+  --json         Emit structured JSON output (onboard + upgrade)
   -h, --help     Show this help message`);
 }
 
@@ -250,6 +254,79 @@ async function main(): Promise<void> {
     // --check mode: exit 1 when the section is missing or outdated so CI
     // can use it as a freshness gate (mirrors seeds' sd onboard --check).
     if (result.action === "checked" && result.status !== "current") {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  // --- Upgrade command ---
+  if (args.command === "upgrade") {
+    // Catch network/spawn failures cleanly — the 404-before-first-release
+    // case and any other runUpgrade error should surface as a one-line
+    // message, not a stack trace. In --json mode we wrap the error in the
+    // envelope shape so scripts can parse it.
+    let result: Awaited<ReturnType<typeof runUpgrade>>;
+    try {
+      result = await runUpgrade({ check: args.check });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (args.json) {
+        console.log(
+          JSON.stringify({ success: false, command: "upgrade", error: msg }),
+        );
+      } else {
+        console.error(`ticketbook upgrade failed: ${msg}`);
+      }
+      process.exit(1);
+    }
+
+    if (args.json) {
+      // Mirror seeds' envelope shape across all upgrade actions.
+      const envelope: Record<string, unknown> = {
+        success: true,
+        command: "upgrade",
+        action: result.action,
+      };
+      if (result.action === "checked") {
+        envelope.current = result.current;
+        envelope.latest = result.latest;
+        envelope.upToDate = result.upToDate;
+      } else if (result.action === "unchanged") {
+        envelope.current = result.current;
+        envelope.latest = result.latest;
+      } else if (result.action === "upgraded") {
+        envelope.previous = result.previous;
+        envelope.latest = result.latest;
+      }
+      console.log(JSON.stringify(envelope));
+    } else {
+      switch (result.action) {
+        case "checked":
+          if (result.upToDate) {
+            console.log(`Already up to date (${result.current})`);
+          } else {
+            console.log(
+              `Update available: ${result.current} → ${result.latest}`,
+            );
+            console.log(
+              `Run 'ticketbook upgrade' to install the latest release.`,
+            );
+          }
+          break;
+        case "unchanged":
+          console.log(`Already up to date (${result.current})`);
+          break;
+        case "upgraded":
+          console.log(
+            `Upgraded ticketbook from ${result.previous} to ${result.latest}`,
+          );
+          break;
+      }
+    }
+
+    // --check mode: exit 1 when we're behind the latest release so CI
+    // and shell prompt integrations can use it as a staleness gate.
+    if (result.action === "checked" && !result.upToDate) {
       process.exitCode = 1;
     }
     return;
