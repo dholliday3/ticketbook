@@ -119,6 +119,9 @@ export type { ClientMessage, ServerMessage } from "./terminal-protocol.js";
 
 export { initTicketbook, codexMcpInstructions } from "./init.js";
 export type { InitTicketbookOptions, InitTicketbookResult } from "./init.js";
+export { VERSION } from "./version.js";
+export { runUpgrade, getCurrentVersion, fetchLatestVersion } from "./upgrade.js";
+export type { RunUpgradeOptions, RunUpgradeResult } from "./upgrade.js";
 
 export {
   createContextRefRegex,

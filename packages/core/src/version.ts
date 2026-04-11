@@ -1,14 +1,18 @@
 /**
  * Current version of @ticketbook/core. Source of truth for:
  *   - `ticketbook upgrade` staleness check (see ./upgrade.ts)
- *   - MCP server handshake version (future — currently hardcoded)
+ *   - MCP server handshake version (see packages/server/src/mcp.ts)
  *
- * Bumped at release time. Keeping it as a plain TS constant (rather
- * than reading package.json at runtime, or importing it via
- * `with { type: "json" }` which would require bumping core's tsconfig
- * module target past ES2022) means `upgrade.ts` stays portable to any
- * TS config and any runtime that supports ES2022 — no Bun APIs, no
- * ES2023 import attributes.
+ * **Bumped at release time.** Must stay in lockstep with
+ * `packages/core/package.json` → `"version"`. A test in
+ * ./upgrade.test.ts fires if they drift.
+ *
+ * Why a plain TS constant (and not `with { type: "json" }` importing
+ * package.json): core's tsconfig targets `module: ES2022`, which
+ * predates ES2023 import attributes. Bumping the module target would
+ * ripple through downstream packages. A single-line constant in a
+ * dedicated file is the smallest portable answer, and the version
+ * sync test catches the "forgot to bump one of the two" footgun.
  */
 
 export const VERSION = "0.1.0";

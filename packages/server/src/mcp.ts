@@ -27,6 +27,7 @@ import {
   formatDoctorReport,
   sync,
   getConfig,
+  VERSION,
 } from "@ticketbook/core";
 import type { Doc, Plan } from "@ticketbook/core";
 
@@ -167,7 +168,9 @@ export async function startMcpServer(
   const serverName = await resolveMcpServerName(tasksDir);
   const server = new McpServer({
     name: serverName,
-    version: "0.1.0",
+    // Pulled from @ticketbook/core's VERSION constant (version.ts) so a
+    // release bump in one place auto-propagates to the MCP handshake.
+    version: VERSION,
   });
 
   // --- Agent workflow instructions (exposed via list_tasks description) ---

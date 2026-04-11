@@ -1,9 +1,13 @@
 import { describe, test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   runUpgrade,
   fetchLatestVersion,
   getCurrentVersion,
 } from "./upgrade.js";
+import { VERSION } from "./version.js";
 
 // Tiny mock Response — just enough surface area for fetchLatestVersion
 // and runUpgrade. We intentionally don't import the global Response type
@@ -44,12 +48,27 @@ function mockFetch(
 }
 
 describe("getCurrentVersion", () => {
-  test("returns the version from @ticketbook/core package.json", () => {
+  test("returns the VERSION constant from ./version.ts", () => {
     const version = getCurrentVersion();
     expect(version).toMatch(/^\d+\.\d+\.\d+/);
-    // Loose match: the actual value lives in packages/core/package.json
-    // and gets bumped at release time, so asserting the exact string
-    // would make this test a rename-tax every time we ship.
+    expect(version).toBe(VERSION);
+  });
+});
+
+describe("VERSION sync", () => {
+  test("packages/core/src/version.ts and packages/core/package.json stay in lockstep", () => {
+    // Version.ts is the runtime source of truth (read by upgrade.ts and
+    // packages/server/src/mcp.ts); package.json is the workspace-manager
+    // source of truth. Keeping them in sync by hand is a known footgun,
+    // so this test fires if they drift. To bump for a release, edit
+    // BOTH files to the new semver string.
+    const testFileDir = dirname(fileURLToPath(import.meta.url));
+    const pkgPath = join(testFileDir, "..", "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
+      version?: string;
+    };
+    expect(pkg.version).toBeDefined();
+    expect(VERSION).toBe(pkg.version!);
   });
 });
 

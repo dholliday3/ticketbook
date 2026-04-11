@@ -1,14 +1,14 @@
 ---
 id: TKTB-025
 title: 'Copilot context refs — @-mentions, quick-add, and hand-off presets'
-status: open
+status: done
 priority: high
 order: 1000
 tags:
   - ideas
   - copilot
 created: '2026-04-03T22:28:31.700Z'
-updated: '2026-04-09T12:23:16.699Z'
+updated: '2026-04-11T07:46:26.813Z'
 ---
 
 I want rich primitive references in the copilot chat. When I'm talking to the agent I should be able to pull tasks and plans in as first-class context — inline via `@`-mentions in the input, and via one-click "Add to chat" buttons on detail views. Referenced primitives should render as chips (both in the input and in sent messages) with hovercards so I can glance at them without navigating away, and the agent should receive the full, current content of each referenced primitive when the message is forwarded.
