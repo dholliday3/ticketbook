@@ -7,13 +7,14 @@ tags:
   - ui
   - review
   - v1-foundations
+  - agent-editor
 blockedBy:
   - TKTB-055
 relatedTo:
   - TKTB-046
   - TKTB-054
 created: '2026-04-06T07:29:45.406Z'
-updated: '2026-04-09T12:16:35.264Z'
+updated: '2026-04-12T03:56:44.590Z'
 ---
 
 ## Context

@@ -2,8 +2,10 @@
 id: TKTB-022
 title: Scheduled tasks
 status: backlog
+tags:
+  - agent-editor
 created: '2026-04-03T22:03:35.371Z'
-updated: '2026-04-03T22:03:39.561Z'
+updated: '2026-04-12T03:56:38.580Z'
 ---
 
 It would be awesome if we could have scheduled tasks somehow. Even if it's just a button that adds to a users claude.md or agents.md and tells their agent to scan for scheduled tasks and execute them. 

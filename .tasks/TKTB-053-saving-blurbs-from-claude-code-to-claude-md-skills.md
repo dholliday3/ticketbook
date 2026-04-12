@@ -5,8 +5,9 @@ status: backlog
 tags:
   - ideas
   - agent-experience
+  - agent-editor
 created: '2026-04-06T06:24:08.121Z'
-updated: '2026-04-06T06:24:08.121Z'
+updated: '2026-04-12T03:56:42.665Z'
 ---
 
 Sometimes, when working on a project, i arrive at decisions with claude code that I want persisted. It'd be nice to be able to select and then save to the right artifact (claude.md, skills, memory, etc). One use case is when planning out a feature and we've made a philosophical decision and i want to save that so we use it as a guiding principle for tasks around the same feature areas. 

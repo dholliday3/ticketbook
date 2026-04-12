@@ -7,8 +7,9 @@ tags:
   - native
   - watch
   - deferred-desktop
+  - agent-editor
 created: '2026-04-06T07:30:50.069Z'
-updated: '2026-04-08T05:19:39.598Z'
+updated: '2026-04-12T03:56:50.413Z'
 ---
 
 ## Context

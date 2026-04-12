@@ -8,6 +8,7 @@ tags:
   - workspace
   - agent-experience
   - v1-foundations
+  - agent-editor
 relatedTo:
   - TKTB-065
   - TKTB-066
@@ -15,7 +16,7 @@ relatedTo:
   - TKTB-026
   - TKTB-041
 created: '2026-04-08T05:51:19.290Z'
-updated: '2026-04-09T12:16:35.384Z'
+updated: '2026-04-12T03:56:56.509Z'
 ---
 
 ## Context

@@ -7,6 +7,7 @@ tags:
   - foundations
   - agent-experience
   - architecture
+  - agent-editor
 project: ticketbook
 tasks:
   - TKTB-054
@@ -20,7 +21,7 @@ tasks:
   - TKTB-068
   - TKTB-041
 created: '2026-04-08T05:17:04.298Z'
-updated: '2026-04-09T13:08:06.446Z'
+updated: '2026-04-12T03:56:26.229Z'
 ---
 
 # V1 Foundations — Session & Workspace Primitives

@@ -5,11 +5,12 @@ status: backlog
 tags:
   - agent-experience
   - important
+  - agent-editor
 relatedTo:
   - TKTB-049
   - TKTB-018
 created: '2026-04-05T08:15:00.000Z'
-updated: '2026-04-09T12:12:17.927Z'
+updated: '2026-04-12T03:56:42.253Z'
 ---
 
 ## The Gap

@@ -7,8 +7,9 @@ tags:
   - chat
   - planning
   - deferred-desktop
+  - agent-editor
 created: '2026-04-06T07:30:04.583Z'
-updated: '2026-04-08T05:19:40.772Z'
+updated: '2026-04-12T03:56:48.941Z'
 ---
 
 ## Context

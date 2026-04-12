@@ -6,8 +6,9 @@ tags:
   - agent-experience
   - copilot
   - terminal
+  - agent-editor
 created: '2026-04-07T00:00:00.000Z'
-updated: '2026-04-07T00:00:00.000Z'
+updated: '2026-04-12T03:56:51.218Z'
 ---
 
 Add a button on the right-rail copilot panel that drops the user into a real PTY-backed `claude` session that **resumes the same conversation** (`claude --resume <conversationId>`). This is the escape hatch for things headless mode can't do well: native slash commands (`/clear`, `/plan`, `/skills`), image paste, custom hooks, and richer interactive flows.

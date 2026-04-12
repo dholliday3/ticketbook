@@ -7,8 +7,9 @@ tags:
   - workspace
   - agent-experience
   - v1-foundations
+  - agent-editor
 created: '2026-04-08T05:18:14.789Z'
-updated: '2026-04-09T12:16:35.379Z'
+updated: '2026-04-12T03:56:55.429Z'
 ---
 
 ## Context

@@ -7,8 +7,9 @@ tags:
   - codex
   - claude
   - providers
+  - agent-editor
 created: '2026-04-08T00:00:00.000Z'
-updated: '2026-04-08T00:00:00.000Z'
+updated: '2026-04-12T03:56:53.124Z'
 ---
 
 Add Codex as a first-class app copilot provider alongside Claude Code, with a provider selector in the UI and provider-neutral persistence/history.

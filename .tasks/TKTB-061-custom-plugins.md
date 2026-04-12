@@ -8,8 +8,9 @@ tags:
   - architecture
   - ideas
   - deferred-desktop
+  - agent-editor
 created: '2026-04-07T00:00:00.000Z'
-updated: '2026-04-08T05:19:36.756Z'
+updated: '2026-04-12T03:56:52.382Z'
 ---
 
 ## Context

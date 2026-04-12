@@ -7,11 +7,12 @@ tags:
   - architecture
   - important
   - deferred-desktop
+  - agent-editor
 relatedTo:
   - TKTB-049
   - TKTB-047
 created: '2026-04-05T08:00:00.000Z'
-updated: '2026-04-09T12:12:17.924Z'
+updated: '2026-04-12T03:56:41.512Z'
 ---
 
 ## The Problem

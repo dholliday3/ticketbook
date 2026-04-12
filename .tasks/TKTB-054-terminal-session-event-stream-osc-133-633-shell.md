@@ -7,12 +7,13 @@ tags:
   - shell-integration
   - agent-experience
   - v1-foundations
+  - agent-editor
 relatedTo:
   - TKTB-055
   - TKTB-064
   - TKTB-046
 created: '2026-04-06T07:28:38.615Z'
-updated: '2026-04-09T12:16:35.253Z'
+updated: '2026-04-12T03:56:43.587Z'
 ---
 
 ## Context
