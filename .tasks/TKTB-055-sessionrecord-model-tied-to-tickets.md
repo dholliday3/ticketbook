@@ -7,6 +7,7 @@ tags:
   - agent-experience
   - data-model
   - v1-foundations
+  - agent-editor
 blockedBy:
   - TKTB-054
 relatedTo:
@@ -14,7 +15,7 @@ relatedTo:
   - TKTB-065
   - TKTB-067
 created: '2026-04-06T07:29:26.491Z'
-updated: '2026-04-09T12:16:35.260Z'
+updated: '2026-04-12T03:56:44.372Z'
 ---
 
 ## Context

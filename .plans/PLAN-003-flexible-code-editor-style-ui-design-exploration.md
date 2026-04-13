@@ -7,9 +7,10 @@ tags:
   - ui-architecture
   - deferred
   - v2
+  - agent-editor
 project: ticketbook
 created: '2026-04-06T10:52:05.260Z'
-updated: '2026-04-08T05:20:45.708Z'
+updated: '2026-04-12T03:56:25.412Z'
 ---
 
 # Flexible code-editor-style UI: design exploration

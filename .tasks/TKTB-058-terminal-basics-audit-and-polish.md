@@ -5,8 +5,9 @@ status: backlog
 tags:
   - terminal
   - polish
+  - agent-editor
 created: '2026-04-06T07:30:30.314Z'
-updated: '2026-04-09T12:16:35.370Z'
+updated: '2026-04-12T03:56:49.651Z'
 ---
 
 ## Context

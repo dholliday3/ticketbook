@@ -6,8 +6,9 @@ tags:
   - agent-experience
   - important
   - deferred-desktop
+  - agent-editor
 created: '2026-04-05T07:45:00.000Z'
-updated: '2026-04-09T12:12:17.919Z'
+updated: '2026-04-12T03:56:40.754Z'
 ---
 
 ## The Idea

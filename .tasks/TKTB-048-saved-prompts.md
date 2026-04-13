@@ -4,8 +4,9 @@ title: Saved prompts with smart suggestions
 status: backlog
 tags:
   - agent-experience
+  - agent-editor
 created: '2026-04-05T07:30:00.000Z'
-updated: '2026-04-09T12:12:17.931Z'
+updated: '2026-04-12T03:56:40.367Z'
 ---
 
 ## Overview

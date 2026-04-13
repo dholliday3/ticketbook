@@ -6,10 +6,11 @@ tags:
   - mcp
   - agent-experience
   - v1-foundations
+  - agent-editor
 relatedTo:
   - TKTB-055
 created: '2026-04-08T05:18:27.871Z'
-updated: '2026-04-09T12:16:35.381Z'
+updated: '2026-04-12T03:56:56.211Z'
 ---
 
 ## Context

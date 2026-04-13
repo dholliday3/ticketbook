@@ -7,13 +7,14 @@ tags:
   - workspace
   - agent-experience
   - v1-foundations
+  - agent-editor
 blockedBy:
   - TKTB-054
 relatedTo:
   - TKTB-054
   - TKTB-055
 created: '2026-04-08T05:17:35.220Z'
-updated: '2026-04-09T12:16:35.373Z'
+updated: '2026-04-12T03:56:53.874Z'
 ---
 
 ## Context
