@@ -378,7 +378,18 @@ async function main(): Promise<void> {
 
   // Absolute path to this script — passed through so the copilot manager can
   // wire up an MCP config that re-invokes us in --mcp mode for tool access.
+  //
+  // In a `bun build --compile` standalone binary, `import.meta.url` resolves
+  // to a `$bunfs/…` virtual path. That path is only readable by the parent
+  // Bun process that created the embedded filesystem — a freshly spawned
+  // `bun run $bunfs/…` child cannot open it, which silently breaks the
+  // copilot's MCP server. Detect that case and hand the compiled binary
+  // path through as `execPath`; the copilot manager will emit a config
+  // that re-invokes the binary itself (`execPath --mcp --dir …`) instead
+  // of `bun run <binPath>`.
   const binPath = fileURLToPath(import.meta.url);
+  const isCompiledBinary = binPath.includes("$bunfs");
+  const execPath = isCompiledBinary ? process.execPath : undefined;
 
   // Default start port 4242 with auto-increment on EADDRINUSE. Multi-repo
   // setups get a deterministic sequence (4242 → 4243 → …) instead of random
@@ -401,6 +412,7 @@ async function main(): Promise<void> {
       autoIncrement: args.port == null,
       staticDir: uiDistDir,
       binPath,
+      execPath,
     });
   } catch (err) {
     if (isAddressInUseError(err)) {

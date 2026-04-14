@@ -220,4 +220,37 @@ describe("buildTicketbookMcpConfig", () => {
     const server = (config.mcpServers as Record<string, { command: string }>).ticketbook;
     expect(server.command).toBe("/usr/local/bin/bun");
   });
+
+  it("invokes the binary directly when execPath is set (compiled-binary mode)", () => {
+    // In a `bun build --compile` binary, binPath is a `$bunfs/…` virtual
+    // path that a spawned `bun run` child can't read. The generated config
+    // must therefore re-invoke the compiled binary itself in `--mcp` mode.
+    const config = buildTicketbookMcpConfig({
+      binPath: "/$bunfs/root/bin/ticketbook.ts",
+      ticketbookDir: "/abs/path/.ticketbook",
+      execPath: "/Users/me/.local/bin/ticketbook",
+    });
+    expect(config).toEqual({
+      mcpServers: {
+        ticketbook: {
+          command: "/Users/me/.local/bin/ticketbook",
+          args: ["--mcp", "--dir", "/abs/path/.ticketbook"],
+        },
+      },
+    });
+  });
+
+  it("ignores bunPath when execPath is set", () => {
+    // execPath takes precedence — bunPath is only relevant for the
+    // `bun run <binPath>` dev-mode branch.
+    const config = buildTicketbookMcpConfig({
+      binPath: "/ignored",
+      ticketbookDir: "/abs/.ticketbook",
+      bunPath: "/usr/local/bin/bun",
+      execPath: "/opt/ticketbook",
+    });
+    const server = (config.mcpServers as Record<string, { command: string; args: string[] }>).ticketbook;
+    expect(server.command).toBe("/opt/ticketbook");
+    expect(server.args).toEqual(["--mcp", "--dir", "/abs/.ticketbook"]);
+  });
 });

@@ -21,14 +21,35 @@ export interface BuildTicketbookMcpConfigInput {
   ticketbookDir: string;
   /**
    * Bun executable to invoke the bin script with. Defaults to "bun" so it
-   * resolves on PATH; pass `process.execPath` for a hermetic install.
+   * resolves on PATH.
    */
   bunPath?: string;
+  /**
+   * When running from a compiled standalone binary, pass `process.execPath`
+   * here. The generated config will then invoke the binary directly in
+   * `--mcp` mode (`execPath --mcp --dir …`) instead of `bun run <binPath>`.
+   *
+   * Required in compiled-binary mode because `binPath` resolves to a
+   * `$bunfs/…` virtual path that only the parent Bun process can read —
+   * a freshly spawned `bun run` child can't open it, so MCP would fail
+   * to start with no visible error. When set, `binPath` is ignored.
+   */
+  execPath?: string;
 }
 
 export function buildTicketbookMcpConfig(
   input: BuildTicketbookMcpConfigInput,
 ): Record<string, unknown> {
+  if (input.execPath) {
+    return {
+      mcpServers: {
+        ticketbook: {
+          command: input.execPath,
+          args: ["--mcp", "--dir", input.ticketbookDir],
+        },
+      },
+    };
+  }
   const bun = input.bunPath ?? "bun";
   return {
     mcpServers: {

@@ -15,4 +15,4 @@
  * sync test catches the "forgot to bump one of the two" footgun.
  */
 
-export const VERSION = "0.2.1";
+export const VERSION = "0.2.2";

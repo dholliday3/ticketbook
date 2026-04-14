@@ -39,6 +39,14 @@ export interface CopilotManagerConfig {
    */
   docsDir?: string;
   binPath?: string;
+  /**
+   * When running as a compiled binary, the absolute path to the binary
+   * itself (i.e. `process.execPath`). If set, the synthesized MCP config
+   * invokes the binary directly in `--mcp` mode instead of `bun run
+   * <binPath>`. Required in compiled-binary mode — see
+   * `buildTicketbookMcpConfig` for why.
+   */
+  execPath?: string;
   cwd?: string;
   providers?: CopilotProvider[];
   defaultProviderId?: CopilotProviderId;
@@ -178,10 +186,11 @@ export class CopilotManager {
 
     let mcpConfigPath: string | undefined;
     let cleanupMcp: () => Promise<void> = async () => {};
-    if (this.config.binPath) {
+    if (this.config.binPath || this.config.execPath) {
       mcpConfig = buildTicketbookMcpConfig({
-        binPath: this.config.binPath,
+        binPath: this.config.binPath ?? "",
         ticketbookDir: this.config.ticketbookDir,
+        execPath: this.config.execPath,
       });
       const written = await writeMcpConfigFile(mcpConfig);
       mcpConfigPath = written.path;

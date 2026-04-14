@@ -44,6 +44,15 @@ export interface ServerConfig {
    * If omitted, the copilot still works but without ticketbook tool access.
    */
   binPath?: string;
+  /**
+   * Absolute path to the compiled ticketbook binary (`process.execPath`).
+   * Set this only when running from a compiled standalone binary — in that
+   * mode, `binPath` is a `$bunfs/…` virtual path that subprocesses can't
+   * read, so the synthesized copilot MCP config must re-invoke the binary
+   * itself in `--mcp` mode. Dev mode leaves this unset and falls back to
+   * `bun run <binPath>`.
+   */
+  execPath?: string;
 }
 
 export interface ServerHandle {
@@ -81,7 +90,7 @@ function sendMsg(ws: { send(data: string): void }, msg: ServerMessage): void {
 }
 
 export function startServer(config: ServerConfig): ServerHandle {
-  const { ticketbookDir, tasksDir, plansDir, docsDir, port, staticDir, binPath } = config;
+  const { ticketbookDir, tasksDir, plansDir, docsDir, port, staticDir, binPath, execPath } = config;
   const autoIncrement = config.autoIncrement ?? false;
 
   // Terminal session backend (owns PTYs, grace timers, and DB cleanup on destroy).
@@ -101,6 +110,7 @@ export function startServer(config: ServerConfig): ServerHandle {
     plansDir,
     docsDir,
     binPath,
+    execPath,
     providers: useStub ? [new StubCopilotProvider()] : [new ClaudeCodeProvider(), new CodexProvider()],
   });
 
