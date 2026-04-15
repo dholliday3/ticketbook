@@ -1,5 +1,5 @@
 /*
- * TicketBook legacy theme
+ * Relay legacy theme
  * The pre-caffeine palette: cool blue-tinted dark neutrals from the original
  * shadcn setup. Preserved here so we can roll back from caffeine if needed
  * by changing the active `@import` in `../index.css`.

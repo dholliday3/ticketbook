@@ -1,70 +1,76 @@
-# Ticketbook
+# Relay
 
-
+**Planning that lives in your repo.**
 
 https://github.com/user-attachments/assets/bec73d7b-c4c6-43f5-ba0b-cef61e3719cb
 
+## Two halves of one workflow
 
-Local-first tasks, plans, and reference docs for working alongside coding agents. Everything is stored as markdown with YAML frontmatter under `.ticketbook/` — editable by hand, queryable by agents over MCP, and browsable in a small web UI.
+**Plans, tasks, and docs in your repo.**
+Markdown with YAML frontmatter under `.relay/`. Edit by hand, query by agent over MCP, browse in a local UI. Every change is a commit; every branch carries its own plan.
+
+**A copilot for your coding agents.**
+Launch Claude Code or Codex CLI straight from a plan or task, with the relevant context already loaded. Keep a thread between "what I wanted" and "what the agent did."
+
+## The three primitives
+
+- **Plan** — long-form intent. What you're building and why.
+- **Task** — a unit of work. Status, priority, subtasks.
+- **Doc** — reference material that outlives any one task.
+
+All three are plain markdown files with YAML frontmatter. Nothing is locked inside a database — `git log` is your history, `git blame` is your audit trail, and branches carry their own in-flight context.
 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh | bash
 ```
 
-Installs the release binary to `~/.local/bin/ticketbook` and the `ticketbook` agent skill to `~/.claude/skills/ticketbook/`. macOS and Linux, x64 and arm64.
+Installs the binary to `~/.local/bin/relay` and the agent skill to `~/.claude/skills/relay/`. macOS and Linux, x64 and arm64. Homebrew tap coming soon.
 
 <details>
 <summary>Pin a version · upgrade · install manually</summary>
 
 ```bash
 # Pin to a specific release
-curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh | bash -s -- v0.1.0
+curl -fsSL https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh | bash -s -- v0.1.0
 
 # Check whether a newer release is available (exits 1 if stale — safe for prompts and CI)
-ticketbook upgrade --check
+relay upgrade --check
 
 # Upgrade in place (re-runs the installer with SHA256 verification + atomic replace)
-ticketbook upgrade
+relay upgrade
 
 # Both commands accept --json for scripting:
-ticketbook upgrade --check --json
+relay upgrade --check --json
 # => {"success":true,"command":"upgrade","action":"checked","current":"0.1.0","latest":"0.2.0","upToDate":false}
 ```
 
-Prefer not to run a shell script? Grab the binary and `.sha256` from the [latest release](https://github.com/dholliday3/ticketbook/releases/latest), verify the checksum, and drop the binary on your `PATH`.
+Prefer not to run a shell script? Grab the binary and `.sha256` from the [latest release](https://github.com/dholliday3/relay/releases/latest), verify the checksum, and drop the binary on your `PATH`.
 
 </details>
 
-## Quick Start
+## Quick start
 
 ```bash
-# Scaffold data directories, .mcp.json, and skill files
-ticketbook init
-
-# Add agent instructions to CLAUDE.md (or AGENTS.md)
-ticketbook onboard
-
-# Start the web UI (default port 4242, auto-increments on collision)
-ticketbook
-
-# Start with a specific directory
-ticketbook --dir /path/to/project
+relay init       # scaffold .relay/, .mcp.json, and skill files
+relay onboard    # add agent instructions to CLAUDE.md (or AGENTS.md)
+relay            # start the UI (default port 4242, auto-increments on collision)
 ```
 
-## CLI Options
+<details>
+<summary>CLI reference</summary>
 
 ```
-ticketbook [command] [options] [path]
+relay [command] [options] [path]
 
 Commands:
-  init        Scaffold .ticketbook/ directory, .mcp.json, and skill files
-  onboard     Write/update the ticketbook agent instructions section in CLAUDE.md (or AGENTS.md)
+  init        Scaffold .relay/ directory, .mcp.json, and skill files
+  onboard     Write/update the agent instructions section in CLAUDE.md (or AGENTS.md)
   (default)   Start the server and open the UI
 
 Options:
-  --dir <path>   Path to .ticketbook/ directory (or directory containing it)
+  --dir <path>   Path to .relay/ directory (or directory containing it)
   --port <num>   Server port (default: 4242, auto-increment on collision)
   --no-ui        Server only, no static UI serving
   --mcp          Start MCP server mode (stdio transport, no HTTP)
@@ -74,48 +80,30 @@ Options:
   -h, --help     Show this help message
 ```
 
-## Onboarding
-
-`ticketbook onboard` injects a versioned agent instructions block into `CLAUDE.md` (or `.claude/CLAUDE.md` / `AGENTS.md`). Re-running after an upgrade surgically replaces only the bracketed region — content outside the markers is untouched.
-
-<details>
-<summary>File resolution · flags · versioning</summary>
-
-**File preference** (first match wins, falls back to creating `CLAUDE.md`):
-1. `CLAUDE.md` at project root
-2. `.claude/CLAUDE.md`
-3. `AGENTS.md`
-
-**Flags:**
-- `--check` — report state without writing; exits 1 if `missing` or `outdated` (CI-safe gate)
-- `--stdout` — print the snippet without touching any files
-- `--json` — structured `{success, command, action, file?, status?}` envelope
-
-**Versioning.** A `<!-- ticketbook-onboard-v:N -->` comment bumps when content changes materially. Stale sections are auto-replaced on the next `onboard` run.
-
 </details>
 
-## Claude Code MCP Integration
+<details>
+<summary>MCP integration</summary>
 
-Ticketbook exposes an MCP server so Claude Code can read and manage your tasks directly.
+Relay exposes an MCP server so Claude Code (and any MCP-aware agent) can read and manage your plans, tasks, and docs directly.
 
 Add this to your Claude Code MCP config (`.claude/settings.json` or project-level `.mcp.json`):
 
 ```json
 {
   "mcpServers": {
-    "ticketbook": {
-      "command": "bunx",
-      "args": ["ticketbook", "--mcp"],
+    "relay": {
+      "command": "relay",
+      "args": ["--mcp"],
       "cwd": "/path/to/your/repo"
     }
   }
 }
 ```
 
-Replace `/path/to/your/repo` with the absolute path to the directory containing your `.ticketbook/` folder.
+Replace `/path/to/your/repo` with the absolute path to the directory containing your `.relay/` folder.
 
-### Available MCP Tools
+**Tools**
 
 | Tool | Description |
 |------|-------------|
@@ -139,7 +127,7 @@ Replace `/path/to/your/repo` with the absolute path to the directory containing 
 | `update_doc` | Update doc fields |
 | `delete_doc` | Delete (archive) a doc |
 
-### Available MCP Resources
+**Resources**
 
 | Resource | URI | Description |
 |----------|-----|-------------|
@@ -147,8 +135,29 @@ Replace `/path/to/your/repo` with the absolute path to the directory containing 
 | Plan List | `plans://list` | Full plan list in compact format |
 | Doc List | `docs://list` | Full doc list in compact format |
 
-### Available MCP Prompts
+**Prompts**
 
 | Prompt | Arguments | Description |
 |--------|-----------|-------------|
 | `task-context` | `id` (task ID) | Returns formatted context for a task including details, subtasks, and related tasks |
+
+</details>
+
+<details>
+<summary>Agent onboarding details</summary>
+
+`relay onboard` injects a versioned agent instructions block into `CLAUDE.md` (or `.claude/CLAUDE.md` / `AGENTS.md`). Re-running after an upgrade surgically replaces only the bracketed region — content outside the markers is untouched.
+
+**File preference** (first match wins, falls back to creating `CLAUDE.md`):
+1. `CLAUDE.md` at project root
+2. `.claude/CLAUDE.md`
+3. `AGENTS.md`
+
+**Flags:**
+- `--check` — report state without writing; exits 1 if `missing` or `outdated` (CI-safe gate)
+- `--stdout` — print the snippet without touching any files
+- `--json` — structured `{success, command, action, file?, status?}` envelope
+
+**Versioning.** A `<!-- relay-onboard-v:N -->` comment bumps when content changes materially. Stale sections are auto-replaced on the next `onboard` run.
+
+</details>

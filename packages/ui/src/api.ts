@@ -2,7 +2,7 @@ import type {
   Task,
   TaskPatch,
   Meta,
-  TicketbookConfig,
+  RelayConfig,
   CreateTaskInput,
   Plan,
   PlanPatch,
@@ -71,13 +71,13 @@ export async function deleteTask(id: string): Promise<void> {
   if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`);
 }
 
-export async function fetchConfig(): Promise<TicketbookConfig> {
+export async function fetchConfig(): Promise<RelayConfig> {
   const res = await fetch(`${BASE}/config`);
   if (!res.ok) throw new Error(`Failed to fetch config: ${res.status}`);
   return res.json();
 }
 
-export async function patchConfig(patch: Partial<TicketbookConfig>): Promise<TicketbookConfig> {
+export async function patchConfig(patch: Partial<RelayConfig>): Promise<RelayConfig> {
   const res = await fetch(`${BASE}/config`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

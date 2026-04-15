@@ -1,7 +1,7 @@
 /**
  * Playwright helpers for asserting on xterm.js terminal content.
  *
- * Requires the page to have been initialized with `__TICKETBOOK_E2E__ = true`
+ * Requires the page to have been initialized with `__RELAY_E2E__ = true`
  * before navigation (see test.beforeEach). That flag makes Terminal.tsx
  * populate `window.__terminals` and `window.__terminalsReady` so we can
  * read the actual xterm buffer from tests.

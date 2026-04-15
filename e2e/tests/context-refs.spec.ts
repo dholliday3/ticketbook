@@ -113,8 +113,8 @@ test.beforeEach(async ({ page, context }) => {
   await context.clearCookies();
   await page.addInitScript(() => {
     try {
-      window.localStorage.removeItem("ticketbook-right-rail");
-      window.localStorage.removeItem("ticketbook-terminal-open");
+      window.localStorage.removeItem("relay-right-rail");
+      window.localStorage.removeItem("relay-terminal-open");
     } catch {
       /* ignore */
     }

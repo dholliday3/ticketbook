@@ -70,7 +70,7 @@ describe("CopilotManager", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-manager-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-manager-"));
     _resetDbCacheForTests();
   });
 
@@ -83,7 +83,7 @@ describe("CopilotManager", () => {
     const claude = new FakeProvider("claude-code", "claude-test");
     const codex = new FakeProvider("codex", "codex-test");
     const manager = new CopilotManager({
-      ticketbookDir: dir,
+      relayDir: dir,
       tasksDir: dir,
       providers: [claude, codex],
       defaultProviderId: "claude-code",

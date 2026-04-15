@@ -18,7 +18,7 @@ describe("copilot conversation persistence", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-db-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-db-"));
     _resetDbCacheForTests();
   });
 

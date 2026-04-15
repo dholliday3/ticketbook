@@ -12,7 +12,7 @@ import {
   type SuggestionKeyDownProps,
   type SuggestionProps,
 } from "@tiptap/suggestion";
-import type { ContextRefKind } from "@ticketbook/core/context-refs";
+import type { ContextRefKind } from "@relay/core/context-refs";
 import type { Doc, Plan, Task } from "@/types";
 
 export interface MentionItem {

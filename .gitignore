@@ -1,8 +1,8 @@
 .env.local
 node_modules/
 dist/
-.ticketbook/tasks/.archive/
-.ticketbook/docs/.archive/
+.relay/tasks/.archive/
+.relay/docs/.archive/
 *.log
 .DS_Store
 *.tsbuildinfo
@@ -15,9 +15,9 @@ e2e/test-results/
 e2e/playwright-report/
 e2e/.playwright-cache/
 test-results/
-.ticketbook/plans/.archive/
+.relay/plans/.archive/
 
-# Ticketbook advisory locks
+# Relay advisory locks
 *.lock
 
 # Webreel intermediate outputs (the final demo.mp4 + demo.png live in docs/ and are committed)

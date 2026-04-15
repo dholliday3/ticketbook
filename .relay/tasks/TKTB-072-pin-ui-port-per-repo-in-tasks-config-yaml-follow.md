@@ -7,7 +7,7 @@ tags:
   - ui
   - server
   - followup
-project: ticketbook
+project: relay
 blockedBy:
   - TKTB-070
   - TKTB-071
@@ -17,11 +17,11 @@ updated: '2026-04-11T07:07:35.090Z'
 
 Follow-up to PLAN-005 Phase 0 Task D (UI port auto-increment). After auto-increment lands, each repo's UI port depends on launch order — if you launch projA then projB, projA gets 4242 and projB gets 4243, but the assignment flips when you launch in the other order. The fix: persist the first successfully bound port per repo so each repo has a stable URL across restarts.
 
-**Not part of Phase 0.** Intentionally split off to keep Phase 0 tight. Only worth doing once the user is running ticketbook across many repos daily and the launch-order port flipping has become annoying in practice.
+**Not part of Phase 0.** Intentionally split off to keep Phase 0 tight. Only worth doing once the user is running relay across many repos daily and the launch-order port flipping has become annoying in practice.
 
 ## Why
 
-Task D (auto-increment) resolves collisions deterministically but doesn't give each repo a stable identity. Bookmarking `localhost:4243` as "projB's ticketbook" only works if projB was launched second every time. For daily multi-repo use, you want `localhost:4242` to always mean projA regardless of launch order.
+Task D (auto-increment) resolves collisions deterministically but doesn't give each repo a stable identity. Bookmarking `localhost:4243` as "projB's relay" only works if projB was launched second every time. For daily multi-repo use, you want `localhost:4242` to always mean projA regardless of launch order.
 
 ## Design sketch
 
@@ -40,12 +40,12 @@ Build on top of both; don't rework either.
 
 ## Out of scope
 
-A workspace-switcher UI (one long-running ticketbook process, dropdown to switch between known repos). Much bigger redesign; PLAN-005 explicitly scope-bounds against it. File separately if it ever becomes a real need.
+A workspace-switcher UI (one long-running relay process, dropdown to switch between known repos). Much bigger redesign; PLAN-005 explicitly scope-bounds against it. File separately if it ever becomes a real need.
 
 ## Acceptance
 
-- First `ticketbook` in a new repo picks a free port (starting at 4242), binds it, and writes `uiPort: <port>` to `.tasks/.config.yaml`
-- Subsequent `ticketbook` starts in the same repo try the persisted port first
+- First `relay` in a new repo picks a free port (starting at 4242), binds it, and writes `uiPort: <port>` to `.tasks/.config.yaml`
+- Subsequent `relay` starts in the same repo try the persisted port first
 - If the persisted port is held by something else, fall back to auto-increment without overwriting the persisted value
 - Explicit `--port <N>` both uses the port and updates the persisted value
 - All tests pass

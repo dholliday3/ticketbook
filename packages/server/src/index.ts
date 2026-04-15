@@ -14,16 +14,16 @@ import {
   type CopilotMessagePart,
 } from "./copilot/index.js";
 import { StubCopilotProvider } from "./copilot/stub-provider.js";
-import { getConfig } from "@ticketbook/core";
-import type { ServerMessage } from "@ticketbook/core";
+import { getConfig } from "@relay/core";
+import type { ServerMessage } from "@relay/core";
 
 const dbgWs = createDebug("ws");
 const dbgApi = createDebug("api");
 const dbgCop = createDebug("copilot");
 
 export interface ServerConfig {
-  /** The .ticketbook/ root directory — used for config, DB, and terminal cwd derivation. */
-  ticketbookDir: string;
+  /** The .relay/ root directory — used for config, DB, and terminal cwd derivation. */
+  relayDir: string;
   tasksDir: string;
   plansDir: string;
   docsDir: string;
@@ -37,15 +37,15 @@ export interface ServerConfig {
   autoIncrement?: boolean;
   staticDir?: string;
   /**
-   * Absolute path to the bin/ticketbook.ts entry script. When set, the
+   * Absolute path to the bin/relay.ts entry script. When set, the
    * copilot manager generates a per-session MCP config that points the
    * spawned `claude` CLI back at this same script in --mcp mode, so the
    * copilot has read/write access to the user's tasks, plans, and docs for free.
-   * If omitted, the copilot still works but without ticketbook tool access.
+   * If omitted, the copilot still works but without relay tool access.
    */
   binPath?: string;
   /**
-   * Absolute path to the compiled ticketbook binary (`process.execPath`).
+   * Absolute path to the compiled relay binary (`process.execPath`).
    * Set this only when running from a compiled standalone binary — in that
    * mode, `binPath` is a `$bunfs/…` virtual path that subprocesses can't
    * read, so the synthesized copilot MCP config must re-invoke the binary
@@ -90,22 +90,22 @@ function sendMsg(ws: { send(data: string): void }, msg: ServerMessage): void {
 }
 
 export function startServer(config: ServerConfig): ServerHandle {
-  const { ticketbookDir, tasksDir, plansDir, docsDir, port, staticDir, binPath, execPath } = config;
+  const { relayDir, tasksDir, plansDir, docsDir, port, staticDir, binPath, execPath } = config;
   const autoIncrement = config.autoIncrement ?? false;
 
   // Terminal session backend (owns PTYs, grace timers, and DB cleanup on destroy).
-  // Uses ticketbookDir for the SQLite database (ticketbook.db lives at .ticketbook/).
-  const terminalBackend = new BunPtyHeadlessBackend(ticketbookDir);
+  // Uses relayDir for the SQLite database (relay.db lives at .relay/).
+  const terminalBackend = new BunPtyHeadlessBackend(relayDir);
 
   // Copilot session manager — wraps the Claude Code provider, owns per-session
   // MCP config files. Pass binPath through so the spawned CLI can call back
-  // into ticketbook's own MCP server.
+  // into relay's own MCP server.
   // E2E tests set COPILOT_PROVIDER=stub to inject a fake provider that
   // streams scripted responses without spawning real `claude` (no LLM cost,
   // no install requirement).
   const useStub = process.env.COPILOT_PROVIDER === "stub";
   const copilot = new CopilotManager({
-    ticketbookDir,
+    relayDir,
     tasksDir,
     plansDir,
     docsDir,
@@ -114,7 +114,7 @@ export function startServer(config: ServerConfig): ServerHandle {
     providers: useStub ? [new StubCopilotProvider()] : [new ClaudeCodeProvider(), new CodexProvider()],
   });
 
-  const routes = createRoutes(ticketbookDir, tasksDir, plansDir, docsDir, copilot);
+  const routes = createRoutes(relayDir, tasksDir, plansDir, docsDir, copilot);
 
   // Track active WebSocket connections per session for graceful teardown.
   // Used by both terminal and copilot WS bridges.
@@ -126,7 +126,7 @@ export function startServer(config: ServerConfig): ServerHandle {
   /** Read terminalScrollback from config.yaml; falls back to schema default (5000). */
   async function readScrollback(): Promise<number> {
     try {
-      const cfg = await getConfig(ticketbookDir);
+      const cfg = await getConfig(relayDir);
       return cfg.terminalScrollback;
     } catch {
       return 5000;
@@ -185,7 +185,7 @@ export function startServer(config: ServerConfig): ServerHandle {
   }
 
   type WsData =
-    | { kind: "terminal"; sessionId: string; ticketbookDir: string }
+    | { kind: "terminal"; sessionId: string; relayDir: string }
     | { kind: "copilot"; sessionId: string };
 
   // `tryServe` closes over the full options so type inference for ws.data
@@ -209,7 +209,7 @@ export function startServer(config: ServerConfig): ServerHandle {
       if (url.pathname === "/api/terminal/sessions") {
         if (req.method === "GET") {
           // Return persisted tabs with alive status from the backend
-          const tabs = listTerminalTabs(ticketbookDir);
+          const tabs = listTerminalTabs(relayDir);
           const aliveSet = new Set(terminalBackend.list());
           const sessions = tabs.map((t) => ({ id: t.id, title: t.title, sortOrder: t.sort_order, tabNumber: t.tab_number, alive: aliveSet.has(t.id) }));
           return addCors(new Response(JSON.stringify({ sessions }), { headers: { "Content-Type": "application/json" } }), origin);
@@ -217,11 +217,11 @@ export function startServer(config: ServerConfig): ServerHandle {
         if (req.method === "POST") {
           // Server assigns id, title, and tab number
           const body = await req.json() as { sortOrder?: number };
-          const tabNumber = getNextTabNumber(ticketbookDir);
+          const tabNumber = getNextTabNumber(relayDir);
           const id = `term-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           const title = `Terminal ${tabNumber}`;
           const sortOrder = body.sortOrder ?? 0;
-          upsertTerminalTab(ticketbookDir, id, title, sortOrder, tabNumber);
+          upsertTerminalTab(relayDir, id, title, sortOrder, tabNumber);
           dbgApi("tabCreate", { id, title, tabNumber, sortOrder });
           return addCors(new Response(JSON.stringify({ id, title, tabNumber, sortOrder }), { headers: { "Content-Type": "application/json" } }), origin);
         }
@@ -245,7 +245,7 @@ export function startServer(config: ServerConfig): ServerHandle {
           if (session) {
             session.destroy();
           } else {
-            deleteTerminalTab(ticketbookDir, body.id);
+            deleteTerminalTab(relayDir, body.id);
           }
           return addCors(new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }), origin);
         }
@@ -256,7 +256,7 @@ export function startServer(config: ServerConfig): ServerHandle {
       if (termMatch && req.headers.get("upgrade")?.toLowerCase() === "websocket") {
         const sessionId = decodeURIComponent(termMatch[1]);
         const success = server.upgrade(req, {
-          data: { kind: "terminal", sessionId, ticketbookDir } satisfies WsData,
+          data: { kind: "terminal", sessionId, relayDir } satisfies WsData,
         });
         if (success) return undefined as unknown as Response;
         return new Response("WebSocket upgrade failed", { status: 500 });
@@ -361,7 +361,7 @@ export function startServer(config: ServerConfig): ServerHandle {
           // Copilot WS is push-only — ignore inbound frames.
           return;
         }
-        const { sessionId, ticketbookDir: tbDir } = ws.data;
+        const { sessionId, relayDir: tbDir } = ws.data;
         try {
           const msg = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
 
@@ -442,7 +442,7 @@ export function startServer(config: ServerConfig): ServerHandle {
   });
 
   // Bind the HTTP server. Two paths:
-  //   - autoIncrement (default for `ticketbook` with no --port): try `port`,
+  //   - autoIncrement (default for `relay` with no --port): try `port`,
   //     then port+1, port+2, ..., up to PORT_AUTO_INCREMENT_MAX_TRIES. This
   //     makes multi-repo setups produce deterministic port sequences
   //     (4242 → 4243 → 4244) instead of random OS-assigned ports.
@@ -493,16 +493,16 @@ export function startServer(config: ServerConfig): ServerHandle {
 
 // Direct execution
 if (import.meta.main) {
-  const ticketbookDir = resolve(process.env.TICKETBOOK_DIR ?? ".ticketbook");
-  const tasksDir = join(ticketbookDir, "tasks");
-  const plansDir = join(ticketbookDir, "plans");
-  const docsDir = join(ticketbookDir, "docs");
+  const relayDir = resolve(process.env.RELAY_DIR ?? ".relay");
+  const tasksDir = join(relayDir, "tasks");
+  const plansDir = join(relayDir, "plans");
+  const docsDir = join(relayDir, "docs");
   const port = parseInt(process.env.PORT ?? "4242", 10);
   const staticDir = resolve(
     process.env.STATIC_DIR ?? join(import.meta.dir, "../../ui/dist"),
   );
 
-  const handle = startServer({ ticketbookDir, tasksDir, plansDir, docsDir, port, staticDir });
-  console.log(`Ticketbook server listening on http://localhost:${handle.port}`);
-  console.log(`Ticketbook directory: ${ticketbookDir}`);
+  const handle = startServer({ relayDir, tasksDir, plansDir, docsDir, port, staticDir });
+  console.log(`Relay server listening on http://localhost:${handle.port}`);
+  console.log(`Relay directory: ${relayDir}`);
 }

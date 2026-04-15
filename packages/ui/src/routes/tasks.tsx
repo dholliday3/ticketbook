@@ -59,7 +59,7 @@ function TasksRoute() {
         {ctx.tasks.length === 0 ? (
           <EmptyState
             className="flex-1"
-            title="Welcome to Ticketbook"
+            title="Welcome to Relay"
             subtitle="Create your first task to get started."
           >
             <HintRow><kbd>C</kbd> New task</HintRow>
@@ -109,7 +109,7 @@ function TasksRoute() {
         <aside className="flex min-h-0 w-[300px] min-w-[300px] flex-col overflow-y-auto border-r border-border bg-card md:w-[300px] max-md:w-full max-md:min-w-0 max-md:border-r-0">
           {ctx.tasks.length === 0 ? (
             <EmptyState
-              title="Welcome to Ticketbook"
+              title="Welcome to Relay"
               subtitle="Create your first task to get started."
             >
               <HintRow><kbd>C</kbd> New task</HintRow>

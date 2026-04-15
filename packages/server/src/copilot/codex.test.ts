@@ -99,7 +99,7 @@ describe("CodexProvider.parseJsonLine", () => {
         item: {
           id: "item_3",
           type: "mcp_tool_call",
-          server: "ticketbook",
+          server: "relay",
           tool: "list_tasks",
           arguments: { status: "open" },
           result: null,
@@ -112,7 +112,7 @@ describe("CodexProvider.parseJsonLine", () => {
     expect(started).toEqual([
       {
         type: "tool_use",
-        toolName: "ticketbook.list_tasks",
+        toolName: "relay.list_tasks",
         toolInput: '{\n  "status": "open"\n}',
         content: '{\n  "status": "open"\n}',
       },
@@ -124,7 +124,7 @@ describe("CodexProvider.parseJsonLine", () => {
         item: {
           id: "item_3",
           type: "mcp_tool_call",
-          server: "ticketbook",
+          server: "relay",
           tool: "list_tasks",
           arguments: { status: "open" },
           result: {
@@ -140,7 +140,7 @@ describe("CodexProvider.parseJsonLine", () => {
     expect(completed).toEqual([
       {
         type: "tool_result",
-        toolName: "ticketbook.list_tasks",
+        toolName: "relay.list_tasks",
         content: "TKTB-040",
       },
     ]);
@@ -155,7 +155,7 @@ describe("CodexProvider.parseJsonLine", () => {
         item: {
           id: "item_4",
           type: "mcp_tool_call",
-          server: "ticketbook",
+          server: "relay",
           tool: "list_tasks",
           arguments: { status: "open" },
           result: null,
@@ -168,7 +168,7 @@ describe("CodexProvider.parseJsonLine", () => {
     expect(completed).toEqual([
       {
         type: "tool_result",
-        toolName: "ticketbook.list_tasks",
+        toolName: "relay.list_tasks",
         content: "Error: user cancelled MCP tool call",
       },
     ]);

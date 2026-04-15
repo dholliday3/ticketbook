@@ -8,11 +8,11 @@ interface TerminalProps {
 }
 
 // E2E test instrumentation: expose xterm instances on window for Playwright.
-// Gated on DEV (always on during `bun run dev`) OR the __TICKETBOOK_E2E__ flag
+// Gated on DEV (always on during `bun run dev`) OR the __RELAY_E2E__ flag
 // (which Playwright sets via addInitScript before navigation). In production
 // builds without the flag, this is dead code.
 function e2eExposed(): boolean {
-  return import.meta.env.DEV || (window as unknown as { __TICKETBOOK_E2E__?: boolean }).__TICKETBOOK_E2E__ === true;
+  return import.meta.env.DEV || (window as unknown as { __RELAY_E2E__?: boolean }).__RELAY_E2E__ === true;
 }
 function e2eRegister(sessionId: string, term: XTerm): void {
   if (!e2eExposed()) return;

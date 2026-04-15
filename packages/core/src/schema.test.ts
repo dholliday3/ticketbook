@@ -6,7 +6,7 @@ import {
   CreateTaskInputSchema,
   TaskPatchSchema,
   TaskFiltersSchema,
-  TicketbookConfigSchema,
+  RelayConfigSchema,
 } from "./schema.js";
 
 describe("StatusEnum", () => {
@@ -44,7 +44,7 @@ describe("TaskFrontmatterSchema", () => {
       priority: "high",
       order: 1000,
       tags: ["bug", "frontend"],
-      project: "ticketbook",
+      project: "relay",
       epic: "v1",
       sprint: "sprint-1",
     };
@@ -162,25 +162,25 @@ describe("TaskFiltersSchema", () => {
   });
 });
 
-describe("TicketbookConfigSchema", () => {
+describe("RelayConfigSchema", () => {
   test("provides defaults for empty object", () => {
-    const result = TicketbookConfigSchema.parse({});
+    const result = RelayConfigSchema.parse({});
     expect(result.prefix).toBe("TASK");
     expect(result.deleteMode).toBe("archive");
   });
 
   test("accepts custom prefix", () => {
-    const result = TicketbookConfigSchema.parse({ prefix: "ART" });
+    const result = RelayConfigSchema.parse({ prefix: "ART" });
     expect(result.prefix).toBe("ART");
   });
 
   test("name is undefined when omitted", () => {
-    const result = TicketbookConfigSchema.parse({});
+    const result = RelayConfigSchema.parse({});
     expect(result.name).toBeUndefined();
   });
 
   test("parses name when provided", () => {
-    const result = TicketbookConfigSchema.parse({ name: "projA" });
+    const result = RelayConfigSchema.parse({ name: "projA" });
     expect(result.name).toBe("projA");
   });
 });

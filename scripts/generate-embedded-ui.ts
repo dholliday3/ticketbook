@@ -72,7 +72,7 @@ async function writePopulated(): Promise<{ content: string; count: number }> {
   const files = (await walk(DIST_DIR)).sort();
   if (files.length === 0) {
     throw new Error(
-      `No files found under ${DIST_DIR}. Run \`bun --filter @ticketbook/ui build\` first.`,
+      `No files found under ${DIST_DIR}. Run \`bun --filter @relay/ui build\` first.`,
     );
   }
 

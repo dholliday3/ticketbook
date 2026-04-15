@@ -62,7 +62,7 @@ describe("nextId", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-test-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-test-"));
   });
 
   afterEach(async () => {
@@ -87,15 +87,15 @@ describe("nextId", () => {
   });
 
   test("uses prefix from config", async () => {
-    // nextId reads config from dirname(dir), so create a ticketbook-style
+    // nextId reads config from dirname(dir), so create a relay-style
     // parent with config.yaml and pass the tasks subdir.
-    const ticketbookDir = await mkdtemp(join(tmpdir(), "ticketbook-cfg-"));
-    const tasksDir = join(ticketbookDir, "tasks");
+    const relayDir = await mkdtemp(join(tmpdir(), "relay-cfg-"));
+    const tasksDir = join(relayDir, "tasks");
     await mkdir(tasksDir, { recursive: true });
-    await writeFile(join(ticketbookDir, "config.yaml"), "prefix: ART\ndeleteMode: archive\n", "utf-8");
+    await writeFile(join(relayDir, "config.yaml"), "prefix: ART\ndeleteMode: archive\n", "utf-8");
     const result = await nextId(tasksDir);
     expect(result.id).toBe("ART-001");
-    await rm(ticketbookDir, { recursive: true, force: true });
+    await rm(relayDir, { recursive: true, force: true });
   });
 
   test("filename function produces correct output", async () => {

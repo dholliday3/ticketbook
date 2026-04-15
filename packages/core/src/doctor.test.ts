@@ -35,7 +35,7 @@ describe("doctor — counter", () => {
   let tasksDir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-doctor-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-doctor-"));
     tasksDir = await setupTasksDir(dir);
   });
 
@@ -96,7 +96,7 @@ describe("doctor — duplicate IDs", () => {
   let tasksDir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-doctor-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-doctor-"));
     tasksDir = await setupTasksDir(dir);
     await writeFile(join(tasksDir, ".counter"), "2", "utf-8");
   });
@@ -136,7 +136,7 @@ describe("doctor — dangling refs", () => {
   let tasksDir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-doctor-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-doctor-"));
     tasksDir = await setupTasksDir(dir);
     await writeFile(join(tasksDir, ".counter"), "1", "utf-8");
   });
@@ -179,7 +179,7 @@ describe("doctor — stale locks", () => {
   let tasksDir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-doctor-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-doctor-"));
     tasksDir = await setupTasksDir(dir);
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
   });
@@ -225,7 +225,7 @@ describe("doctor — .gitattributes", () => {
   let tasksDir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-doctor-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-doctor-"));
     tasksDir = await setupTasksDir(dir);
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
   });
@@ -244,15 +244,15 @@ describe("doctor — .gitattributes", () => {
     await runDoctor({ tasksDir, projectRoot: dir, fix: true });
 
     const content = await readFile(join(dir, ".gitattributes"), "utf-8");
-    expect(content).toContain(".ticketbook/tasks/.counter merge=ours");
-    expect(content).toContain(".ticketbook/plans/.counter merge=ours");
-    expect(content).toContain(".ticketbook/docs/.counter merge=ours");
+    expect(content).toContain(".relay/tasks/.counter merge=ours");
+    expect(content).toContain(".relay/plans/.counter merge=ours");
+    expect(content).toContain(".relay/docs/.counter merge=ours");
   });
 
   test("reports pass when all lines already present", async () => {
     await writeFile(
       join(dir, ".gitattributes"),
-      ".ticketbook/tasks/.counter merge=ours\n.ticketbook/plans/.counter merge=ours\n.ticketbook/docs/.counter merge=ours\n",
+      ".relay/tasks/.counter merge=ours\n.relay/plans/.counter merge=ours\n.relay/docs/.counter merge=ours\n",
       "utf-8",
     );
 

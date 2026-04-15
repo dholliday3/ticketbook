@@ -28,8 +28,8 @@ import {
   sync,
   getConfig,
   VERSION,
-} from "@ticketbook/core";
-import type { Doc, Plan } from "@ticketbook/core";
+} from "@relay/core";
+import type { Doc, Plan } from "@relay/core";
 
 function taskSummary(t: {
   id: string;
@@ -138,11 +138,11 @@ function formatDocFull(doc: Doc): string {
 }
 
 /**
- * Load `name` from `.ticketbook/config.yaml` and derive the MCP server identity.
+ * Load `name` from `.relay/config.yaml` and derive the MCP server identity.
  *
- * Returns `ticketbook-<name>` when the config has a non-empty `name` field so
+ * Returns `relay-<name>` when the config has a non-empty `name` field so
  * multi-repo setups have distinguishable MCP identities at handshake time.
- * Falls back to plain `"ticketbook"` when the config is missing, unparseable,
+ * Falls back to plain `"relay"` when the config is missing, unparseable,
  * or has no `name` — **never throws**, because a bad config must not prevent
  * the server from booting. Parse errors are logged to stderr as a warning.
  */
@@ -150,14 +150,14 @@ export async function resolveMcpServerName(rootDir: string): Promise<string> {
   try {
     const cfg = await getConfig(rootDir);
     if (cfg.name && cfg.name.trim().length > 0) {
-      return `ticketbook-${cfg.name}`;
+      return `relay-${cfg.name}`;
     }
   } catch (err) {
     console.error(
-      `[ticketbook-mcp] failed to read ${rootDir}/config.yaml — falling back to default server name. ${(err as Error).message}`,
+      `[relay-mcp] failed to read ${rootDir}/config.yaml — falling back to default server name. ${(err as Error).message}`,
     );
   }
-  return "ticketbook";
+  return "relay";
 }
 
 export async function startMcpServer(
@@ -169,7 +169,7 @@ export async function startMcpServer(
   const serverName = await resolveMcpServerName(rootDir);
   const server = new McpServer({
     name: serverName,
-    // Pulled from @ticketbook/core's VERSION constant (version.ts) so a
+    // Pulled from @relay/core's VERSION constant (version.ts) so a
     // release bump in one place auto-propagates to the MCP handshake.
     version: VERSION,
   });
@@ -1036,12 +1036,12 @@ export async function startMcpServer(
   // --- doctor ---
   server.tool(
     "doctor",
-    "Run integrity checks on all ticketbook artifacts. Validates schema compliance, counter consistency, duplicate IDs, dangling references, stale locks, and .gitattributes. Use fix=true to auto-repair fixable issues.",
+    "Run integrity checks on all relay artifacts. Validates schema compliance, counter consistency, duplicate IDs, dangling references, stale locks, and .gitattributes. Use fix=true to auto-repair fixable issues.",
     {
       fix: z.boolean().optional().describe("Auto-fix fixable issues (default: false)"),
     },
     async (args) => {
-      // Project root is the parent of .ticketbook/
+      // Project root is the parent of .relay/
       const projectRoot = dirname(rootDir);
       const result = await runDoctor({
         tasksDir,

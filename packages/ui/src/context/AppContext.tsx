@@ -22,7 +22,7 @@ import {
 } from "../api";
 import type {
   Task,
-  TicketbookConfig,
+  RelayConfig,
   Status,
   Priority,
   Meta,
@@ -59,7 +59,7 @@ interface AppContextValue {
   tasks: Task[];
   plans: Plan[];
   docs: Doc[];
-  config: TicketbookConfig;
+  config: RelayConfig;
   meta: Meta;
   planMeta: PlanMeta;
   docMeta: DocMeta;
@@ -145,7 +145,7 @@ interface AppContextValue {
   handlePlanKanbanMove: (planId: string, newStatus: PlanStatus) => Promise<void>;
   handlePlanTaskClick: (taskId: string) => void;
   handleMobileBack: () => void;
-  handleSaveSettings: (patch: Partial<TicketbookConfig>) => Promise<void>;
+  handleSaveSettings: (patch: Partial<RelayConfig>) => Promise<void>;
 
   // Refs
   searchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -153,7 +153,7 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const HIDE_ITEM_BADGES_STORAGE_KEY = "ticketbook-hide-item-badges";
+const HIDE_ITEM_BADGES_STORAGE_KEY = "relay-hide-item-badges";
 
 export function useAppContext(): AppContextValue {
   const ctx = useContext(AppContext);
@@ -172,7 +172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
-  const [config, setConfig] = useState<TicketbookConfig>({
+  const [config, setConfig] = useState<RelayConfig>({
     prefix: "TASK",
     deleteMode: "archive",
     debriefStyle: "very-concise",
@@ -200,16 +200,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Right rail: terminal + assistant share the same collapsible pane and
   // are mutually exclusive. We persist which one is open (or neither) and
-  // the shared pane width across reloads. The legacy `ticketbook-terminal-*`
-  // keys are read here for backwards-compat — `ticketbook-right-rail-*`
+  // the shared pane width across reloads. The legacy `relay-terminal-*`
+  // keys are read here for backwards-compat — `relay-right-rail-*`
   // takes over going forward.
   const initialRightRail = (() => {
-    const explicit = localStorage.getItem("ticketbook-right-rail");
+    const explicit = localStorage.getItem("relay-right-rail");
     if (explicit === "terminal" || explicit === "assistant" || explicit === "closed") {
       return explicit;
     }
     // Migrate from the legacy single-button "terminal-open" flag.
-    return localStorage.getItem("ticketbook-terminal-open") === "true" ? "terminal" : "closed";
+    return localStorage.getItem("relay-terminal-open") === "true" ? "terminal" : "closed";
   })();
   const [terminalOpen, setTerminalOpen] = useState(initialRightRail === "terminal");
   const [assistantOpen, setAssistantOpen] = useState(initialRightRail === "assistant");
@@ -217,9 +217,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     { kind: "append"; text: string } | { kind: "replace"; text: string } | null
   >(null);
   const [rightRailWidth, setRightRailWidth] = useState(() => {
-    const explicit = localStorage.getItem("ticketbook-right-rail-width");
+    const explicit = localStorage.getItem("relay-right-rail-width");
     if (explicit) return parseInt(explicit, 10);
-    return parseInt(localStorage.getItem("ticketbook-terminal-width") || "400", 10);
+    return parseInt(localStorage.getItem("relay-terminal-width") || "400", 10);
   });
   const isDraggingRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -593,7 +593,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Persist which right-rail panel is currently open. Mutually exclusive —
   // opening one closes the other. "closed" means neither is open.
   const persistRightRail = useCallback((mode: "terminal" | "assistant" | "closed") => {
-    localStorage.setItem("ticketbook-right-rail", mode);
+    localStorage.setItem("relay-right-rail", mode);
   }, []);
 
   const handleToggleTerminal = useCallback(() => {
@@ -660,7 +660,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
         setRightRailWidth((w) => {
-          localStorage.setItem("ticketbook-right-rail-width", String(w));
+          localStorage.setItem("relay-right-rail-width", String(w));
           return w;
         });
       };
@@ -671,7 +671,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const handleSaveSettings = useCallback(
-    async (patch: Partial<TicketbookConfig>) => {
+    async (patch: Partial<RelayConfig>) => {
       const updated = await patchConfig(patch);
       setConfig(updated);
       setShowSettings(false);

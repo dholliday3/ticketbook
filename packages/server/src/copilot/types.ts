@@ -85,7 +85,7 @@ export interface CopilotSessionOptions {
   systemPrompt?: string;
   /**
    * Optional MCP config payload. If provided, it is written to a temp file and
-   * passed to the provider so the spawned CLI can call ticketbook tools (and
+   * passed to the provider so the spawned CLI can call relay tools (and
    * any other servers the user has configured).
    */
   mcpConfig?: Record<string, unknown>;

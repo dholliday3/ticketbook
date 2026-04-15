@@ -1,5 +1,5 @@
 import { BookOpenIcon, FileTextIcon, ListChecksIcon } from "lucide-react";
-import type { ContextRef } from "@ticketbook/core/context-refs";
+import type { ContextRef } from "@relay/core/context-refs";
 import { cn } from "@/lib/utils";
 import {
   ContextRefHoverCard,

@@ -3,7 +3,7 @@ import {
   parseLsofListenPid,
   parsePsRow,
   parseEtime,
-  isTicketbookCommand,
+  isRelayCommand,
   formatElapsed,
   formatPortInUseMessage,
 } from "./port-diagnose.js";
@@ -40,12 +40,12 @@ node    67890 bob            6u  IPv6
 
 describe("parsePsRow", () => {
   test("parses a realistic macOS ps row (etime + full command)", () => {
-    const output = "40575 01-18:29:45 bun bin/ticketbook.ts --port 4242 --no-ui\n";
+    const output = "40575 01-18:29:45 bun bin/relay.ts --port 4242 --no-ui\n";
     const row = parsePsRow(output);
     expect(row).toEqual({
       pid: 40575,
       elapsedSeconds: 152985, // 1d 18h 29m 45s
-      command: "bun bin/ticketbook.ts --port 4242 --no-ui",
+      command: "bun bin/relay.ts --port 4242 --no-ui",
     });
   });
 
@@ -118,30 +118,30 @@ describe("parseEtime", () => {
   });
 });
 
-describe("isTicketbookCommand", () => {
-  test("recognizes bun bin/ticketbook.ts", () => {
-    expect(isTicketbookCommand("bun bin/ticketbook.ts --port 4242 --no-ui")).toBe(true);
+describe("isRelayCommand", () => {
+  test("recognizes bun bin/relay.ts", () => {
+    expect(isRelayCommand("bun bin/relay.ts --port 4242 --no-ui")).toBe(true);
   });
 
-  test("recognizes bunx ticketbook", () => {
-    expect(isTicketbookCommand("bunx ticketbook --port 4243")).toBe(true);
+  test("recognizes bunx relay", () => {
+    expect(isRelayCommand("bunx relay --port 4243")).toBe(true);
   });
 
-  test("recognizes plain ticketbook on PATH", () => {
-    expect(isTicketbookCommand("/usr/local/bin/ticketbook --no-ui")).toBe(true);
+  test("recognizes plain relay on PATH", () => {
+    expect(isRelayCommand("/usr/local/bin/relay --no-ui")).toBe(true);
   });
 
   test("excludes --mcp mode (doesn't bind a port)", () => {
-    expect(isTicketbookCommand("bun bin/ticketbook.ts --mcp")).toBe(false);
+    expect(isRelayCommand("bun bin/relay.ts --mcp")).toBe(false);
   });
 
   test("excludes the init subcommand", () => {
-    expect(isTicketbookCommand("bunx ticketbook init")).toBe(false);
+    expect(isRelayCommand("bunx relay init")).toBe(false);
   });
 
   test("rejects unrelated commands that happen to contain other keywords", () => {
-    expect(isTicketbookCommand("/usr/bin/node server.js")).toBe(false);
-    expect(isTicketbookCommand("postgres -D /var/lib/postgres")).toBe(false);
+    expect(isRelayCommand("/usr/bin/node server.js")).toBe(false);
+    expect(isRelayCommand("postgres -D /var/lib/postgres")).toBe(false);
   });
 });
 
@@ -174,31 +174,31 @@ describe("formatElapsed", () => {
 });
 
 describe("formatPortInUseMessage", () => {
-  test("produces a ticketbook-specific message when the squatter is a ticketbook process", () => {
+  test("produces a relay-specific message when the squatter is a relay process", () => {
     const msg = formatPortInUseMessage(4242, {
       pid: 40575,
-      command: "bun bin/ticketbook.ts --port 4242 --no-ui",
+      command: "bun bin/relay.ts --port 4242 --no-ui",
       elapsedSeconds: 152601,
-      isTicketbook: true,
+      isRelay: true,
     });
-    expect(msg).toContain("Port 4242 is already in use by another ticketbook instance");
+    expect(msg).toContain("Port 4242 is already in use by another relay instance");
     expect(msg).toContain("PID 40575");
     expect(msg).toContain("running 1d18h");
     expect(msg).toContain("kill 40575");
   });
 
-  test("produces a generic message when the squatter is not a ticketbook process", () => {
+  test("produces a generic message when the squatter is not a relay process", () => {
     const msg = formatPortInUseMessage(4242, {
       pid: 1234,
       command: "/usr/bin/node server.js",
       elapsedSeconds: 3700,
-      isTicketbook: false,
+      isRelay: false,
     });
     expect(msg).toContain("Port 4242 is already in use:");
     expect(msg).toContain("PID 1234");
     expect(msg).toContain("/usr/bin/node server.js");
     expect(msg).toContain("running 1h1m");
-    expect(msg).not.toContain("ticketbook instance");
+    expect(msg).not.toContain("relay instance");
     expect(msg).toContain("pick another port");
   });
 
@@ -214,7 +214,7 @@ describe("formatPortInUseMessage", () => {
       pid: 999,
       command: "some-proc",
       elapsedSeconds: null,
-      isTicketbook: false,
+      isRelay: false,
     });
     expect(msg).toContain("PID 999  some-proc");
     expect(msg).not.toContain("running");

@@ -8,7 +8,7 @@
  *   inspect <id>       Passively log every protocol frame (no init)
  *
  * Environment:
- *   TICKETBOOK_PORT    Server port (default 4242)
+ *   RELAY_PORT    Server port (default 4242)
  *
  * Notes:
  *   `connect` uses Ctrl-] (telnet convention) as the disconnect key, so
@@ -19,7 +19,7 @@
  *   every init. Document and live with it.
  */
 
-const port = parseInt(process.env.TICKETBOOK_PORT ?? "4242", 10);
+const port = parseInt(process.env.RELAY_PORT ?? "4242", 10);
 const base = `http://localhost:${port}`;
 const wsBase = `ws://localhost:${port}`;
 
@@ -35,7 +35,7 @@ Commands:
   inspect <id>       Log every WebSocket frame for a session (no init)
 
 Env:
-  TICKETBOOK_PORT    Server port (default 4242)
+  RELAY_PORT    Server port (default 4242)
 `);
 }
 

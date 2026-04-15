@@ -93,7 +93,7 @@ describe("fetchLatestVersion", () => {
     );
     await fetchLatestVersion(fetchFn);
     expect(capture.url).toBe(
-      "https://api.github.com/repos/dholliday3/ticketbook/releases/latest",
+      "https://api.github.com/repos/dholliday3/relay/releases/latest",
     );
   });
 

@@ -4,7 +4,7 @@ import type {
   CreateTaskInputSchema,
   TaskPatchSchema,
   TaskFiltersSchema,
-  TicketbookConfigSchema,
+  RelayConfigSchema,
 } from "./schema.js";
 
 export type TaskFrontmatter = z.infer<typeof TaskFrontmatterSchema>;
@@ -20,4 +20,4 @@ export type TaskPatch = z.infer<typeof TaskPatchSchema>;
 
 export type TaskFilters = z.infer<typeof TaskFiltersSchema>;
 
-export type TicketbookConfig = z.infer<typeof TicketbookConfigSchema>;
+export type RelayConfig = z.infer<typeof RelayConfigSchema>;

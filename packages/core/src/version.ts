@@ -1,6 +1,6 @@
 /**
- * Current version of @ticketbook/core. Source of truth for:
- *   - `ticketbook upgrade` staleness check (see ./upgrade.ts)
+ * Current version of @relay/core. Source of truth for:
+ *   - `relay upgrade` staleness check (see ./upgrade.ts)
  *   - MCP server handshake version (see packages/server/src/mcp.ts)
  *
  * **Bumped at release time.** Must stay in lockstep with
@@ -15,4 +15,4 @@
  * sync test catches the "forgot to bump one of the two" footgun.
  */
 
-export const VERSION = "0.2.2";
+export const VERSION = "0.3.0";

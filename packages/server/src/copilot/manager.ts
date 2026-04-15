@@ -1,6 +1,6 @@
 import { resolve, dirname } from "node:path";
 import { ClaudeCodeProvider } from "./claude-code.js";
-import { buildTicketbookMcpConfig, writeMcpConfigFile } from "./mcp-config.js";
+import { buildRelayMcpConfig, writeMcpConfigFile } from "./mcp-config.js";
 import { expandContextRefs } from "./context-refs.js";
 import type {
   CopilotMessagePart,
@@ -23,8 +23,8 @@ import {
 } from "../db.js";
 
 export interface CopilotManagerConfig {
-  /** The .ticketbook/ root — used for DB, MCP config, and terminal cwd derivation. */
-  ticketbookDir: string;
+  /** The .relay/ root — used for DB, MCP config, and terminal cwd derivation. */
+  relayDir: string;
   tasksDir: string;
   /**
    * Directory holding plan markdown files. Required for expanding
@@ -44,7 +44,7 @@ export interface CopilotManagerConfig {
    * itself (i.e. `process.execPath`). If set, the synthesized MCP config
    * invokes the binary directly in `--mcp` mode instead of `bun run
    * <binPath>`. Required in compiled-binary mode — see
-   * `buildTicketbookMcpConfig` for why.
+   * `buildRelayMcpConfig` for why.
    */
   execPath?: string;
   cwd?: string;
@@ -90,9 +90,9 @@ interface InternalSessionMeta extends CopilotSessionMetadata {
   currentAssistantCreatedAt: number | null;
 }
 
-const SYSTEM_PROMPT = `You are the Ticketbook copilot — an in-app assistant that helps the user plan, write, and edit tasks, plans, and docs for their project.
+const SYSTEM_PROMPT = `You are the Relay copilot — an in-app assistant that helps the user plan, write, and edit tasks, plans, and docs for their project.
 
-You have access to the user's tasks, plans, and docs through the "ticketbook" MCP server. Use those tools when the user asks you to read, create, update, or organize those primitives. Don't ask permission to read — just look. When you make changes, summarize what you did in one short paragraph.
+You have access to the user's tasks, plans, and docs through the "relay" MCP server. Use those tools when the user asks you to read, create, update, or organize those primitives. Don't ask permission to read — just look. When you make changes, summarize what you did in one short paragraph.
 
 Be terse. Skip preamble. Lead with the action or the answer.`;
 
@@ -173,7 +173,7 @@ export class CopilotManager {
     let mcpConfig: Record<string, unknown> | undefined;
 
     if (opts.conversationId) {
-      const row = getCopilotConversation(this.config.ticketbookDir, opts.conversationId);
+      const row = getCopilotConversation(this.config.relayDir, opts.conversationId);
       if (!row) {
         throw new Error(`Copilot conversation not found: ${opts.conversationId}`);
       }
@@ -187,9 +187,9 @@ export class CopilotManager {
     let mcpConfigPath: string | undefined;
     let cleanupMcp: () => Promise<void> = async () => {};
     if (this.config.binPath || this.config.execPath) {
-      mcpConfig = buildTicketbookMcpConfig({
+      mcpConfig = buildRelayMcpConfig({
         binPath: this.config.binPath ?? "",
-        ticketbookDir: this.config.ticketbookDir,
+        relayDir: this.config.relayDir,
         execPath: this.config.execPath,
       });
       const written = await writeMcpConfigFile(mcpConfig);
@@ -314,15 +314,15 @@ export class CopilotManager {
   }
 
   listConversations(providerId?: CopilotProviderId): CopilotConversationRow[] {
-    return listCopilotConversations(this.config.ticketbookDir, providerId);
+    return listCopilotConversations(this.config.relayDir, providerId);
   }
 
   deleteConversation(id: string): void {
-    deleteCopilotConversation(this.config.ticketbookDir, id);
+    deleteCopilotConversation(this.config.relayDir, id);
   }
 
   async loadConversationMessages(id: string): Promise<StoredTranscriptMessage[]> {
-    return listCopilotMessages(this.config.ticketbookDir, id).map((row) => ({
+    return listCopilotMessages(this.config.relayDir, id).map((row) => ({
       id: row.id,
       role: row.role,
       parts: row.parts,
@@ -371,7 +371,7 @@ export class CopilotManager {
     this.flushAssistantMessage(session);
 
     if (session.conversationId) {
-      bumpCopilotConversation(this.config.ticketbookDir, session.conversationId);
+      bumpCopilotConversation(this.config.relayDir, session.conversationId);
     }
 
     for (const listener of this.listeners) {
@@ -383,13 +383,13 @@ export class CopilotManager {
     if (!session.providerConversationId) return;
     if (!session.conversationId) {
       const existing = getCopilotConversationByProviderConversationId(
-        this.config.ticketbookDir,
+        this.config.relayDir,
         session.providerId,
         session.providerConversationId,
       );
       const row =
         existing ??
-        recordCopilotConversation(this.config.ticketbookDir, {
+        recordCopilotConversation(this.config.relayDir, {
           providerId: session.providerId,
           providerConversationId: session.providerConversationId,
           title: session.pendingTitle ?? "Untitled",
@@ -401,7 +401,7 @@ export class CopilotManager {
     if (!session.conversationId) return;
     if (session.stagedMessages.length > 0) {
       for (const message of session.stagedMessages) {
-        appendCopilotMessage(this.config.ticketbookDir, {
+        appendCopilotMessage(this.config.relayDir, {
           id: message.id,
           conversationId: session.conversationId,
           role: message.role,
@@ -426,7 +426,7 @@ export class CopilotManager {
     };
 
     if (session.conversationId) {
-      appendCopilotMessage(this.config.ticketbookDir, {
+      appendCopilotMessage(this.config.relayDir, {
         id: message.id,
         conversationId: session.conversationId,
         role: message.role,
@@ -452,6 +452,6 @@ export class CopilotManager {
   }
 
   private defaultCwd(): string {
-    return resolve(this.config.ticketbookDir, "..");
+    return resolve(this.config.relayDir, "..");
   }
 }

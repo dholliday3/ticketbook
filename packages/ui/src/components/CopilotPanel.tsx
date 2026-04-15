@@ -9,7 +9,7 @@ import {
   WrenchIcon,
   XIcon,
 } from "lucide-react";
-import { splitByContextRefs } from "@ticketbook/core/context-refs";
+import { splitByContextRefs } from "@relay/core/context-refs";
 import { ContextRefChip } from "./copilot/ContextRefChip";
 import {
   CopilotPromptEditor,

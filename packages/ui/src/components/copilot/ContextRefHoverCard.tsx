@@ -14,7 +14,7 @@ import {
   FileTextIcon,
   ListChecksIcon,
 } from "lucide-react";
-import type { ContextRefKind } from "@ticketbook/core/context-refs";
+import type { ContextRefKind } from "@relay/core/context-refs";
 import {
   HoverCard,
   HoverCardContent,

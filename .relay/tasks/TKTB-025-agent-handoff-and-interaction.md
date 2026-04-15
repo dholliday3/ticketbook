@@ -112,7 +112,7 @@ The user reviews and edits before sending. These buttons live next to "Add to ch
 **Shared** (`packages/core/src/context-refs.ts`, `context-refs-expansion.ts`)
 - Pure string/regex helpers: `parseContextRefs`, `splitByContextRefs`, `renderContextRefMarker`, `createContextRefRegex`
 - Server-only rendering: `renderContextRefExpansion`, `renderDeletedContextRef` (uses gray-matter, split into its own module so the UI bundle doesn't pull it)
-- Subpath exports: `@ticketbook/core/context-refs` is the client-safe entry point
+- Subpath exports: `@relay/core/context-refs` is the client-safe entry point
 
 **Server** (`packages/server/src/copilot/`)
 - `context-refs.ts` — `expandContextRefs(text, {tasksDir, plansDir})` walking markers, parallel-fetching primitives, substituting `<context>` expansions, handling deleted state

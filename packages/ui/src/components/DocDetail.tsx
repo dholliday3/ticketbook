@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChatCircleTextIcon, TrashIcon } from "@phosphor-icons/react";
-import { renderContextRefMarker } from "@ticketbook/core/context-refs";
+import { renderContextRefMarker } from "@relay/core/context-refs";
 import { patchDoc, patchDocBody } from "../api";
 import { useAppContext } from "../context/AppContext";
 import type { Doc, DocMeta } from "../types";

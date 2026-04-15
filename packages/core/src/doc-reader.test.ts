@@ -16,7 +16,7 @@ describe("doc-reader", () => {
   let docsDir: string;
 
   beforeEach(async () => {
-    const root = await mkdtemp(join(tmpdir(), "ticketbook-doc-reader-"));
+    const root = await mkdtemp(join(tmpdir(), "relay-doc-reader-"));
     tasksDir = join(root, ".tasks");
     docsDir = join(root, ".docs");
     await mkdir(tasksDir, { recursive: true });

@@ -43,11 +43,11 @@ export async function resolveWorktreeRoot(
 }
 
 /**
- * Check whether a directory contains a valid .ticketbook/ directory.
+ * Check whether a directory contains a valid .relay/ directory.
  */
-async function hasTicketbookDir(dir: string): Promise<boolean> {
+async function hasRelayDir(dir: string): Promise<boolean> {
   try {
-    const s = await stat(join(dir, ".ticketbook"));
+    const s = await stat(join(dir, ".relay"));
     return s.isDirectory();
   } catch {
     return false;
@@ -55,23 +55,23 @@ async function hasTicketbookDir(dir: string): Promise<boolean> {
 }
 
 /**
- * Find the .ticketbook/ directory, with worktree awareness.
+ * Find the .relay/ directory, with worktree awareness.
  *
  * In a linked git worktree, this checks the main repo's root first.
- * If the main repo has a .ticketbook/ directory, we use that (artifacts are
+ * If the main repo has a .relay/ directory, we use that (artifacts are
  * shared across worktrees, not duplicated). Otherwise falls back to
  * walking up from `startDir` as usual.
  */
-export async function findTicketbookDirWithWorktree(
+export async function findRelayDirWithWorktree(
   startDir: string,
-): Promise<{ ticketbookDir: string | null; isWorktree: boolean }> {
+): Promise<{ relayDir: string | null; isWorktree: boolean }> {
   const mainRoot = await resolveWorktreeRoot(startDir);
 
   if (mainRoot) {
     // We're in a linked worktree — check the main repo first
-    if (await hasTicketbookDir(mainRoot)) {
+    if (await hasRelayDir(mainRoot)) {
       return {
-        ticketbookDir: join(mainRoot, ".ticketbook"),
+        relayDir: join(mainRoot, ".relay"),
         isWorktree: true,
       };
     }
@@ -81,13 +81,13 @@ export async function findTicketbookDirWithWorktree(
   let dir = resolve(startDir);
   const { dirname } = await import("node:path");
   while (true) {
-    if (await hasTicketbookDir(dir)) {
-      return { ticketbookDir: join(dir, ".ticketbook"), isWorktree: false };
+    if (await hasRelayDir(dir)) {
+      return { relayDir: join(dir, ".relay"), isWorktree: false };
     }
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
 
-  return { ticketbookDir: null, isWorktree: false };
+  return { relayDir: null, isWorktree: false };
 }

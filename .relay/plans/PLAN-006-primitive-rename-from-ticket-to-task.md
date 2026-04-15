@@ -2,7 +2,7 @@
 id: PLAN-006
 title: primitive rename from task to task
 status: completed
-project: ticketbook
+project: relay
 created: '2026-04-09T02:39:58.351Z'
 updated: '2026-04-09T13:08:23.720Z'
 ---
@@ -12,14 +12,14 @@ updated: '2026-04-09T13:08:23.720Z'
 ## Goals
 
 - Make `task` the first-class noun for the tracked work-item primitive
-- Keep the product name `ticketbook`
+- Keep the product name `relay`
 - Keep subtasks as implicit markdown checkboxes, not a first-class schema
 - Change the default work-item ID prefix from `TKT` to `TASK`
 - Keep custom prefixes such as `TKTB` untouched
 
 ## Non-Goals
 
-- No product rename from `ticketbook`
+- No product rename from `relay`
 - No `.docs/` primitive or doc schema in this pass
 - No migration of existing repo-local `.tasks/`, `.plans/`, or historical markdown wording
 - No mandatory rewrite of body headings like `## Tasks` to `## Subtasks`

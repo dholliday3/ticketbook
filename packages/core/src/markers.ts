@@ -1,5 +1,5 @@
 /**
- * HTML-comment markers used to wrap the ticketbook section inside a host
+ * HTML-comment markers used to wrap the relay section inside a host
  * document (CLAUDE.md, AGENTS.md, etc.). The bracketed region can be
  * surgically replaced on re-run without touching content outside the
  * markers.
@@ -7,8 +7,8 @@
  * Pattern lifted from seeds (~/workspace/resources/seeds/src/markers.ts).
  */
 
-export const START_MARKER = "<!-- ticketbook:start -->";
-export const END_MARKER = "<!-- ticketbook:end -->";
+export const START_MARKER = "<!-- relay:start -->";
+export const END_MARKER = "<!-- relay:end -->";
 
 export function hasMarkerSection(content: string): boolean {
   return content.includes(START_MARKER) && content.includes(END_MARKER);

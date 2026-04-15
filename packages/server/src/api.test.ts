@@ -6,7 +6,7 @@ import { startServer, type ServerHandle } from "./index.js";
 
 describe("REST API", () => {
   let dir: string;
-  let ticketbookDir: string;
+  let relayDir: string;
   let tasksDir: string;
   let plansDir: string;
   let docsDir: string;
@@ -14,19 +14,19 @@ describe("REST API", () => {
   let base: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-api-"));
-    ticketbookDir = join(dir, ".ticketbook");
-    tasksDir = join(ticketbookDir, "tasks");
-    plansDir = join(ticketbookDir, "plans");
-    docsDir = join(ticketbookDir, "docs");
+    dir = await mkdtemp(join(tmpdir(), "relay-api-"));
+    relayDir = join(dir, ".relay");
+    tasksDir = join(relayDir, "tasks");
+    plansDir = join(relayDir, "plans");
+    docsDir = join(relayDir, "docs");
     await mkdir(join(tasksDir, ".archive"), { recursive: true });
     await mkdir(plansDir, { recursive: true });
     await mkdir(docsDir, { recursive: true });
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
     await writeFile(join(plansDir, ".counter"), "0", "utf-8");
     await writeFile(join(docsDir, ".counter"), "0", "utf-8");
-    await writeFile(join(ticketbookDir, "config.yaml"), "prefix: TASK\ndeleteMode: archive\n", "utf-8");
-    handle = startServer({ ticketbookDir, tasksDir, plansDir, docsDir, port: 0 });
+    await writeFile(join(relayDir, "config.yaml"), "prefix: TASK\ndeleteMode: archive\n", "utf-8");
+    handle = startServer({ relayDir, tasksDir, plansDir, docsDir, port: 0 });
     base = `http://localhost:${handle.port}`;
   });
 

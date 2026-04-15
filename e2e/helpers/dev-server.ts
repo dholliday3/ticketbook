@@ -2,8 +2,8 @@
 /**
  * E2E dev-server launcher.
  *
- * Creates a tmp directory with a .ticketbook/ layout, then spawns
- * `bun bin/ticketbook.ts --dir <tmp> --port <E2E_PORT>` with the UI's built
+ * Creates a tmp directory with a .relay/ layout, then spawns
+ * `bun bin/relay.ts --dir <tmp> --port <E2E_PORT>` with the UI's built
  * static assets served from `packages/ui/dist`. Cleans up the tmp dir on exit.
  *
  * Playwright's `webServer` config runs this as its command and waits for the
@@ -28,7 +28,7 @@ async function assertUiBuilt(): Promise<void> {
     if (!s.isFile()) throw new Error("not a file");
   } catch {
     console.error(`[e2e] UI is not built. Missing ${indexPath}.`);
-    console.error(`[e2e] Run: bun --filter "@ticketbook/ui" build`);
+    console.error(`[e2e] Run: bun --filter "@relay/ui" build`);
     process.exit(1);
   }
 }
@@ -36,16 +36,16 @@ async function assertUiBuilt(): Promise<void> {
 async function main(): Promise<void> {
   await assertUiBuilt();
 
-  const tmpRoot = await mkdtemp(join(tmpdir(), "ticketbook-e2e-"));
-  const ticketbookDir = join(tmpRoot, ".ticketbook");
-  const tasksDir = join(ticketbookDir, "tasks");
-  const plansDir = join(ticketbookDir, "plans");
+  const tmpRoot = await mkdtemp(join(tmpdir(), "relay-e2e-"));
+  const relayDir = join(tmpRoot, ".relay");
+  const tasksDir = join(relayDir, "tasks");
+  const plansDir = join(relayDir, "plans");
   await mkdir(join(tasksDir, ".archive"), { recursive: true });
   await mkdir(join(plansDir, ".archive"), { recursive: true });
   await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
   await writeFile(join(plansDir, ".counter"), "0", "utf-8");
   await writeFile(
-    join(ticketbookDir, "config.yaml"),
+    join(relayDir, "config.yaml"),
     "prefix: TKT\nplanPrefix: PLAN\ndeleteMode: archive\n",
     "utf-8",
   );
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
 
   const child: ChildProcess = spawn(
     "bun",
-    ["bin/ticketbook.ts", "--dir", ticketbookDir, "--port", port],
+    ["bin/relay.ts", "--dir", relayDir, "--port", port],
     {
       stdio: "inherit",
       cwd: REPO_ROOT,

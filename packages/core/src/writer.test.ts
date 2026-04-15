@@ -16,7 +16,7 @@ describe("createTask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-writer-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-writer-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 
@@ -93,7 +93,7 @@ describe("updateTask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-writer-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-writer-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 
@@ -158,7 +158,7 @@ describe("deleteTask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-writer-"));
     dir = join(rootDir, "tasks");
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, ".counter"), "0", "utf-8");
@@ -182,7 +182,7 @@ describe("deleteTask", () => {
   });
 
   test("hard-deletes when config says so", async () => {
-    // deleteTask reads config from dirname(dir) (the ticketbook root)
+    // deleteTask reads config from dirname(dir) (the relay root)
     await writeFile(
       join(rootDir, "config.yaml"),
       "prefix: TKT\ndeleteMode: hard\n",
@@ -200,7 +200,7 @@ describe("restoreTask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-writer-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-writer-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 
@@ -229,7 +229,7 @@ describe("toggleSubtask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-writer-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-writer-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 
@@ -272,7 +272,7 @@ describe("addSubtask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-writer-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-writer-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 

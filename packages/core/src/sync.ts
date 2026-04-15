@@ -12,7 +12,7 @@ export interface SyncOptions {
   tasksDir: string;
   plansDir?: string;
   docsDir?: string;
-  /** Project root (parent of .ticketbook/). Used as git cwd. */
+  /** Project root (parent of .relay/). Used as git cwd. */
   projectRoot: string;
   /** If true, only report what would be committed. */
   dryRun?: boolean;
@@ -102,7 +102,7 @@ function buildCommitMessage(
 
   const date = new Date().toISOString().slice(0, 10);
   const summary = parts.length > 0 ? parts.join(", ") : "update";
-  return `ticketbook: sync ${summary} [${date}]`;
+  return `relay: sync ${summary} [${date}]`;
 }
 
 // ---------------------------------------------------------------------------

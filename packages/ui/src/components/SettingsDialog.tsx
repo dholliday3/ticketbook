@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TicketbookConfig, DebriefStyle } from "../types";
+import type { RelayConfig, DebriefStyle } from "../types";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
@@ -23,8 +23,8 @@ export function SettingsDialog({
   onSave,
   onClose,
 }: {
-  config: TicketbookConfig;
-  onSave: (patch: Partial<TicketbookConfig>) => Promise<void>;
+  config: RelayConfig;
+  onSave: (patch: Partial<RelayConfig>) => Promise<void>;
   onClose: () => void;
 }) {
   const [prefix, setPrefix] = useState(config.prefix);

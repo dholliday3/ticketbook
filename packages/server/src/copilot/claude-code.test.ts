@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { ClaudeCodeProvider } from "./claude-code.js";
-import { buildTicketbookMcpConfig } from "./mcp-config.js";
+import { buildRelayMcpConfig } from "./mcp-config.js";
 
 /**
  * Pure parser tests — exercises the stream-json line parser without spawning
@@ -195,29 +195,29 @@ describe("ClaudeCodeProvider.parseStreamJsonLine", () => {
   });
 });
 
-describe("buildTicketbookMcpConfig", () => {
-  it("produces an mcpServers entry pointing at bin/ticketbook.ts --mcp", () => {
-    const config = buildTicketbookMcpConfig({
-      binPath: "/abs/path/bin/ticketbook.ts",
-      ticketbookDir: "/abs/path/.ticketbook",
+describe("buildRelayMcpConfig", () => {
+  it("produces an mcpServers entry pointing at bin/relay.ts --mcp", () => {
+    const config = buildRelayMcpConfig({
+      binPath: "/abs/path/bin/relay.ts",
+      relayDir: "/abs/path/.relay",
     });
     expect(config).toEqual({
       mcpServers: {
-        ticketbook: {
+        relay: {
           command: "bun",
-          args: ["run", "/abs/path/bin/ticketbook.ts", "--mcp", "--dir", "/abs/path/.ticketbook"],
+          args: ["run", "/abs/path/bin/relay.ts", "--mcp", "--dir", "/abs/path/.relay"],
         },
       },
     });
   });
 
   it("respects a custom bun path", () => {
-    const config = buildTicketbookMcpConfig({
+    const config = buildRelayMcpConfig({
       binPath: "/abs/bin.ts",
-      ticketbookDir: "/abs/.ticketbook",
+      relayDir: "/abs/.relay",
       bunPath: "/usr/local/bin/bun",
     });
-    const server = (config.mcpServers as Record<string, { command: string }>).ticketbook;
+    const server = (config.mcpServers as Record<string, { command: string }>).relay;
     expect(server.command).toBe("/usr/local/bin/bun");
   });
 
@@ -225,16 +225,16 @@ describe("buildTicketbookMcpConfig", () => {
     // In a `bun build --compile` binary, binPath is a `$bunfs/…` virtual
     // path that a spawned `bun run` child can't read. The generated config
     // must therefore re-invoke the compiled binary itself in `--mcp` mode.
-    const config = buildTicketbookMcpConfig({
-      binPath: "/$bunfs/root/bin/ticketbook.ts",
-      ticketbookDir: "/abs/path/.ticketbook",
-      execPath: "/Users/me/.local/bin/ticketbook",
+    const config = buildRelayMcpConfig({
+      binPath: "/$bunfs/root/bin/relay.ts",
+      relayDir: "/abs/path/.relay",
+      execPath: "/Users/me/.local/bin/relay",
     });
     expect(config).toEqual({
       mcpServers: {
-        ticketbook: {
-          command: "/Users/me/.local/bin/ticketbook",
-          args: ["--mcp", "--dir", "/abs/path/.ticketbook"],
+        relay: {
+          command: "/Users/me/.local/bin/relay",
+          args: ["--mcp", "--dir", "/abs/path/.relay"],
         },
       },
     });
@@ -243,14 +243,14 @@ describe("buildTicketbookMcpConfig", () => {
   it("ignores bunPath when execPath is set", () => {
     // execPath takes precedence — bunPath is only relevant for the
     // `bun run <binPath>` dev-mode branch.
-    const config = buildTicketbookMcpConfig({
+    const config = buildRelayMcpConfig({
       binPath: "/ignored",
-      ticketbookDir: "/abs/.ticketbook",
+      relayDir: "/abs/.relay",
       bunPath: "/usr/local/bin/bun",
-      execPath: "/opt/ticketbook",
+      execPath: "/opt/relay",
     });
-    const server = (config.mcpServers as Record<string, { command: string; args: string[] }>).ticketbook;
-    expect(server.command).toBe("/opt/ticketbook");
-    expect(server.args).toEqual(["--mcp", "--dir", "/abs/.ticketbook"]);
+    const server = (config.mcpServers as Record<string, { command: string; args: string[] }>).relay;
+    expect(server.command).toBe("/opt/relay");
+    expect(server.args).toEqual(["--mcp", "--dir", "/abs/.relay"]);
   });
 });

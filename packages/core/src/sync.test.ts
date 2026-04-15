@@ -30,8 +30,8 @@ describe("sync", () => {
   let tasksDir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-sync-"));
-    tasksDir = join(dir, ".ticketbook", "tasks");
+    dir = await mkdtemp(join(tmpdir(), "relay-sync-"));
+    tasksDir = join(dir, ".relay", "tasks");
     await mkdir(tasksDir, { recursive: true });
   });
 
@@ -53,7 +53,7 @@ describe("sync", () => {
     await initGitRepo(dir);
     // Commit an initial state so .tasks/ is tracked
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
-    await exec("git", ["add", ".ticketbook/"], { cwd: dir });
+    await exec("git", ["add", ".relay/"], { cwd: dir });
     await exec("git", ["commit", "-m", "init"], { cwd: dir });
 
     // Add a new task file (will show as untracked)
@@ -71,7 +71,7 @@ describe("sync", () => {
   test("dry run: commit message includes task IDs", async () => {
     await initGitRepo(dir);
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
-    await exec("git", ["add", ".ticketbook/"], { cwd: dir });
+    await exec("git", ["add", ".relay/"], { cwd: dir });
     await exec("git", ["commit", "-m", "init"], { cwd: dir });
 
     await writeFile(join(tasksDir, "TKT-001-my-task.md"), taskContent("TKT-001"));
@@ -81,14 +81,14 @@ describe("sync", () => {
 
     expect(result.message).toMatch(/TKT-001/);
     expect(result.message).toMatch(/TKT-002/);
-    // Message format: "ticketbook: sync <ids> [YYYY-MM-DD]"
-    expect(result.message).toMatch(/^ticketbook: sync .+ \[\d{4}-\d{2}-\d{2}\]$/);
+    // Message format: "relay: sync <ids> [YYYY-MM-DD]"
+    expect(result.message).toMatch(/^relay: sync .+ \[\d{4}-\d{2}-\d{2}\]$/);
   });
 
   test("dry run: does not create a commit", async () => {
     await initGitRepo(dir);
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
-    await exec("git", ["add", ".ticketbook/"], { cwd: dir });
+    await exec("git", ["add", ".relay/"], { cwd: dir });
     await exec("git", ["commit", "-m", "init"], { cwd: dir });
 
     await writeFile(join(tasksDir, "TKT-001-foo.md"), taskContent("TKT-001"));

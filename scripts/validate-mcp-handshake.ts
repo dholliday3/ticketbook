@@ -1,21 +1,21 @@
 #!/usr/bin/env bun
 /**
- * Validation: prove that a compiled `ticketbook` binary responds to an MCP
- * handshake when invoked as `<binary> --mcp --dir <ticketbookDir>`.
+ * Validation: prove that a compiled `relay` binary responds to an MCP
+ * handshake when invoked as `<binary> --mcp --dir <relayDir>`.
  *
  * Why this matters: the copilot fix (see packages/server/src/copilot/mcp-config.ts)
  * emits exactly that spawn pattern in compiled-binary mode. If this script
  * succeeds, the fix works end-to-end. If it fails, the compiled binary
  * doesn't support re-invocation as its own MCP child.
  *
- * Usage: BINARY=<path> TICKETBOOK_DIR=<path> bun scripts/validate-mcp-handshake.ts
+ * Usage: BINARY=<path> RELAY_DIR=<path> bun scripts/validate-mcp-handshake.ts
  */
 import { spawn } from "node:child_process";
 
 const BINARY = process.env.BINARY;
-const DIR = process.env.TICKETBOOK_DIR;
+const DIR = process.env.RELAY_DIR;
 if (!BINARY || !DIR) {
-  console.error("Set BINARY and TICKETBOOK_DIR env vars");
+  console.error("Set BINARY and RELAY_DIR env vars");
   process.exit(2);
 }
 

@@ -18,7 +18,7 @@ import {
   CreateTaskInputSchema,
   TaskPatchSchema,
   TaskFiltersSchema,
-  TicketbookConfigSchema,
+  RelayConfigSchema,
   listPlans,
   getPlan,
   getPlanProjects,
@@ -42,7 +42,7 @@ import {
   CreateDocInputSchema,
   DocPatchSchema,
   DocFiltersSchema,
-} from "@ticketbook/core";
+} from "@relay/core";
 import { createDebug } from "./debug.js";
 import type { TaskChangeEvent } from "./watcher.js";
 import type { CopilotManager, CopilotProviderId } from "./copilot/index.js";
@@ -301,7 +301,7 @@ export function createRoutes(
   // PATCH /api/config
   route("PATCH", "/config", async (req) => {
     const body = await readJsonBody(req);
-    const patch = TicketbookConfigSchema.partial().parse(body);
+    const patch = RelayConfigSchema.partial().parse(body);
     const config = await updateConfig(rootDir, patch);
     return json(config);
   });

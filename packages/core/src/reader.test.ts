@@ -17,7 +17,7 @@ describe("reader", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-reader-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-reader-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 

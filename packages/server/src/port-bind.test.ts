@@ -2,7 +2,7 @@ import { describe, test, expect, afterEach } from "bun:test";
 import { bindWithIncrementUsing, isAddressInUseError } from "./port-bind.js";
 
 // Use a high starting port to avoid colliding with real dev servers. The
-// range 14242+ is well away from 4242 (ticketbook dev) and other common
+// range 14242+ is well away from 4242 (relay dev) and other common
 // local services.
 const BASE_PORT = 14242;
 

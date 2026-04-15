@@ -43,7 +43,7 @@ export interface Meta {
 
 export type DebriefStyle = "very-concise" | "concise" | "detailed" | "lengthy";
 
-export interface TicketbookConfig {
+export interface RelayConfig {
   prefix: string;
   deleteMode: "archive" | "hard";
   debriefStyle: DebriefStyle;

@@ -35,9 +35,9 @@ export interface HistoricalMessage {
 /**
  * Compute Claude Code's project directory name for a given cwd. Claude Code
  * encodes the path by replacing `/` with `-`, so
- *   /Users/danielholliday/workspace/worktrees/ticketbook/app-copilot
+ *   /Users/danielholliday/workspace/worktrees/relay/app-copilot
  * becomes
- *   -Users-danielholliday-workspace-worktrees-ticketbook-app-copilot
+ *   -Users-danielholliday-workspace-worktrees-relay-app-copilot
  *
  * Trailing slashes are stripped first because Claude Code normalizes the
  * cwd when storing (so it stores under `…app-copilot`, not `…app-copilot/`),

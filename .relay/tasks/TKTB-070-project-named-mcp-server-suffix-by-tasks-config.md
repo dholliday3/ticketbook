@@ -7,19 +7,19 @@ tags:
   - phase-0
   - mcp
   - packaging
-project: ticketbook
+project: relay
 assignee: claude-opus
 created: '2026-04-11T07:05:25.769Z'
 updated: '2026-04-11T07:29:22.854Z'
 ---
 
-Give each ticketbook MCP server instance a per-project name derived from the repo directory, so multi-repo setups have distinguishable MCP identities for debugging. Pattern lifted from seeds' `config.yaml` approach (`seeds/src/commands/init.ts:24`).
+Give each relay MCP server instance a per-project name derived from the repo directory, so multi-repo setups have distinguishable MCP identities for debugging. Pattern lifted from seeds' `config.yaml` approach (`seeds/src/commands/init.ts:24`).
 
 Part of PLAN-005 Phase 0. Independent of Tasks A/B/D/E — touches different files, can run in parallel.
 
 ## Why
 
-Today every ticketbook MCP server identifies as plain `"ticketbook"` at handshake time. In multi-repo setups, `claude mcp list` and error messages can't distinguish which repo's server you're looking at. Adding a `ticketbook-<project>` suffix is a small, low-risk change with meaningful debug clarity.
+Today every relay MCP server identifies as plain `"relay"` at handshake time. In multi-repo setups, `claude mcp list` and error messages can't distinguish which repo's server you're looking at. Adding a `relay-<project>` suffix is a small, low-risk change with meaningful debug clarity.
 
 ## Changes
 
@@ -40,7 +40,7 @@ deleteMode: archive
 
 At init time, auto-populate `name` from `basename(baseDir)`. Reference: seeds does this at `~/workspace/resources/seeds/src/commands/init.ts:24`.
 
-Update the config-write block in `initTicketbook` (around line 257):
+Update the config-write block in `initRelay` (around line 257):
 ```ts
 const projectName = basename(baseDir);
 await writeFile(
@@ -59,17 +59,17 @@ At MCP server startup inside `startMcpServer`, read the config file for the `nam
 ```ts
 const config = loadConfig(tasksDir); // or whatever the existing config loader is called
 const projectName = config.name;
-const serverName = projectName ? `ticketbook-${projectName}` : "ticketbook";
+const serverName = projectName ? `relay-${projectName}` : "relay";
 new Server({ name: serverName, version: VERSION });
 ```
 
-If the config file is missing or fails to parse, fall back to plain `"ticketbook"` — **no throwing**. Log a warning to stderr if you want, but don't break the server.
+If the config file is missing or fails to parse, fall back to plain `"relay"` — **no throwing**. Log a warning to stderr if you want, but don't break the server.
 
 ### Tests
 
 - `packages/core/src/config.test.ts` — add a test that `name` parses correctly, and that absence yields `undefined` (not `""`)
 - `packages/core/src/init.test.ts` — extend the "creates `.tasks/`…" test (around line 48) to assert the config file contains `name: "<basename of tmpdir>"`
-- `packages/server/src/mcp.test.ts` — verify the Server is instantiated with `ticketbook-<name>` when config has `name`, and plain `ticketbook` when it doesn't. If mcp.test.ts doesn't exist, create it with minimal scaffolding.
+- `packages/server/src/mcp.test.ts` — verify the Server is instantiated with `relay-<name>` when config has `name`, and plain `relay` when it doesn't. If mcp.test.ts doesn't exist, create it with minimal scaffolding.
 
 ## Out of scope
 - Exposing the project name in MCP tool responses (e.g., `project` field on `list_tasks` output). Explicitly skipped — Open Questions in PLAN-005 discusses and rejects this for v1.
@@ -78,8 +78,8 @@ If the config file is missing or fails to parse, fall back to plain `"ticketbook
 
 ## Acceptance
 - New init in a dir named `foo` produces `.tasks/.config.yaml` with `name: "foo"`
-- MCP server started in that dir declares itself as `"ticketbook-foo"` at handshake (verify via a spawn + initialize round-trip)
-- MCP server started in a dir whose `.config.yaml` has no `name` field still starts and declares itself as plain `"ticketbook"` (back-compat)
+- MCP server started in that dir declares itself as `"relay-foo"` at handshake (verify via a spawn + initialize round-trip)
+- MCP server started in a dir whose `.config.yaml` has no `name` field still starts and declares itself as plain `"relay"` (back-compat)
 - All tests pass (`bun test`)
 - `bun run typecheck` clean
 
@@ -90,11 +90,11 @@ If the config file is missing or fails to parse, fall back to plain `"ticketbook
 **Done.** Implemented by claude-opus in the shared working tree; claude-code reviewed, validated, and committed.
 
 ### Shipped
-- **`packages/core/src/schema.ts`** — `TicketbookConfigSchema` gains an optional `name: z.string().optional()` field with a good JSDoc explaining the intent (lines 82-89).
+- **`packages/core/src/schema.ts`** — `RelayConfigSchema` gains an optional `name: z.string().optional()` field with a good JSDoc explaining the intent (lines 82-89).
 - **`packages/core/src/init.ts:261-271`** — On first init, writes `name: "${basename(baseDir)}"` alongside the existing prefix/delete-mode config lines. On re-init of an existing config, leaves it alone (back-compat for projects initialized before this change).
-- **`packages/server/src/mcp.ts:148-160`** — New exported `resolveMcpServerName(tasksDir): Promise<string>` function. Reads via `getConfig()`, returns `ticketbook-<name>` when `cfg.name` is non-empty, falls back to plain `"ticketbook"` on any error (including missing file, malformed YAML, empty name). **Never throws** — logs a `[ticketbook-mcp]` warning to stderr and falls back cleanly. Bad config must not block server boot.
+- **`packages/server/src/mcp.ts:148-160`** — New exported `resolveMcpServerName(tasksDir): Promise<string>` function. Reads via `getConfig()`, returns `relay-<name>` when `cfg.name` is non-empty, falls back to plain `"relay"` on any error (including missing file, malformed YAML, empty name). **Never throws** — logs a `[relay-mcp]` warning to stderr and falls back cleanly. Bad config must not block server boot.
 - **`packages/server/src/mcp.ts:162-171`** — `startMcpServer` now calls `resolveMcpServerName(tasksDir)` and passes the result as `name` to the `new McpServer({...})` constructor.
-- **`packages/server/src/mcp.test.ts`** (new file) — 5 tests covering: name present → suffixed name; name absent → plain `ticketbook`; missing config file → plain `ticketbook`; malformed YAML → plain `ticketbook` (plus stderr warning); empty-string name → plain `ticketbook`.
+- **`packages/server/src/mcp.test.ts`** (new file) — 5 tests covering: name present → suffixed name; name absent → plain `relay`; missing config file → plain `relay`; malformed YAML → plain `relay` (plus stderr warning); empty-string name → plain `relay`.
 - **`packages/core/src/config.test.ts:42-56`** — New tests: `name` parses when present, `name` is `undefined` (not `""`) when absent.
 - **`packages/core/src/init.test.ts:69`** — Existing "creates .tasks/ .plans/ .docs/ with config and counters" test extended to assert the config file contains `name: "<basename of dir>"`.
 
@@ -104,10 +104,10 @@ If the config file is missing or fails to parse, fall back to plain `"ticketbook
 - One benign stderr line during mcp.test.ts ("malformed yaml" test case) — that's the expected fallback warning, not a test failure.
 
 ### Review notes
-- **Empty-string guard is correct.** `cfg.name && cfg.name.trim().length > 0` in `resolveMcpServerName` catches both `undefined` and `""` cases, matching the test in `mcp.test.ts` that asserts empty name falls back to plain `ticketbook`. Good defensive coding.
+- **Empty-string guard is correct.** `cfg.name && cfg.name.trim().length > 0` in `resolveMcpServerName` catches both `undefined` and `""` cases, matching the test in `mcp.test.ts` that asserts empty name falls back to plain `relay`. Good defensive coding.
 - **Warning goes to stderr, not stdout.** Important for MCP mode where stdout is the JSON-RPC transport — any log there would corrupt the protocol. Correct choice.
 - **Back-compat for existing projects is real.** Pre-existing `.config.yaml` files without a `name` field keep working because (a) init doesn't clobber them, and (b) `resolveMcpServerName` falls back gracefully. Verified by the `init.test.ts` idempotent test.
 
 ### Minor notes for future work
-- The JSDoc on `resolveMcpServerName` says "Falls back to plain `"ticketbook"` when the config is missing, unparseable, or has no `name`". The code handles one more case (empty-string `name`) that the JSDoc doesn't mention. Non-blocking. A future small refactor could align the doc with the empty-string test case.
+- The JSDoc on `resolveMcpServerName` says "Falls back to plain `"relay"` when the config is missing, unparseable, or has no `name`". The code handles one more case (empty-string `name`) that the JSDoc doesn't mention. Non-blocking. A future small refactor could align the doc with the empty-string test case.
 - Follow-up Task F (TKTB-072) will build on this — it piggybacks on the same config schema to persist a `uiPort` field.

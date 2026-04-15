@@ -10,7 +10,7 @@ import {
  * Bump when the snippet below materially changes (not for whitespace
  * tweaks). Projects with an older version marker in their CLAUDE.md
  * section will have that section surgically replaced on the next
- * `ticketbook onboard` run.
+ * `relay onboard` run.
  *
  * This is intentionally a hand-bumped constant rather than being derived
  * from package.json or a content hash. Rationale is captured in PLAN-005
@@ -18,9 +18,9 @@ import {
  * hand-bumping forces a deliberate "is this actually user-facing?"
  * decision at each bump.
  */
-export const ONBOARD_VERSION = 2;
+export const ONBOARD_VERSION = 3;
 
-const VERSION_MARKER = `<!-- ticketbook-onboard-v:${ONBOARD_VERSION} -->`;
+const VERSION_MARKER = `<!-- relay-onboard-v:${ONBOARD_VERSION} -->`;
 
 /**
  * Candidate files to target when writing onboarding instructions. First
@@ -42,21 +42,21 @@ const CANDIDATE_FILES = [
  * Task B (TKTB-073) will delete the mirror copy of this content
  * (`AGENTS_MD_CONTENT` in `./init.ts`) once this module ships.
  */
-const ONBOARD_SECTION_BODY = `This project uses **ticketbook** for task and plan tracking. Tasks live in \`.ticketbook/tasks/\`, plans live in \`.ticketbook/plans/\`, and reference docs live in \`.ticketbook/docs/\` as markdown files with YAML frontmatter.
+const ONBOARD_SECTION_BODY = `This project uses **relay** for task and plan tracking. Tasks live in \`.relay/tasks/\`, plans live in \`.relay/plans/\`, and reference docs live in \`.relay/docs/\` as markdown files with YAML frontmatter.
 
 ### If your agent supports Skills
 
-The \`ticketbook\` skill at \`.claude/skills/ticketbook/SKILL.md\` (Claude Code) and \`.agents/skills/ticketbook/SKILL.md\` (Codex) covers the full workflow. Nothing to configure — just ask about tasks, plans, or docs and the skill will load on demand.
+The \`relay\` skill at \`.claude/skills/relay/SKILL.md\` (Claude Code) and \`.agents/skills/relay/SKILL.md\` (Codex) covers the full workflow. Nothing to configure — just ask about tasks, plans, or docs and the skill will load on demand.
 
 ### If your agent does not support Skills
 
-Use the \`ticketbook\` MCP server for all task, plan, and doc operations. Start it with:
+Use the \`relay\` MCP server for all task, plan, and doc operations. Start it with:
 
 \`\`\`
-bunx ticketbook --mcp
+bunx relay --mcp
 \`\`\`
 
-Never hand-edit files in \`.ticketbook/tasks/\`, \`.ticketbook/plans/\`, or \`.ticketbook/docs/\` — the MCP server owns ID assignment, file naming, ordering, and watcher sync. Direct edits will desync state.
+Never hand-edit files in \`.relay/tasks/\`, \`.relay/plans/\`, or \`.relay/docs/\` — the MCP server owns ID assignment, file naming, ordering, and watcher sync. Direct edits will desync state.
 
 ### Workflow basics
 
@@ -77,7 +77,7 @@ Never hand-edit files in \`.ticketbook/tasks/\`, \`.ticketbook/plans/\`, or \`.t
  * `wrapInMarkers` from ./markers.
  */
 export function onboardSnippet(): string {
-  return `## Ticketbook\n${VERSION_MARKER}\n\n${ONBOARD_SECTION_BODY}`;
+  return `## Relay\n${VERSION_MARKER}\n\n${ONBOARD_SECTION_BODY}`;
 }
 
 export interface RunOnboardOptions {
@@ -129,7 +129,7 @@ export async function findTargetFile(
 
 /**
  * Classify the onboarding state of an existing file's content:
- *   - `missing`  — no ticketbook marker section anywhere in the content
+ *   - `missing`  — no relay marker section anywhere in the content
  *   - `current`  — marker section present and the embedded version marker
  *                  matches `ONBOARD_VERSION`
  *   - `outdated` — marker section present but the embedded version marker
@@ -144,7 +144,7 @@ export function detectStatus(
 }
 
 /**
- * Write or update the ticketbook onboarding section inside the target
+ * Write or update the relay onboarding section inside the target
  * project. Idempotent — re-running after a version bump surgically
  * replaces the bracketed region without touching content outside the
  * markers.

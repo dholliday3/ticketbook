@@ -8,7 +8,7 @@ describe("getConfig", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-cfg-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-cfg-"));
   });
 
   afterEach(async () => {
@@ -60,7 +60,7 @@ describe("updateConfig", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-cfg-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-cfg-"));
   });
 
   afterEach(async () => {

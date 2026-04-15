@@ -1,5 +1,5 @@
 /**
- * Port-binding helpers for the ticketbook HTTP server.
+ * Port-binding helpers for the relay HTTP server.
  *
  * The CLI defaults to port 4242 and auto-increments on EADDRINUSE so that
  * multi-repo setups produce deterministic, predictable port assignments

@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { startServer, type ServerHandle } from "./index.js";
 import { _resetDbCacheForTests } from "./db.js";
-import type { ClientMessage, ServerMessage } from "@ticketbook/core";
+import type { ClientMessage, ServerMessage } from "@relay/core";
 
 interface TestClient {
   ws: WebSocket;
@@ -100,7 +100,7 @@ function connect(base: string, sessionId: string, cols = 80, rows = 24): TestCli
 
 describe("terminal protocol", () => {
   let dir: string;
-  let ticketbookDir: string;
+  let relayDir: string;
   let tasksDir: string;
   let plansDir: string;
   let docsDir: string;
@@ -108,17 +108,17 @@ describe("terminal protocol", () => {
   let base: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-term-"));
-    ticketbookDir = join(dir, ".ticketbook");
-    tasksDir = join(ticketbookDir, "tasks");
-    plansDir = join(ticketbookDir, "plans");
-    docsDir = join(ticketbookDir, "docs");
+    dir = await mkdtemp(join(tmpdir(), "relay-term-"));
+    relayDir = join(dir, ".relay");
+    tasksDir = join(relayDir, "tasks");
+    plansDir = join(relayDir, "plans");
+    docsDir = join(relayDir, "docs");
     await mkdir(join(tasksDir, ".archive"), { recursive: true });
     await mkdir(plansDir, { recursive: true });
     await mkdir(docsDir, { recursive: true });
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
-    await writeFile(join(ticketbookDir, "config.yaml"), "prefix: TKT\ndeleteMode: archive\n", "utf-8");
-    handle = startServer({ ticketbookDir, tasksDir, plansDir, docsDir, port: 0 });
+    await writeFile(join(relayDir, "config.yaml"), "prefix: TKT\ndeleteMode: archive\n", "utf-8");
+    handle = startServer({ relayDir, tasksDir, plansDir, docsDir, port: 0 });
     base = `http://localhost:${handle.port}`;
   });
 
@@ -376,11 +376,11 @@ describe("terminal protocol", () => {
     _resetDbCacheForTests();
 
     await writeFile(
-      join(ticketbookDir, "config.yaml"),
+      join(relayDir, "config.yaml"),
       "prefix: TKT\ndeleteMode: archive\nterminalScrollback: 50\n",
       "utf-8",
     );
-    handle = startServer({ ticketbookDir, tasksDir, plansDir, docsDir, port: 0 });
+    handle = startServer({ relayDir, tasksDir, plansDir, docsDir, port: 0 });
     base = `http://localhost:${handle.port}`;
 
     const { id } = await (await fetch(`${base}/api/terminal/sessions`, {

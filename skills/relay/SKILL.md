@@ -1,11 +1,11 @@
 ---
-name: ticketbook
-description: Use whenever the user mentions tasks, plans, docs, TKT-*/TKTB-*/PLAN-*/DOC-* IDs, the .ticketbook/ directory, creating/updating/reviewing tasks, plans, or docs, picking up work, handing off tasks to an agent, reviewing what an agent did, breaking plans into actionable tasks, linking commits/PRs to tasks, or asking "what should I work on next". Covers the full ticketbook workflow via the ticketbook MCP server.
+name: relay
+description: Use whenever the user mentions tasks, plans, docs, TKT-*/TKTB-*/PLAN-*/DOC-* IDs, the .relay/ directory, creating/updating/reviewing tasks, plans, or docs, picking up work, handing off tasks to an agent, reviewing what an agent did, breaking plans into actionable tasks, linking commits/PRs to tasks, or asking "what should I work on next". Covers the full relay workflow via the relay MCP server.
 ---
 
-# Ticketbook
+# Relay
 
-Ticketbook is a local-first task, plan, and reference-doc tracker. Everything lives under `.ticketbook/` — tasks in `tasks/`, plans in `plans/`, and docs in `docs/` as markdown files with YAML frontmatter. The `ticketbook` MCP server exposes tools for reading and writing them — **always prefer the MCP tools over editing the markdown files directly**. Direct edits skip ID assignment, file naming, ordering, and watcher sync.
+Relay is a local-first task, plan, and reference-doc tracker. Everything lives under `.relay/` — tasks in `tasks/`, plans in `plans/`, and docs in `docs/` as markdown files with YAML frontmatter. The `relay` MCP server exposes tools for reading and writing them — **always prefer the MCP tools over editing the markdown files directly**. Direct edits skip ID assignment, file naming, ordering, and watcher sync.
 
 ## Primitives
 
@@ -126,7 +126,7 @@ Use docs for reference material that should stay true or useful beyond a single 
 
 ## Rules of thumb
 
-- **Never edit `.ticketbook/tasks/*.md`, `.ticketbook/plans/*.md`, or `.ticketbook/docs/*.md` directly.** Use the MCP tools.
+- **Never edit `.relay/tasks/*.md`, `.relay/plans/*.md`, or `.relay/docs/*.md` directly.** Use the MCP tools.
 - **Never invent task or plan IDs.** IDs are assigned by `create_task` / `create_plan`.
 - **Preserve prior agent notes when updating a body.** Append to the existing `<!-- agent-notes -->` section; don't overwrite it.
 - **Prefer `list_tasks` filters over loading everything.** The server already sorts and filters.

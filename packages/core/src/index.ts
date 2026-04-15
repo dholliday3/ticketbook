@@ -6,7 +6,7 @@ export {
   TaskPatchSchema,
   TaskFiltersSchema,
   DeleteModeEnum,
-  TicketbookConfigSchema,
+  RelayConfigSchema,
 } from "./schema.js";
 
 export type {
@@ -15,7 +15,7 @@ export type {
   CreateTaskInput,
   TaskPatch,
   TaskFilters,
-  TicketbookConfig,
+  RelayConfig,
 } from "./types.js";
 
 export { getConfig, updateConfig } from "./config.js";
@@ -114,11 +114,11 @@ export { runDoctor, formatDoctorReport } from "./doctor.js";
 export type { DoctorOptions, DoctorResult, DiagnosticItem, Severity } from "./doctor.js";
 export { sync } from "./sync.js";
 export type { SyncOptions, SyncResult } from "./sync.js";
-export { resolveWorktreeRoot, findTicketbookDirWithWorktree } from "./worktree.js";
+export { resolveWorktreeRoot, findRelayDirWithWorktree } from "./worktree.js";
 export type { ClientMessage, ServerMessage } from "./terminal-protocol.js";
 
-export { initTicketbook, codexMcpInstructions } from "./init.js";
-export type { InitTicketbookOptions, InitTicketbookResult } from "./init.js";
+export { initRelay, codexMcpInstructions } from "./init.js";
+export type { InitRelayOptions, InitRelayResult } from "./init.js";
 export { VERSION } from "./version.js";
 export { runUpgrade, getCurrentVersion, fetchLatestVersion } from "./upgrade.js";
 export type { RunUpgradeOptions, RunUpgradeResult } from "./upgrade.js";
@@ -136,7 +136,7 @@ export type {
   ContextRefSpan,
 } from "./context-refs.js";
 
-// Server-only — pulls in gray-matter. Import via @ticketbook/core/expansion
+// Server-only — pulls in gray-matter. Import via @relay/core/expansion
 // in server code; don't import from the UI bundle.
 export {
   renderContextRefExpansion,

@@ -17,7 +17,7 @@ on:
       - '.github/workflows/release.yml'
       - 'scripts/build-binary.sh'
       - 'scripts/generate-embedded-ui.ts'
-      - 'bin/ticketbook.ts'
+      - 'bin/relay.ts'
       - 'packages/**'
       - 'package.json'
       - 'bun.lock'
@@ -90,7 +90,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build UI bundle
-        run: bun --filter "@ticketbook/ui" build
+        run: bun --filter "@relay/ui" build
 
       - name: Generate embedded-ui.gen.ts
         run: bun run scripts/generate-embedded-ui.ts
@@ -100,13 +100,13 @@ jobs:
           mkdir -p dist
           for target in bun-linux-x64 bun-linux-arm64; do
             suffix="${target#bun-}"
-            outfile="dist/ticketbook-${suffix}"
+            outfile="dist/relay-${suffix}"
             echo "==> Compiling $outfile (target: $target)..."
-            bun build bin/ticketbook.ts \
+            bun build bin/relay.ts \
               --compile \
               --target="$target" \
               --outfile "$outfile"
-            (cd dist && sha256sum "ticketbook-${suffix}" > "ticketbook-${suffix}.sha256")
+            (cd dist && sha256sum "relay-${suffix}" > "relay-${suffix}.sha256")
           done
           echo ""
           echo "==> Built Linux artifacts:"
@@ -117,10 +117,10 @@ jobs:
         with:
           name: binaries-linux
           path: |
-            dist/ticketbook-linux-x64
-            dist/ticketbook-linux-x64.sha256
-            dist/ticketbook-linux-arm64
-            dist/ticketbook-linux-arm64.sha256
+            dist/relay-linux-x64
+            dist/relay-linux-x64.sha256
+            dist/relay-linux-arm64
+            dist/relay-linux-arm64.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -160,7 +160,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build UI bundle
-        run: bun --filter "@ticketbook/ui" build
+        run: bun --filter "@relay/ui" build
 
       - name: Generate embedded-ui.gen.ts
         run: bun run scripts/generate-embedded-ui.ts
@@ -170,15 +170,15 @@ jobs:
           mkdir -p dist
           for target in bun-darwin-arm64 bun-darwin-x64; do
             suffix="${target#bun-}"
-            outfile="dist/ticketbook-${suffix}"
+            outfile="dist/relay-${suffix}"
             echo "==> Compiling $outfile (target: $target)..."
-            bun build bin/ticketbook.ts \
+            bun build bin/relay.ts \
               --compile \
               --target="$target" \
               --outfile "$outfile"
             # shasum is BSD; cut -f1 works against both `shasum -a 256`
             # (macOS default) and `sha256sum` (Linux) output formats.
-            (cd dist && shasum -a 256 "ticketbook-${suffix}" > "ticketbook-${suffix}.sha256")
+            (cd dist && shasum -a 256 "relay-${suffix}" > "relay-${suffix}.sha256")
           done
           echo ""
           echo "==> Built Darwin artifacts:"
@@ -192,7 +192,7 @@ jobs:
         # uploads to the release, and only surfaces as SIGKILL the
         # first time a user actually runs it.
         run: |
-          for binary in dist/ticketbook-darwin-arm64 dist/ticketbook-darwin-x64; do
+          for binary in dist/relay-darwin-arm64 dist/relay-darwin-x64; do
             echo "==> $binary"
             if codesign -dvvv "$binary" 2>&1 | grep -q "code object is not signed at all"; then
               echo "ERROR: $binary is unsigned — AMFI will kill it on Apple Silicon."
@@ -204,7 +204,7 @@ jobs:
             echo ""
           done
           echo "==> Smoke-testing darwin-arm64 binary (--help must exit 0)..."
-          dist/ticketbook-darwin-arm64 --help >/dev/null
+          dist/relay-darwin-arm64 --help >/dev/null
           echo "✓ darwin-arm64 runs"
 
       - name: Upload Darwin artifacts
@@ -212,10 +212,10 @@ jobs:
         with:
           name: binaries-darwin
           path: |
-            dist/ticketbook-darwin-arm64
-            dist/ticketbook-darwin-arm64.sha256
-            dist/ticketbook-darwin-x64
-            dist/ticketbook-darwin-x64.sha256
+            dist/relay-darwin-arm64
+            dist/relay-darwin-arm64.sha256
+            dist/relay-darwin-x64
+            dist/relay-darwin-x64.sha256
           if-no-files-found: error
           retention-days: 14
 

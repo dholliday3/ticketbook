@@ -32,8 +32,8 @@ function run(args: string[]): { stdout: string; stderr: string; exitCode: number
 }
 
 describe("install.sh — static structure", () => {
-  test("targets the dholliday3/ticketbook repo", () => {
-    expect(script).toContain('REPO="dholliday3/ticketbook"');
+  test("targets the dholliday3/relay repo", () => {
+    expect(script).toContain('REPO="dholliday3/relay"');
   });
 
   test("installs to ~/.local/bin", () => {
@@ -51,7 +51,7 @@ describe("install.sh — static structure", () => {
 
   test("rejects unsupported operating systems with a clear message", () => {
     expect(script).toContain("Unsupported OS:");
-    expect(script).toContain("ticketbook currently ships binaries for macOS and Linux only");
+    expect(script).toContain("relay currently ships binaries for macOS and Linux only");
   });
 
   test("detects supported architectures", () => {
@@ -65,7 +65,7 @@ describe("install.sh — static structure", () => {
 
   test("builds binary name from platform", () => {
     expect(script).toContain('platform="${os}-${arch}"');
-    expect(script).toContain('binary_name="ticketbook-${platform}"');
+    expect(script).toContain('binary_name="relay-${platform}"');
   });
 });
 
@@ -88,7 +88,7 @@ describe("install.sh — version resolution", () => {
     // single-line JSON response (GitHub doesn't pretty-print its API). The
     // naive `grep '"tag_name"' | cut -f4` version returns the URL field
     // instead of the tag. This is the regression guard for that bug.
-    const mockResponse = `{"url":"https://api.github.com/repos/dholliday3/ticketbook/releases/308655336","assets_url":"https://api.github.com/repos/dholliday3/ticketbook/releases/308655336/assets","html_url":"https://github.com/dholliday3/ticketbook/releases/tag/v0.3.1","id":308655336,"tag_name":"v0.3.1","name":"v0.3.1","draft":false,"prerelease":false}`;
+    const mockResponse = `{"url":"https://api.github.com/repos/dholliday3/relay/releases/308655336","assets_url":"https://api.github.com/repos/dholliday3/relay/releases/308655336/assets","html_url":"https://github.com/dholliday3/relay/releases/tag/v0.3.1","id":308655336,"tag_name":"v0.3.1","name":"v0.3.1","draft":false,"prerelease":false}`;
     const proc = Bun.spawnSync(
       ["sh", "-c", `echo '${mockResponse}' | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4`],
       { stdout: "pipe", stderr: "pipe" },
@@ -158,16 +158,16 @@ describe("install.sh — download + verification", () => {
 
 describe("install.sh — install step", () => {
   test("removes any pre-existing binary before mv", () => {
-    expect(script).toContain('rm -f "$INSTALL_DIR/ticketbook"');
+    expect(script).toContain('rm -f "$INSTALL_DIR/relay"');
   });
 
   test("moves tmp file into place and sets executable bit", () => {
-    expect(script).toContain('mv "$tmp_file" "$INSTALL_DIR/ticketbook"');
-    expect(script).toContain('chmod +x "$INSTALL_DIR/ticketbook"');
+    expect(script).toContain('mv "$tmp_file" "$INSTALL_DIR/relay"');
+    expect(script).toContain('chmod +x "$INSTALL_DIR/relay"');
   });
 
   test("reports success with the resolved tag and install path", () => {
-    expect(script).toContain("ticketbook ${latest_tag} installed to ${INSTALL_DIR}/ticketbook");
+    expect(script).toContain("relay ${latest_tag} installed to ${INSTALL_DIR}/relay");
   });
 });
 
@@ -203,7 +203,7 @@ describe("install.sh — global skill install", () => {
 
   test("falls back with a clear message when sparse-checkout fails", () => {
     expect(script).toContain(
-      "Skipping global skill install (git sparse-checkout failed or skills/ticketbook empty)",
+      "Skipping global skill install (git sparse-checkout failed or skills/relay empty)",
     );
   });
 
@@ -213,9 +213,9 @@ describe("install.sh — global skill install", () => {
 });
 
 describe("install.sh — next-steps output", () => {
-  test("advertises the ticketbook init + onboard flow post-install", () => {
-    expect(script).toContain("ticketbook init");
-    expect(script).toContain("ticketbook onboard");
+  test("advertises the relay init + onboard flow post-install", () => {
+    expect(script).toContain("relay init");
+    expect(script).toContain("relay onboard");
   });
 });
 

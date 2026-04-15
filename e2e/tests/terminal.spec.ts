@@ -20,10 +20,10 @@ test.beforeEach(async ({ page }) => {
   // set the flag that gates Terminal.tsx's registry exposure.
   // (Crucially: we do NOT clear localStorage here, because addInitScript
   // runs on every navigation including page.reload(), and clearing
-  // ticketbook-terminal-open would prevent the reload test from restoring
+  // relay-terminal-open would prevent the reload test from restoring
   // the pane.)
   await page.addInitScript(() => {
-    (window as unknown as { __TICKETBOOK_E2E__: boolean }).__TICKETBOOK_E2E__ = true;
+    (window as unknown as { __RELAY_E2E__: boolean }).__RELAY_E2E__ = true;
   });
   // Wipe any sessions left behind by the previous test on the shared backend.
   await deleteAllSessions(page);

@@ -1,5 +1,5 @@
 /**
- * `ticketbook upgrade` — self-update the installed binary.
+ * `relay upgrade` — self-update the installed binary.
  *
  * Contract:
  *   - Current version comes from ./version.ts, a plain TS constant
@@ -30,16 +30,16 @@ import { VERSION } from "./version.js";
  * compiled binary ships as a single artifact and shouldn't have a
  * runtime-configurable upgrade target.
  */
-const REPO = "dholliday3/ticketbook";
+const REPO = "dholliday3/relay";
 
 /**
  * Raw GitHub URL for the install script. `main` branch (not a tagged
- * revision) so `ticketbook upgrade` always pulls the most recent
+ * revision) so `relay upgrade` always pulls the most recent
  * installer — fixes to install.sh itself shouldn't require cutting
  * a new binary release.
  */
 const INSTALL_SH_URL =
-  "https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh";
+  "https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh";
 
 export interface RunUpgradeOptions {
   /** Report version info without actually upgrading. */
@@ -76,7 +76,7 @@ export type RunUpgradeResult =
     };
 
 /**
- * Returns the compile-time version of @ticketbook/core, from the
+ * Returns the compile-time version of @relay/core, from the
  * VERSION constant in ./version.ts. Synchronous — no filesystem
  * access is involved at runtime in either dev or compiled-binary mode.
  */
@@ -112,7 +112,7 @@ export async function fetchLatestVersion(
 
 /**
  * Run the upgrade flow. Returns a structured result; the CLI in
- * bin/ticketbook.ts formats it for human and --json output.
+ * bin/relay.ts formats it for human and --json output.
  *
  * Exit-code semantics (set by the CLI, not this function):
  *   - `checked` with upToDate=false → exit 1 (mirrors `onboard --check`)

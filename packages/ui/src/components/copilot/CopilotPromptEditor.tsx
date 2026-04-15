@@ -8,7 +8,7 @@
  * update so the existing form submission path still works unchanged.
  *
  * Serialization / deserialization use the pure helpers from
- * `@ticketbook/core/context-refs` so the marker shape is identical
+ * `@relay/core/context-refs` so the marker shape is identical
  * everywhere (stored message, expansion, chip rendering, this input).
  */
 
@@ -32,7 +32,7 @@ import {
   renderContextRefMarker,
   splitByContextRefs,
   type ContextRef,
-} from "@ticketbook/core/context-refs";
+} from "@relay/core/context-refs";
 import { usePromptInputController } from "@/components/ai-elements/prompt-input";
 import { useAppContext } from "@/context/AppContext";
 import { cn } from "@/lib/utils";

@@ -13,7 +13,7 @@ packages/ui/.env.*
 node_modules/
 **/node_modules/
 
-# Local SQLite database (ticketbook dev DB lives at repo root)
-ticketbook.db
-ticketbook.db-shm
-ticketbook.db-wal
+# Local SQLite database (relay dev DB lives at repo root)
+relay.db
+relay.db-shm
+relay.db-wal

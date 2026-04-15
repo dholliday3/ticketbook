@@ -14,7 +14,7 @@
 
         { "action": "key", "key": "c", "label": "New task", "delay": 800 },
         { "action": "wait", "text": "New task" },
-        { "action": "type", "text": "Record webreel demo for ticketbook", "charDelay": 35 },
+        { "action": "type", "text": "Record webreel demo for relay", "charDelay": 35 },
         { "action": "pause", "ms": 600 },
         { "action": "click", "text": "Create", "delay": 1500 },
 

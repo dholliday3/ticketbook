@@ -32,8 +32,8 @@ Results are grouped by type with section dividers:
 
 ```
 Sessions
-  ticketbook/feat-auth — Session 7 (active)
-  ticketbook/main — Session 3 (idle)
+  relay/feat-auth — Session 7 (active)
+  relay/main — Session 3 (idle)
 
 Tickets
   TKTB-054 — Terminal session event stream

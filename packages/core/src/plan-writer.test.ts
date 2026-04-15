@@ -17,7 +17,7 @@ describe("createPlan", () => {
   let plansDir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-plan-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-plan-writer-"));
     plansDir = join(rootDir, "plans");
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, ".counter"), "0", "utf-8");
@@ -122,7 +122,7 @@ describe("updatePlan", () => {
   let plansDir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-plan-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-plan-writer-"));
     plansDir = join(rootDir, "plans");
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, ".counter"), "0", "utf-8");
@@ -186,7 +186,7 @@ describe("deletePlan", () => {
   let plansDir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-plan-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-plan-writer-"));
     plansDir = join(rootDir, "plans");
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, ".counter"), "0", "utf-8");
@@ -226,7 +226,7 @@ describe("restorePlan", () => {
   let plansDir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-plan-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-plan-writer-"));
     plansDir = join(rootDir, "plans");
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, ".counter"), "0", "utf-8");
@@ -259,7 +259,7 @@ describe("cutTasksFromPlan", () => {
   let plansDir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-plan-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-plan-writer-"));
     tasksDir = join(rootDir, "tasks");
     plansDir = join(rootDir, "plans");
     await mkdir(tasksDir, { recursive: true });

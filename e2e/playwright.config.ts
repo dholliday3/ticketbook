@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "bun e2e/helpers/dev-server.ts",
-    cwd: "..", // run from repo root so bin/ticketbook.ts resolves correctly
+    cwd: "..", // run from repo root so bin/relay.ts resolves correctly
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

@@ -2,29 +2,29 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createDoc, createPlan, createTask } from "@ticketbook/core";
+import { createDoc, createPlan, createTask } from "@relay/core";
 import { expandContextRefs } from "./context-refs.js";
 
 describe("expandContextRefs", () => {
   let root: string;
-  let ticketbookDir: string;
+  let relayDir: string;
   let tasksDir: string;
   let plansDir: string;
   let docsDir: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "ticketbook-ctxrefs-"));
-    ticketbookDir = join(root, ".ticketbook");
-    tasksDir = join(ticketbookDir, "tasks");
-    plansDir = join(ticketbookDir, "plans");
-    docsDir = join(ticketbookDir, "docs");
+    root = await mkdtemp(join(tmpdir(), "relay-ctxrefs-"));
+    relayDir = join(root, ".relay");
+    tasksDir = join(relayDir, "tasks");
+    plansDir = join(relayDir, "plans");
+    docsDir = join(relayDir, "docs");
     await mkdir(tasksDir, { recursive: true });
     await mkdir(plansDir, { recursive: true });
     await mkdir(docsDir, { recursive: true });
     await writeFile(join(tasksDir, ".counter"), "0", "utf-8");
     await writeFile(join(plansDir, ".counter"), "0", "utf-8");
     await writeFile(join(docsDir, ".counter"), "0", "utf-8");
-    await writeFile(join(ticketbookDir, "config.yaml"), "prefix: TKT\n", "utf-8");
+    await writeFile(join(relayDir, "config.yaml"), "prefix: TKT\n", "utf-8");
   });
 
   afterEach(async () => {

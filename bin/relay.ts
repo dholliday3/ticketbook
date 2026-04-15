@@ -4,10 +4,10 @@ import { resolve, join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stat } from "node:fs/promises";
 import {
-  initTicketbook,
+  initRelay,
   codexMcpInstructions,
 } from "../packages/core/src/init.ts";
-import { findTicketbookDirWithWorktree } from "../packages/core/src/worktree.ts";
+import { findRelayDirWithWorktree } from "../packages/core/src/worktree.ts";
 import { runOnboard } from "../packages/core/src/onboard.ts";
 import { runUpgrade } from "../packages/core/src/upgrade.ts";
 import { startMcpServer } from "../packages/server/src/mcp.ts";
@@ -20,9 +20,9 @@ import {
 // Embed SKILL.md via Bun's `with { type: "file" }` import attribute.
 // In dev mode this returns the real filesystem path; inside a compiled
 // binary it returns a `$bunfs/` virtual path. Both forms are readable
-// via Bun.file() and node:fs's readFile(), which is how initTicketbook
+// via Bun.file() and node:fs's readFile(), which is how initRelay
 // copies the skill into a target project's .claude/skills/ directory.
-import SKILL_SOURCE from "../skills/ticketbook/SKILL.md" with { type: "file" };
+import SKILL_SOURCE from "../skills/relay/SKILL.md" with { type: "file" };
 
 interface CliArgs {
   command: "serve" | "init" | "onboard" | "upgrade";
@@ -85,16 +85,16 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 function printUsage(): void {
-  console.log(`Usage: ticketbook [command] [options] [path]
+  console.log(`Usage: relay [command] [options] [path]
 
 Commands:
-  init        Scaffold .ticketbook/ directory, .mcp.json, and skill files
-  onboard     Write/update the ticketbook agent instructions section in CLAUDE.md (or AGENTS.md)
-  upgrade     Upgrade ticketbook to the latest release from GitHub
+  init        Scaffold .relay/ directory, .mcp.json, and skill files
+  onboard     Write/update the relay agent instructions section in CLAUDE.md (or AGENTS.md)
+  upgrade     Upgrade relay to the latest release from GitHub
   (default)   Start the server and open the UI
 
 Options:
-  --dir <path>   Path to .ticketbook/ directory (or directory containing it)
+  --dir <path>   Path to .relay/ directory (or directory containing it)
   --port <num>   Server port (default: 4242, auto-increment on collision)
   --no-ui        Server only, no static UI serving
   --mcp          Start MCP server mode (stdio transport, no HTTP)
@@ -104,23 +104,23 @@ Options:
   -h, --help     Show this help message`);
 }
 
-/** Walk up from startDir to find a .ticketbook/ directory, with worktree awareness. */
-async function findTicketbookDir(startDir: string): Promise<string | null> {
-  const { ticketbookDir, isWorktree } = await findTicketbookDirWithWorktree(startDir);
-  if (ticketbookDir && isWorktree) {
+/** Walk up from startDir to find a .relay/ directory, with worktree awareness. */
+async function findRelayDir(startDir: string): Promise<string | null> {
+  const { relayDir, isWorktree } = await findRelayDirWithWorktree(startDir);
+  if (relayDir && isWorktree) {
     console.error(
-      `Detected git worktree — using main repo artifacts at ${ticketbookDir}`,
+      `Detected git worktree — using main repo artifacts at ${relayDir}`,
     );
   }
-  return ticketbookDir;
+  return relayDir;
 }
 
-/** Resolve a user-provided path to a .ticketbook/ directory */
-async function resolveTicketbookDir(givenPath: string): Promise<string> {
+/** Resolve a user-provided path to a .relay/ directory */
+async function resolveRelayDir(givenPath: string): Promise<string> {
   const resolved = resolve(givenPath);
 
-  // If the path itself is a .ticketbook directory, use it directly
-  if (basename(resolved) === ".ticketbook") {
+  // If the path itself is a .relay directory, use it directly
+  if (basename(resolved) === ".relay") {
     try {
       const s = await stat(resolved);
       if (s.isDirectory()) return resolved;
@@ -130,16 +130,16 @@ async function resolveTicketbookDir(givenPath: string): Promise<string> {
     return resolved;
   }
 
-  // Check if it contains a .ticketbook subdirectory
-  const withTicketbook = join(resolved, ".ticketbook");
+  // Check if it contains a .relay subdirectory
+  const withRelay = join(resolved, ".relay");
   try {
-    const s = await stat(withTicketbook);
-    if (s.isDirectory()) return withTicketbook;
+    const s = await stat(withRelay);
+    if (s.isDirectory()) return withRelay;
   } catch {
-    // No .ticketbook inside — assume the path IS the ticketbook dir
+    // No .relay inside — assume the path IS the relay dir
   }
 
-  return withTicketbook;
+  return withRelay;
 }
 
 /**
@@ -155,19 +155,19 @@ function resolveSkillSourcePath(): string {
 /** Print a summary of what init created and next-step instructions. */
 function printInitSummary(
   baseDir: string,
-  result: Awaited<ReturnType<typeof initTicketbook>>,
+  result: Awaited<ReturnType<typeof initRelay>>,
 ): void {
-  console.log(`Initialized ticketbook at ${result.ticketbookDir}`);
+  console.log(`Initialized relay at ${result.relayDir}`);
 
   const created: string[] = [];
   if (result.wroteSkill) {
-    created.push("  .claude/skills/ticketbook/SKILL.md");
-    created.push("  .agents/skills/ticketbook/SKILL.md");
+    created.push("  .claude/skills/relay/SKILL.md");
+    created.push("  .agents/skills/relay/SKILL.md");
   }
   if (result.wroteMcpConfig) {
     created.push("  .mcp.json");
   } else if (result.mergedMcpConfig) {
-    created.push("  .mcp.json (merged ticketbook entry)");
+    created.push("  .mcp.json (merged relay entry)");
   }
 
   if (created.length > 0) {
@@ -177,7 +177,7 @@ function printInitSummary(
 
   if (result.devMode) {
     console.log(
-      `\nDetected ticketbook source repo — .mcp.json uses dev-mode command (bun bin/ticketbook.ts --mcp).`,
+      `\nDetected relay source repo — .mcp.json uses dev-mode command (bun bin/relay.ts --mcp).`,
     );
   }
 
@@ -186,7 +186,7 @@ function printInitSummary(
   console.log(codexMcpInstructions());
   console.log("");
   console.log(
-    `Next: run 'ticketbook onboard' to add agent instructions to CLAUDE.md.`,
+    `Next: run 'relay onboard' to add agent instructions to CLAUDE.md.`,
   );
 }
 
@@ -196,7 +196,7 @@ async function main(): Promise<void> {
   // --- Init command ---
   if (args.command === "init") {
     const baseDir = args.dir ? resolve(args.dir) : process.cwd();
-    const result = await initTicketbook({
+    const result = await initRelay({
       baseDir,
       skillSourcePath: resolveSkillSourcePath(),
     });
@@ -230,18 +230,18 @@ async function main(): Promise<void> {
     } else {
       switch (result.action) {
         case "created":
-          console.log(`Created ${result.file} with ticketbook section`);
+          console.log(`Created ${result.file} with relay section`);
           break;
         case "updated":
-          console.log(`Updated ticketbook section in ${result.file}`);
+          console.log(`Updated relay section in ${result.file}`);
           break;
         case "unchanged":
           console.log(
-            `Ticketbook section is already up to date (${result.file})`,
+            `Relay section is already up to date (${result.file})`,
           );
           break;
         case "appended":
-          console.log(`Added ticketbook section to ${result.file}`);
+          console.log(`Added relay section to ${result.file}`);
           break;
         case "checked":
           console.log(
@@ -275,7 +275,7 @@ async function main(): Promise<void> {
           JSON.stringify({ success: false, command: "upgrade", error: msg }),
         );
       } else {
-        console.error(`ticketbook upgrade failed: ${msg}`);
+        console.error(`relay upgrade failed: ${msg}`);
       }
       process.exit(1);
     }
@@ -309,7 +309,7 @@ async function main(): Promise<void> {
               `Update available: ${result.current} → ${result.latest}`,
             );
             console.log(
-              `Run 'ticketbook upgrade' to install the latest release.`,
+              `Run 'relay upgrade' to install the latest release.`,
             );
           }
           break;
@@ -318,7 +318,7 @@ async function main(): Promise<void> {
           break;
         case "upgraded":
           console.log(
-            `Upgraded ticketbook from ${result.previous} to ${result.latest}`,
+            `Upgraded relay from ${result.previous} to ${result.latest}`,
           );
           break;
       }
@@ -332,42 +332,42 @@ async function main(): Promise<void> {
     return;
   }
 
-  // --- Resolve .ticketbook/ directory ---
-  let ticketbookDir: string | null = null;
+  // --- Resolve .relay/ directory ---
+  let relayDir: string | null = null;
 
   if (args.dir) {
-    ticketbookDir = await resolveTicketbookDir(args.dir);
+    relayDir = await resolveRelayDir(args.dir);
   } else {
-    ticketbookDir = await findTicketbookDir(process.cwd());
+    relayDir = await findRelayDir(process.cwd());
   }
 
-  if (!ticketbookDir) {
-    console.log("No .ticketbook/ directory found.");
+  if (!relayDir) {
+    console.log("No .relay/ directory found.");
     const answer = prompt("Would you like to initialize one here? (y/N) ");
     if (answer?.toLowerCase() === "y") {
-      const result = await initTicketbook({
+      const result = await initRelay({
         baseDir: process.cwd(),
         skillSourcePath: resolveSkillSourcePath(),
       });
-      ticketbookDir = result.ticketbookDir;
+      relayDir = result.relayDir;
       printInitSummary(process.cwd(), result);
     } else {
-      console.log("Run 'ticketbook init' to create a .ticketbook/ directory.");
+      console.log("Run 'relay init' to create a .relay/ directory.");
       process.exit(1);
     }
   }
 
-  // Derive subdirectories from the .ticketbook/ root
-  const tasksDir = join(ticketbookDir, "tasks");
-  const plansDir = join(ticketbookDir, "plans");
-  const docsDir = join(ticketbookDir, "docs");
+  // Derive subdirectories from the .relay/ root
+  const tasksDir = join(relayDir, "tasks");
+  const plansDir = join(relayDir, "plans");
+  const docsDir = join(relayDir, "docs");
 
   // --- MCP mode ---
   if (args.mcp) {
     console.error(
-      `Ticketbook MCP server (stdio) — tasks: ${tasksDir}, plans: ${plansDir}, docs: ${docsDir}`,
+      `Relay MCP server (stdio) — tasks: ${tasksDir}, plans: ${plansDir}, docs: ${docsDir}`,
     );
-    await startMcpServer(ticketbookDir, tasksDir, plansDir, docsDir);
+    await startMcpServer(relayDir, tasksDir, plansDir, docsDir);
     return;
   }
 
@@ -404,7 +404,7 @@ async function main(): Promise<void> {
   let handle: ReturnType<typeof startServer>;
   try {
     handle = startServer({
-      ticketbookDir,
+      relayDir,
       tasksDir,
       plansDir,
       docsDir,
@@ -425,13 +425,13 @@ async function main(): Promise<void> {
 
   if (handle.triedPorts.length > 0) {
     console.log(
-      `Ticketbook server listening on http://localhost:${handle.port} ` +
+      `Relay server listening on http://localhost:${handle.port} ` +
         `(auto-selected; ${handle.triedPorts.join(", ")} in use)`,
     );
   } else {
-    console.log(`Ticketbook server listening on http://localhost:${handle.port}`);
+    console.log(`Relay server listening on http://localhost:${handle.port}`);
   }
-  console.log(`Ticketbook directory: ${ticketbookDir}`);
+  console.log(`Relay directory: ${relayDir}`);
   if (!args.noUi && uiDistDir) {
     console.log(`UI: http://localhost:${handle.port}`);
   }

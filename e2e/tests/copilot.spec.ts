@@ -1,6 +1,6 @@
 /**
  * Copilot panel e2e — exercises the full conversation persistence flow
- * end-to-end against a real ticketbook server, but with the COPILOT_PROVIDER=stub
+ * end-to-end against a real relay server, but with the COPILOT_PROVIDER=stub
  * provider injected so we don't burn real LLM tokens or require Claude Code
  * to be installed. The dev-server (e2e/helpers/dev-server.ts) sets the env
  * var when launched by Playwright's webServer.
@@ -76,8 +76,8 @@ test.beforeEach(async ({ page, context }) => {
   await context.clearCookies();
   await page.addInitScript(() => {
     try {
-      window.localStorage.removeItem("ticketbook-right-rail");
-      window.localStorage.removeItem("ticketbook-terminal-open");
+      window.localStorage.removeItem("relay-right-rail");
+      window.localStorage.removeItem("relay-terminal-open");
     } catch {
       /* ignore */
     }

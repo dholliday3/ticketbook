@@ -31,7 +31,7 @@ The terminal as a daily-driver and as an agent-integration layer requires more w
 - **TKTB-054**: Shell integration via OSC 133/633 — the semantic layer that gives us command boundaries, exit codes, and cwd events
 - **TKTB-055**: SessionRecord model tied to tickets — persists `SessionEvent` streams to SQLite
 - **TKTB-056**: Git diff / file review UI scoped by terminal session
-- **TKTB-057**: TicketBook-native planning chat (the ONE place we do deep agent integration — everywhere else is terminal-based)
+- **TKTB-057**: Relay-native planning chat (the ONE place we do deep agent integration — everywhere else is terminal-based)
 - **TKTB-058**: Terminal basics audit (input latency, WebGL renderer, copy/paste, search, font config, scrollback UI)
 - **TKTB-059**: Native Mac terminal exploration (watch-only, specific re-eval triggers)
 

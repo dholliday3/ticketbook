@@ -55,7 +55,7 @@ export function TerminalPane({ onClose }: TerminalPaneProps) {
   const [activeTabId, _setActiveTabId] = useState<string>("");
   const setActiveTabId = useCallback((id: string) => {
     _setActiveTabId(id);
-    localStorage.setItem("ticketbook-active-terminal-tab", id);
+    localStorage.setItem("relay-active-terminal-tab", id);
   }, []);
   const [initialized, setInitialized] = useState(false);
 
@@ -69,7 +69,7 @@ export function TerminalPane({ onClose }: TerminalPaneProps) {
 
       if (serverTabs.length > 0) {
         setTabs(serverTabs);
-        const savedTabId = localStorage.getItem("ticketbook-active-terminal-tab");
+        const savedTabId = localStorage.getItem("relay-active-terminal-tab");
         const restoredTab = savedTabId && serverTabs.some((t) => t.id === savedTabId) ? savedTabId : serverTabs[0].id;
         setActiveTabId(restoredTab);
       } else {

@@ -1,13 +1,13 @@
 ---
 id: PLAN-008
-title: Extract agent-editor scope from ticketbook — cataloging plan
+title: Extract agent-editor scope from relay — cataloging plan
 status: active
 tags:
   - extraction
   - cataloging
   - cleanup
   - open-source-prep
-project: ticketbook
+project: relay
 tasks:
   - TKTB-022
   - TKTB-044
@@ -36,18 +36,18 @@ created: '2026-04-12T03:53:43.758Z'
 updated: '2026-04-12T03:57:22.155Z'
 ---
 
-# Extract agent-editor scope from ticketbook — cataloging plan
+# Extract agent-editor scope from relay — cataloging plan
 
-> **Status:** active. This plan catalogs every open/backlog/draft task and plan in the repo and classifies it as either (a) part of **Ticketbook** — the artifact-tracking tool being open sourced — or (b) part of **Agent Editor** — the separate agentic coding platform that needs to move to its own repo. This is the source of truth for the extraction.
+> **Status:** active. This plan catalogs every open/backlog/draft task and plan in the repo and classifies it as either (a) part of **Relay** — the artifact-tracking tool being open sourced — or (b) part of **Agent Editor** — the separate agentic coding platform that needs to move to its own repo. This is the source of truth for the extraction.
 
 ## Why this plan exists
 
-Ticketbook and Agent Editor were brainstormed in parallel in the same repo, and the two concerns became entangled. To keep the ticketbook repo clean and open sourceable, we need a clear line:
+Relay and Agent Editor were brainstormed in parallel in the same repo, and the two concerns became entangled. To keep the relay repo clean and open sourceable, we need a clear line:
 
-- **Ticketbook** = plans, tasks, docs; MCP tools for those primitives; the artifact ↔ agent handoff pattern; packaging/install/upgrade; the minimum UI to navigate artifacts. Directly derived from PLAN-007's "wrap-up" scope.
+- **Relay** = plans, tasks, docs; MCP tools for those primitives; the artifact ↔ agent handoff pattern; packaging/install/upgrade; the minimum UI to navigate artifacts. Directly derived from PLAN-007's "wrap-up" scope.
 - **Agent Editor** = everything oriented around observing and orchestrating agent sessions: terminals, shell integration, workspace/session primitives, copilot provider work, ambient agents, plugin framework, desktop UI, platform agent runtime.
 
-PLAN-007 ("Ticketbook wrap-up — clean primitives, ship portable") already sketched the deferred list. This plan **validates it against the current task state** and fills in the gaps (items created after PLAN-007 was written, items without the `deferred-desktop` tag, and items where the classification was ambiguous).
+PLAN-007 ("Relay wrap-up — clean primitives, ship portable") already sketched the deferred list. This plan **validates it against the current task state** and fills in the gaps (items created after PLAN-007 was written, items without the `deferred-desktop` tag, and items where the classification was ambiguous).
 
 ## How extraction candidates are marked
 
@@ -57,7 +57,7 @@ Every extraction candidate below gets the **`agent-editor` tag** added (in addit
 - **Filterable.** `list_tasks tags=["agent-editor"]` returns the exact extraction set. `list_plans tags=["agent-editor"]` does the same for plans.
 - **Reversible.** If classification is wrong, removing a tag is cheap.
 
-Tasks that are already `done` are **not tagged**. They represent code that already landed; the code (terminal, copilot, shell-integration stubs) will travel with the extraction, but the task records themselves are historical and stay in ticketbook's history.
+Tasks that are already `done` are **not tagged**. They represent code that already landed; the code (terminal, copilot, shell-integration stubs) will travel with the extraction, but the task records themselves are historical and stay in relay's history.
 
 ## Plans classification
 
@@ -65,16 +65,16 @@ Tasks that are already `done` are **not tagged**. They represent code that alrea
 
 | ID | Title | Status | Why extract |
 |---|---|---|---|
-| **PLAN-003** | Flexible code-editor-style UI: design exploration | draft | The entire plan is a design exploration for the Agent Editor desktop app: session as the noun, pin-vs-follow bindings, workspace = layout, view registry, dockview. Already tagged `deferred`, `v2`. Zero ticketbook-wrap-up relevance. |
+| **PLAN-003** | Flexible code-editor-style UI: design exploration | draft | The entire plan is a design exploration for the Agent Editor desktop app: session as the noun, pin-vs-follow bindings, workspace = layout, view registry, dockview. Already tagged `deferred`, `v2`. Zero relay-wrap-up relevance. |
 | **PLAN-004** | V1 Foundations — Session & Workspace Primitives | draft | Defines the Session/Workspace primitives, OSC 133/633 shell integration, worktree detection, session feed, session MCP tools, diff review scoped by session. PLAN-007 explicitly marks this plan for archival/extraction. |
 
-### Plans that stay in ticketbook
+### Plans that stay in relay
 
 | ID | Title | Status | Why keep |
 |---|---|---|---|
-| **PLAN-005** | Portable ticketbook — install, init, onboard, upgrade | completed | Core ticketbook packaging. Already shipped. History stays. |
-| **PLAN-006** | primitive rename from task to task | completed | Core ticketbook rename. Already shipped. History stays. |
-| **PLAN-007** | Ticketbook wrap-up — clean primitives, ship portable | active | The active ticketbook roadmap. Stays as-is. |
+| **PLAN-005** | Portable relay — install, init, onboard, upgrade | completed | Core relay packaging. Already shipped. History stays. |
+| **PLAN-006** | primitive rename from task to task | completed | Core relay rename. Already shipped. History stays. |
+| **PLAN-007** | Relay wrap-up — clean primitives, ship portable | active | The active relay roadmap. Stays as-is. |
 
 ## Tasks classification (open / backlog / draft)
 
@@ -98,17 +98,17 @@ Grouped by theme. Each row's "Why extract" is one line; reference the original t
 | **TKTB-054** | Terminal session event stream + OSC 133/633 shell integration | `terminal`, `shell-integration`, `agent-experience`, `v1-foundations` | The semantic layer that turns a terminal into an observable agent runtime. Agent Editor's foundation. |
 | **TKTB-055** | SessionRecord model tied to tickets | `terminal`, `agent-experience`, `data-model`, `v1-foundations` | Persistence for session events. Required by session feed and diff-by-session; not relevant to artifact tracking. |
 | **TKTB-056** | Git diff and file review UI scoped by terminal session | `terminal`, `ui`, `review`, `v1-foundations` | Review scoped to "what this session changed" — only meaningful once sessions exist. |
-| **TKTB-058** | Terminal basics audit and polish | `terminal`, `polish` | Xterm.js WebGL, latency budget, search addon, etc. The terminal is Agent Editor's surface, not ticketbook's. |
+| **TKTB-058** | Terminal basics audit and polish | `terminal`, `polish` | Xterm.js WebGL, latency budget, search addon, etc. The terminal is Agent Editor's surface, not relay's. |
 | **TKTB-064** | Worktree/branch detection for terminal sessions | `terminal`, `workspace`, `agent-experience`, `v1-foundations` | Resolve session cwd → repo/worktree/branch. Pure session infra. |
-| **TKTB-065** | Workspace model and discovery | `workspace`, `data-model`, `agent-experience`, `v1-foundations` | Defines the Workspace primitive (git context grouping sessions). Not a ticketbook concept. |
+| **TKTB-065** | Workspace model and discovery | `workspace`, `data-model`, `agent-experience`, `v1-foundations` | Defines the Workspace primitive (git context grouping sessions). Not a relay concept. |
 | **TKTB-066** | Session feed view (grouped by workspace) | `ui`, `workspace`, `agent-experience`, `v1-foundations` | UI for the session primitive. |
-| **TKTB-067** | Session MCP tools | `mcp`, `agent-experience`, `v1-foundations` | MCP CRUD surface for sessions. Ticketbook's MCP surface is plans/tasks/docs only. |
+| **TKTB-067** | Session MCP tools | `mcp`, `agent-experience`, `v1-foundations` | MCP CRUD surface for sessions. Relay's MCP surface is plans/tasks/docs only. |
 
 #### Copilot & chat
 
 | ID | Title | Existing tags | Why extract |
 |---|---|---|---|
-| **TKTB-057** | TicketBook-native planning chat (scoped PM agent) | `agent-experience`, `chat`, `planning`, `deferred-desktop` | Self-describes as "the ONE place we do a deep agent integration" — that place is the editor, not ticketbook. |
+| **TKTB-057** | Relay-native planning chat (scoped PM agent) | `agent-experience`, `chat`, `planning`, `deferred-desktop` | Self-describes as "the ONE place we do a deep agent integration" — that place is the editor, not relay. |
 | **TKTB-060** | Open copilot conversation in terminal | `agent-experience`, `copilot`, `terminal` | Bridge between the existing in-app copilot and a PTY — depends on copilot + terminal existing, both editor surfaces. |
 | **TKTB-063** | Add Codex as a selectable copilot provider | `copilot`, `codex`, `claude`, `providers` | Multi-provider refactor for the in-app copilot panel. Copilot panel stays with the editor. |
 
@@ -118,7 +118,7 @@ Grouped by theme. Each row's "Why extract" is one line; reference the original t
 |---|---|---|---|
 | **TKTB-047** | Agent harness observability and skill evaluation | `agent-experience`, `important`, `deferred-desktop` | Skill usage tracking, eval agent, harness inventory view. Editor-scope observability. |
 | **TKTB-049** | Ambient and proactive agents | `agent-experience`, `important`, `deferred-desktop` | Background agents (code reviewer, daily briefing, project manager). Requires the platform runtime below. |
-| **TKTB-050** | Platform agent runtime and model gateway | `agent-experience`, `architecture`, `important`, `deferred-desktop` | Local/cheap/capable model routing for ambient agents. Core editor infra, not ticketbook. |
+| **TKTB-050** | Platform agent runtime and model gateway | `agent-experience`, `architecture`, `important`, `deferred-desktop` | Local/cheap/capable model routing for ambient agents. Core editor infra, not relay. |
 | **TKTB-048** | Saved prompts with smart suggestions | `agent-experience` | Prompt curator agent + autocomplete in chat. PLAN-007 lists this for cancellation; we extract rather than cancel so the idea travels. |
 | **TKTB-051** | Project soul and developer philosophy | `agent-experience`, `important` | Strategic project-direction doc consumed by ambient agents. Depends on the platform runtime. |
 | **TKTB-053** | Saving blurbs from claude code to claude.md/skills | `ideas`, `agent-experience` | Selection-to-artifact capture from claude code output — needs the editor's copilot integration. |
@@ -127,30 +127,30 @@ Grouped by theme. Each row's "Why extract" is one line; reference the original t
 
 | ID | Title | Existing tags | Why extract |
 |---|---|---|---|
-| **TKTB-022** | Scheduled tasks | *(none)* | **Borderline.** The core idea (ticket with a `runAt`) is ticketbook-shaped, but the body explicitly says "for one, we'll need to have better integration with coding agents" and the real value lands once an agent runtime can kick off sessions. Extract; the editor is the right home once the runtime lands. If a thin "deadline/reminder" version is wanted inside ticketbook later, file it as a new task with clearer scope. |
+| **TKTB-022** | Scheduled tasks | *(none)* | **Borderline.** The core idea (ticket with a `runAt`) is relay-shaped, but the body explicitly says "for one, we'll need to have better integration with coding agents" and the real value lands once an agent runtime can kick off sessions. Extract; the editor is the right home once the runtime lands. If a thin "deadline/reminder" version is wanted inside relay later, file it as a new task with clearer scope. |
 
-### Tasks that stay in ticketbook
+### Tasks that stay in relay
 
 | ID | Title | Status | Rationale |
 |---|---|---|---|
 | **TKTB-020** | Screenshots support | backlog | Paste screenshots into a task body. Pure task-tracking feature. |
-| **TKTB-028** | Task sync | backlog | Support alternate backends (beads, seeds, ralph json, Linear). This is ticketbook's own portability story. |
-| **TKTB-041** | Command menu | open | PLAN-007 Phase 4 UI QoL. Ship the ticketbook-scoped version (tickets/plans/actions) — the workspace/session search layer described in the body becomes a non-goal and the task body should be trimmed when picked up. |
-| **TKTB-043** | Click tickets from home | open | PLAN-007 Phase 4. Small nav fix, pure ticketbook. |
-| **TKTB-046** | Agent feedback loop and validation workflow | open | PLAN-007 Phase 3 — the artifact ↔ agent handoff pattern is the centerpiece of ticketbook. `feedback` status, confidence field, structured debrief. |
+| **TKTB-028** | Task sync | backlog | Support alternate backends (beads, seeds, ralph json, Linear). This is relay's own portability story. |
+| **TKTB-041** | Command menu | open | PLAN-007 Phase 4 UI QoL. Ship the relay-scoped version (tickets/plans/actions) — the workspace/session search layer described in the body becomes a non-goal and the task body should be trimmed when picked up. |
+| **TKTB-043** | Click tickets from home | open | PLAN-007 Phase 4. Small nav fix, pure relay. |
+| **TKTB-046** | Agent feedback loop and validation workflow | open | PLAN-007 Phase 3 — the artifact ↔ agent handoff pattern is the centerpiece of relay. `feedback` status, confidence field, structured debrief. |
 | **TKTB-052** | Ticket feedback (comments) | backlog | Comments/discussions on tasks. Pure task-tracking feature, enhances the feedback loop from TKTB-046. |
 | **TKTB-062** | AI Task filters | open | AI-assisted task metadata + filter building. Lives entirely inside the task list UI. |
-| **TKTB-072** | Pin UI port per-repo in .tasks/.config.yaml (follow-up) | backlog | Ticketbook packaging follow-up from PLAN-005 Phase 0. Already `project: ticketbook`. Pure install/config ergonomics. |
+| **TKTB-072** | Pin UI port per-repo in .tasks/.config.yaml (follow-up) | backlog | Relay packaging follow-up from PLAN-005 Phase 0. Already `project: relay`. Pure install/config ergonomics. |
 
 ### Tasks flagged for cancellation (not extraction)
 
 | ID | Title | Why cancel |
 |---|---|---|
-| **TKTB-024** | Agent instructions | "We need a way to inform the agent how to use ticketbook. Maybe a skill?" — **already done.** A full ticketbook skill ships in `.claude/skills/ticketbook/SKILL.md` and is loaded by Claude Code today. Mark `cancelled` with a note pointing at the skill. |
+| **TKTB-024** | Agent instructions | "We need a way to inform the agent how to use relay. Maybe a skill?" — **already done.** A full relay skill ships in `.claude/skills/relay/SKILL.md` and is loaded by Claude Code today. Mark `cancelled` with a note pointing at the skill. |
 
 ## Done tasks relevant to the extraction
 
-These are `done` and won't be tagged or moved (task records stay in ticketbook's history). They're listed here because the **code they produced** is the thing that has to travel to the Agent Editor repo during the actual extraction pass. When someone carves out the agent-editor code, these are the surface areas to look at:
+These are `done` and won't be tagged or moved (task records stay in relay's history). They're listed here because the **code they produced** is the thing that has to travel to the Agent Editor repo during the actual extraction pass. When someone carves out the agent-editor code, these are the surface areas to look at:
 
 - **TKTB-042** — Terminal shell in the web (xterm.js + headless mirror + PTY backend)
 - **TKTB-026** — App copilot (headless claude code copilot in the right rail, `CopilotManager`)
@@ -173,7 +173,7 @@ All of these produced code paths that live entirely in the editor layer (termina
 
 - [ ] Add `agent-editor` tag to each plan in the extract set (PLAN-003, PLAN-004)
 - [ ] Add `agent-editor` tag to each task in the extract set (22 tasks listed above)
-- [ ] Mark TKTB-024 as `cancelled` with a note pointing at `.claude/skills/ticketbook/SKILL.md`
+- [ ] Mark TKTB-024 as `cancelled` with a note pointing at `.claude/skills/relay/SKILL.md`
 - [ ] Leave `done` tasks untouched (they are historical)
 - [ ] Open a PR describing the cataloging and linking this plan
 
@@ -187,7 +187,7 @@ All of these produced code paths that live entirely in the editor layer (termina
 ## How to pull the extraction set later
 
 ```
-# via the ticketbook MCP
+# via the relay MCP
 list_tasks tags=["agent-editor"]
 list_plans tags=["agent-editor"]
 ```

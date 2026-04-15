@@ -70,7 +70,7 @@ describe("reorderTask", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-order-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-order-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 
@@ -113,7 +113,7 @@ describe("rebalanceOrder", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-order-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-order-"));
     await writeFile(join(dir, ".counter"), "0", "utf-8");
   });
 

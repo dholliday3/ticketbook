@@ -1,8 +1,8 @@
 /**
  * Diagnostics for "port already in use" failures. When the explicit-port
- * path in bin/ticketbook.ts hits EADDRINUSE we shell out to `lsof` + `ps` to
+ * path in bin/relay.ts hits EADDRINUSE we shell out to `lsof` + `ps` to
  * figure out who's squatting, with special recognition for orphaned
- * ticketbook processes (the most common cause: a previous `bun dev` whose
+ * relay processes (the most common cause: a previous `bun dev` whose
  * shell died without the EXIT trap firing).
  *
  * The shell-out is best-effort. If `lsof`/`ps` aren't installed, or the race
@@ -17,8 +17,8 @@ export interface PortSquatter {
   command: string;
   /** Elapsed time in seconds, or null if we couldn't read it. */
   elapsedSeconds: number | null;
-  /** True if the command looks like a ticketbook server process. */
-  isTicketbook: boolean;
+  /** True if the command looks like a relay server process. */
+  isRelay: boolean;
 }
 
 /**
@@ -47,7 +47,7 @@ export function parseLsofListenPid(output: string): number | null {
  * on each column suppresses the header, so input is one line like:
  *
  * ```
- *  40575    01-18:29:45 bun bin/ticketbook.ts --port 4242 --no-ui
+ *  40575    01-18:29:45 bun bin/relay.ts --port 4242 --no-ui
  * ```
  *
  * We use `etime` (portable across macOS and Linux) rather than `etimes`
@@ -105,18 +105,18 @@ export function parseEtime(etime: string): number | null {
 }
 
 /**
- * Heuristic for recognizing a ticketbook server process from its command line.
- * Matches both the dev-mode form (`bun bin/ticketbook.ts`) and the published
- * form (`bunx ticketbook` or `ticketbook` on PATH), but not the `--mcp` mode
+ * Heuristic for recognizing a relay server process from its command line.
+ * Matches both the dev-mode form (`bun bin/relay.ts`) and the published
+ * form (`bunx relay` or `relay` on PATH), but not the `--mcp` mode
  * (stdio, no port) or the init subcommand.
  */
-export function isTicketbookCommand(command: string): boolean {
-  if (!command.includes("ticketbook")) return false;
+export function isRelayCommand(command: string): boolean {
+  if (!command.includes("relay")) return false;
   if (command.includes("--mcp")) return false;
-  if (/\bticketbook\s+init\b/.test(command)) return false;
-  if (/\bticketbook\.ts\b/.test(command)) return true;
-  if (/\bbunx\s+ticketbook\b/.test(command)) return true;
-  if (/\bticketbook\b/.test(command)) return true;
+  if (/\brelay\s+init\b/.test(command)) return false;
+  if (/\brelay\.ts\b/.test(command)) return true;
+  if (/\bbunx\s+relay\b/.test(command)) return true;
+  if (/\brelay\b/.test(command)) return true;
   return false;
 }
 
@@ -206,19 +206,19 @@ export async function describePortSquatter(
       pid,
       command: "",
       elapsedSeconds: null,
-      isTicketbook: false,
+      isRelay: false,
     };
   }
 
   const row = parsePsRow(psOut);
   if (!row) {
-    return { pid, command: "", elapsedSeconds: null, isTicketbook: false };
+    return { pid, command: "", elapsedSeconds: null, isRelay: false };
   }
   return {
     pid: row.pid,
     command: row.command,
     elapsedSeconds: row.elapsedSeconds,
-    isTicketbook: isTicketbookCommand(row.command),
+    isRelay: isRelayCommand(row.command),
   };
 }
 
@@ -232,18 +232,18 @@ export function formatPortInUseMessage(
   squatter: PortSquatter | null,
 ): string {
   const lines: string[] = [];
-  if (squatter && squatter.isTicketbook) {
+  if (squatter && squatter.isRelay) {
     const elapsed =
       squatter.elapsedSeconds != null
         ? ` (running ${formatElapsed(squatter.elapsedSeconds)})`
         : "";
     lines.push(
-      `Port ${port} is already in use by another ticketbook instance (likely an orphaned \`bun dev\`):`,
+      `Port ${port} is already in use by another relay instance (likely an orphaned \`bun dev\`):`,
     );
     lines.push(`  PID ${squatter.pid}  ${squatter.command}${elapsed}`);
     lines.push("");
     lines.push(`Stop it:            kill ${squatter.pid}`);
-    lines.push(`Or pick another port: ticketbook --port <N>`);
+    lines.push(`Or pick another port: relay --port <N>`);
   } else if (squatter) {
     const elapsed =
       squatter.elapsedSeconds != null
@@ -253,11 +253,11 @@ export function formatPortInUseMessage(
     lines.push(`Port ${port} is already in use:`);
     lines.push(`  PID ${squatter.pid}  ${cmd}${elapsed}`);
     lines.push("");
-    lines.push(`Stop the process or pick another port: ticketbook --port <N>`);
+    lines.push(`Stop the process or pick another port: relay --port <N>`);
   } else {
     lines.push(`Port ${port} is already in use.`);
     lines.push("");
-    lines.push(`Pick another port: ticketbook --port <N>`);
+    lines.push(`Pick another port: relay --port <N>`);
   }
   return lines.join("\n");
 }

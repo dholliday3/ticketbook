@@ -9,7 +9,7 @@ describe("withLock", () => {
   let target: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-lock-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-lock-"));
     target = join(dir, "resource");
   });
 

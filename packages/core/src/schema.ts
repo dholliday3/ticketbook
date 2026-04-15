@@ -79,11 +79,11 @@ export const DeleteModeEnum = z.enum(["archive", "hard"]);
 
 export const DebriefStyleEnum = z.enum(["very-concise", "concise", "detailed", "lengthy"]);
 
-export const TicketbookConfigSchema = z.object({
+export const RelayConfigSchema = z.object({
   /**
-   * Optional project identifier, auto-populated by `ticketbook init` from
+   * Optional project identifier, auto-populated by `relay init` from
    * the basename of the target directory. Used to give each MCP server
-   * instance a per-project name (`ticketbook-<name>`) so multi-repo setups
+   * instance a per-project name (`relay-<name>`) so multi-repo setups
    * have distinguishable identities in `claude mcp list` and error logs.
    */
   name: z.string().optional(),

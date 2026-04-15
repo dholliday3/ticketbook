@@ -1,4 +1,4 @@
-import type { TicketbookConfig } from "../types";
+import type { RelayConfig } from "../types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +18,7 @@ export function DeleteConfirmDialog({
 }: {
   itemTitle: string;
   itemType: "task" | "plan" | "doc";
-  config: TicketbookConfig;
+  config: RelayConfig;
   onConfirm: () => void;
   onCancel: () => void;
 }) {

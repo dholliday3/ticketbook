@@ -31,7 +31,7 @@ describe("runOnboard", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-onboard-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-onboard-"));
   });
 
   afterEach(async () => {
@@ -49,8 +49,8 @@ describe("runOnboard", () => {
       const content = await readFile(join(dir, "CLAUDE.md"), "utf-8");
       expect(content).toContain(START_MARKER);
       expect(content).toContain(END_MARKER);
-      expect(content).toContain("## Ticketbook");
-      expect(content).toContain(`ticketbook-onboard-v:${ONBOARD_VERSION}`);
+      expect(content).toContain("## Relay");
+      expect(content).toContain(`relay-onboard-v:${ONBOARD_VERSION}`);
     });
 
     test("does not create .claude/CLAUDE.md or AGENTS.md when creating from scratch", async () => {
@@ -135,7 +135,7 @@ describe("runOnboard", () => {
       const content = await readFile(join(dir, "CLAUDE.md"), "utf-8");
       expect(content.startsWith(existing)).toBe(true);
       expect(content).toContain(START_MARKER);
-      expect(content).toContain("## Ticketbook");
+      expect(content).toContain("## Relay");
     });
 
     test("inserts a blank line between existing content and the appended section", async () => {
@@ -166,7 +166,7 @@ describe("runOnboard", () => {
   describe("outdated", () => {
     test("surgically replaces an outdated section, preserving content outside markers byte-for-byte", async () => {
       const before = "# My Project\n\nSome important notes I wrote myself.\n\n";
-      const oldWrapped = `${START_MARKER}\n## Ticketbook\n<!-- ticketbook-onboard-v:0 -->\n\nold body\n${END_MARKER}`;
+      const oldWrapped = `${START_MARKER}\n## Relay\n<!-- relay-onboard-v:0 -->\n\nold body\n${END_MARKER}`;
       const after = "\n\n## Some other tool's section\n\nMore stuff the user cares about.\n";
       const initial = `${before}${oldWrapped}${after}`;
 
@@ -185,11 +185,11 @@ describe("runOnboard", () => {
       expect(content.endsWith(after)).toBe(true);
 
       // The outdated marker and body are gone.
-      expect(content).not.toContain("ticketbook-onboard-v:0");
+      expect(content).not.toContain("relay-onboard-v:0");
       expect(content).not.toContain("old body");
 
       // The current version marker is present.
-      expect(content).toContain(`ticketbook-onboard-v:${ONBOARD_VERSION}`);
+      expect(content).toContain(`relay-onboard-v:${ONBOARD_VERSION}`);
     });
   });
 
@@ -236,7 +236,7 @@ describe("runOnboard", () => {
     });
 
     test("reports outdated when an older version marker is present and leaves the file unchanged", async () => {
-      const initial = `# Project\n\n${START_MARKER}\n## Ticketbook\n<!-- ticketbook-onboard-v:0 -->\nold\n${END_MARKER}\n`;
+      const initial = `# Project\n\n${START_MARKER}\n## Relay\n<!-- relay-onboard-v:0 -->\nold\n${END_MARKER}\n`;
       await writeFile(join(dir, "CLAUDE.md"), initial, "utf-8");
 
       const result = await runOnboard({ baseDir: dir, check: true });
@@ -273,11 +273,11 @@ describe("runOnboard", () => {
   describe("helpers", () => {
     test("onboardSnippet includes heading, version marker, and key body content", () => {
       const snippet = onboardSnippet();
-      expect(snippet).toContain("## Ticketbook");
-      expect(snippet).toContain(`ticketbook-onboard-v:${ONBOARD_VERSION}`);
-      expect(snippet).toContain(".ticketbook/tasks/");
-      expect(snippet).toContain(".ticketbook/plans/");
-      expect(snippet).toContain(".ticketbook/docs/");
+      expect(snippet).toContain("## Relay");
+      expect(snippet).toContain(`relay-onboard-v:${ONBOARD_VERSION}`);
+      expect(snippet).toContain(".relay/tasks/");
+      expect(snippet).toContain(".relay/plans/");
+      expect(snippet).toContain(".relay/docs/");
       expect(snippet).toContain("MCP server");
     });
 
@@ -285,12 +285,12 @@ describe("runOnboard", () => {
       expect(detectStatus("no markers here")).toBe("missing");
       expect(
         detectStatus(
-          `${START_MARKER}\n<!-- ticketbook-onboard-v:${ONBOARD_VERSION} -->\n${END_MARKER}`,
+          `${START_MARKER}\n<!-- relay-onboard-v:${ONBOARD_VERSION} -->\n${END_MARKER}`,
         ),
       ).toBe("current");
       expect(
         detectStatus(
-          `${START_MARKER}\n<!-- ticketbook-onboard-v:999 -->\n${END_MARKER}`,
+          `${START_MARKER}\n<!-- relay-onboard-v:999 -->\n${END_MARKER}`,
         ),
       ).toBe("outdated");
     });

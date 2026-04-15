@@ -1,27 +1,27 @@
 #!/bin/bash
 #
-# ticketbook installer. Detects OS/arch, downloads the matching binary +
-# SHA256 from GitHub Releases, verifies, installs to ~/.local/bin/ticketbook,
+# relay installer. Detects OS/arch, downloads the matching binary +
+# SHA256 from GitHub Releases, verifies, installs to ~/.local/bin/relay,
 # and optionally sparse-checks-out the `skills/` directory so agents in
-# not-yet-initialized repos can still see the ticketbook skill.
+# not-yet-initialized repos can still see the relay skill.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh | bash -s -- --version v0.1.0
+#   curl -fsSL https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh | bash -s -- --version v0.1.0
 #   bash install.sh v0.1.0
 #
 # The script is deliberately small — no SLSA attestation (deferred per
 # PLAN-005 scope), no Windows support (deferred), no slash-command
-# installation (ticketbook's MCP tools already cover the workflow).
+# installation (relay's MCP tools already cover the workflow).
 #
-# Modeled after plannotator's install.sh but stripped to ticketbook's
+# Modeled after plannotator's install.sh but stripped to relay's
 # surface area. See ~/workspace/resources/plannotator/scripts/install.sh
 # for the reference implementation with Windows cleanup, Gemini/OpenCode
 # integration, and SLSA verification.
 
 set -e
 
-REPO="dholliday3/ticketbook"
+REPO="dholliday3/relay"
 INSTALL_DIR="$HOME/.local/bin"
 
 VERSION="latest"
@@ -41,8 +41,8 @@ Options:
   -h, --help        Show this help and exit.
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/dholliday3/ticketbook/main/scripts/install.sh | bash -s -- --version v0.1.0
+  curl -fsSL https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/dholliday3/relay/main/scripts/install.sh | bash -s -- --version v0.1.0
   bash install.sh v0.1.0
 USAGE
 }
@@ -117,7 +117,7 @@ case "$(uname -s)" in
     Linux)  os="linux" ;;
     *)
         echo "Unsupported OS: $(uname -s)" >&2
-        echo "ticketbook currently ships binaries for macOS and Linux only." >&2
+        echo "relay currently ships binaries for macOS and Linux only." >&2
         exit 1
         ;;
 esac
@@ -132,7 +132,7 @@ case "$(uname -m)" in
 esac
 
 platform="${os}-${arch}"
-binary_name="ticketbook-${platform}"
+binary_name="relay-${platform}"
 
 # --- version resolution -------------------------------------------------
 
@@ -157,7 +157,7 @@ else
     esac
 fi
 
-echo "Installing ticketbook ${latest_tag} (${platform})..."
+echo "Installing relay ${latest_tag} (${platform})..."
 
 # --- download binary + checksum ----------------------------------------
 
@@ -198,13 +198,13 @@ echo "SHA256 verified."
 # executable via rename(), but a stale file from a failed prior install
 # (e.g., non-executable, wrong owner) can still trip mv. rm first is
 # strictly safer.
-rm -f "$INSTALL_DIR/ticketbook" 2>/dev/null || true
+rm -f "$INSTALL_DIR/relay" 2>/dev/null || true
 
-mv "$tmp_file" "$INSTALL_DIR/ticketbook"
-chmod +x "$INSTALL_DIR/ticketbook"
+mv "$tmp_file" "$INSTALL_DIR/relay"
+chmod +x "$INSTALL_DIR/relay"
 
 echo ""
-echo "ticketbook ${latest_tag} installed to ${INSTALL_DIR}/ticketbook"
+echo "relay ${latest_tag} installed to ${INSTALL_DIR}/relay"
 
 # --- PATH warning -------------------------------------------------------
 
@@ -229,9 +229,9 @@ fi
 # Plannotator's trick: the binary ships without an embedded skill file, but
 # install.sh does a sparse-checkout of the repo at the release tag to pull
 # just `skills/` into the user's global skill directories. That way agents
-# running in repos that HAVEN'T been `ticketbook init`'d still know what
-# ticketbook is and can suggest it. For repos that HAVE been init'd, the
-# project-level skill at `.claude/skills/ticketbook/SKILL.md` takes
+# running in repos that HAVEN'T been `relay init`'d still know what
+# relay is and can suggest it. For repos that HAVE been init'd, the
+# project-level skill at `.claude/skills/relay/SKILL.md` takes
 # precedence (Claude Code resolves project skills first).
 #
 # The subshell wrapping the cd-chain scopes any CWD changes to the
@@ -250,27 +250,27 @@ if command -v git >/dev/null 2>&1; then
             "https://github.com/${REPO}.git" --branch "$latest_tag" repo 2>/dev/null &&
         cd repo &&
         git sparse-checkout set skills 2>/dev/null &&
-        [ -d "skills/ticketbook" ] &&
-        [ "$(ls -A skills/ticketbook 2>/dev/null)" ] &&
-        mkdir -p "$CLAUDE_SKILLS_DIR/ticketbook" "$AGENTS_SKILLS_DIR/ticketbook" &&
-        cp -r skills/ticketbook/. "$CLAUDE_SKILLS_DIR/ticketbook/" &&
-        cp -r skills/ticketbook/. "$AGENTS_SKILLS_DIR/ticketbook/"
+        [ -d "skills/relay" ] &&
+        [ "$(ls -A skills/relay 2>/dev/null)" ] &&
+        mkdir -p "$CLAUDE_SKILLS_DIR/relay" "$AGENTS_SKILLS_DIR/relay" &&
+        cp -r skills/relay/. "$CLAUDE_SKILLS_DIR/relay/" &&
+        cp -r skills/relay/. "$AGENTS_SKILLS_DIR/relay/"
     ); then
         echo ""
-        echo "Installed ticketbook skill to:"
-        echo "  ${CLAUDE_SKILLS_DIR}/ticketbook/"
-        echo "  ${AGENTS_SKILLS_DIR}/ticketbook/"
+        echo "Installed relay skill to:"
+        echo "  ${CLAUDE_SKILLS_DIR}/relay/"
+        echo "  ${AGENTS_SKILLS_DIR}/relay/"
     else
         echo ""
-        echo "Skipping global skill install (git sparse-checkout failed or skills/ticketbook empty)."
-        echo "The per-project skill written by 'ticketbook init' still works."
+        echo "Skipping global skill install (git sparse-checkout failed or skills/relay empty)."
+        echo "The per-project skill written by 'relay init' still works."
     fi
 
     rm -rf "$skills_tmp"
 else
     echo ""
     echo "Skipping global skill install (git not found)."
-    echo "The per-project skill written by 'ticketbook init' still works."
+    echo "The per-project skill written by 'relay init' still works."
 fi
 
 # --- next steps ---------------------------------------------------------
@@ -278,6 +278,6 @@ fi
 echo ""
 echo "Next steps:"
 echo "  cd <your-project>"
-echo "  ticketbook init       # scaffold .ticketbook/, .mcp.json, skill files"
-echo "  ticketbook onboard    # add agent instructions to CLAUDE.md"
-echo "  ticketbook            # start the local UI at http://localhost:4242"
+echo "  relay init       # scaffold .relay/, .mcp.json, skill files"
+echo "  relay onboard    # add agent instructions to CLAUDE.md"
+echo "  relay            # start the local UI at http://localhost:4242"

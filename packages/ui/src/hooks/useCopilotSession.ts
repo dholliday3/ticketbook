@@ -97,16 +97,16 @@ interface ConversationListResponse {
   }>;
 }
 
-const LOCAL_STORAGE_KEY = "ticketbook.copilot.provider";
-const MODEL_STORAGE_PREFIX = "ticketbook.copilot.model:";
-const EFFORT_STORAGE_PREFIX = "ticketbook.copilot.reasoningEffort:";
+const LOCAL_STORAGE_KEY = "relay.copilot.provider";
+const MODEL_STORAGE_PREFIX = "relay.copilot.model:";
+const EFFORT_STORAGE_PREFIX = "relay.copilot.reasoningEffort:";
 /**
  * One-time flag that records whether we've seeded first-run defaults for
  * this browser. Once set, we never seed again even if the user clears an
  * individual selection — otherwise picking "Default" would silently snap
  * back to `sonnet` on the next reload.
  */
-const DEFAULTS_SEEDED_KEY = "ticketbook.copilot.defaultsSeeded";
+const DEFAULTS_SEEDED_KEY = "relay.copilot.defaultsSeeded";
 
 function readProviderScopedSetting(prefix: string, providerId: CopilotProviderId | null): string | null {
   if (!providerId) return null;

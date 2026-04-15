@@ -151,11 +151,11 @@ export class ClaudeCodeProvider extends EventEmitter {
       // allowlist below already restricts what the agent can touch.
       "--permission-mode",
       "bypassPermissions",
-      // The copilot gets ticketbook's MCP tools plus the full file-editing
+      // The copilot gets relay's MCP tools plus the full file-editing
       // and shell toolset so it can act as a coding agent from inside the
       // app — read/write files, run bash commands, and navigate the repo.
       "--allowed-tools",
-      "mcp__ticketbook__*,Read,Glob,Grep,WebSearch,Bash,Edit,Write,NotebookEdit",
+      "mcp__relay__*,Read,Glob,Grep,WebSearch,Bash,Edit,Write,NotebookEdit",
     ];
 
     // Per-turn model override (e.g. sonnet/opus/haiku). claude-code resolves

@@ -15,7 +15,7 @@ describe("doc-writer", () => {
   let docsDir: string;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "ticketbook-doc-writer-"));
+    rootDir = await mkdtemp(join(tmpdir(), "relay-doc-writer-"));
     docsDir = join(rootDir, "docs");
     await mkdir(docsDir, { recursive: true });
     await writeFile(join(docsDir, ".counter"), "0", "utf-8");
@@ -70,18 +70,18 @@ describe("doc-writer", () => {
   test("updates frontmatter fields", async () => {
     const doc = await createDoc(rootDir, docsDir, { title: "Original" });
     const updated = await updateDoc(docsDir, doc.id, {
-      project: "ticketbook",
+      project: "relay",
       tags: ["editor"],
     });
 
-    expect(updated.project).toBe("ticketbook");
+    expect(updated.project).toBe("relay");
     expect(updated.tags).toEqual(["editor"]);
   });
 
   test("clears optional fields when set to null", async () => {
     const doc = await createDoc(rootDir, docsDir, {
       title: "Project",
-      project: "ticketbook",
+      project: "relay",
     });
     const updated = await updateDoc(docsDir, doc.id, { project: null });
     expect(updated.project).toBeUndefined();

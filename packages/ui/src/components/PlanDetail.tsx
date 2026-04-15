@@ -6,7 +6,7 @@ import {
   SparkleIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
-import { renderContextRefMarker } from "@ticketbook/core/context-refs";
+import { renderContextRefMarker } from "@relay/core/context-refs";
 import { patchPlan, patchPlanBody } from "../api";
 import type { Plan, PlanStatus, PlanMeta } from "../types";
 import { useAppContext } from "../context/AppContext";

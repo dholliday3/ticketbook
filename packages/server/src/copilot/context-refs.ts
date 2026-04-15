@@ -22,7 +22,7 @@ import {
   type Task,
   type Plan,
   type Doc,
-} from "@ticketbook/core";
+} from "@relay/core";
 
 export interface ExpandContextRefsOptions {
   tasksDir: string;

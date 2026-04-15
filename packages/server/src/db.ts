@@ -60,7 +60,7 @@ let db: Database | null = null;
 export function getDb(dataDir: string): Database {
   if (db) return db;
 
-  const dbPath = resolve(dataDir, "ticketbook.db");
+  const dbPath = resolve(dataDir, "relay.db");
   db = new Database(dbPath, { create: true });
 
   db.run("PRAGMA journal_mode = WAL");

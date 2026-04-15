@@ -8,7 +8,7 @@ describe("atomicWriteFile", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "ticketbook-atomic-"));
+    dir = await mkdtemp(join(tmpdir(), "relay-atomic-"));
   });
 
   afterEach(async () => {

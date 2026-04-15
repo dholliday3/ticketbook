@@ -27,7 +27,7 @@ const assistantThinkingToolLine = JSON.stringify({
       {
         type: "tool_use",
         id: "toolu_abc",
-        name: "mcp__ticketbook__list_tasks",
+        name: "mcp__relay__list_tasks",
         input: { status: "in-progress" },
       },
     ],
@@ -69,8 +69,8 @@ describe("encodeCwdForClaude", () => {
 
   it("handles a worktree path", () => {
     expect(
-      encodeCwdForClaude("/Users/danielholliday/workspace/worktrees/ticketbook/app-copilot"),
-    ).toBe("-Users-danielholliday-workspace-worktrees-ticketbook-app-copilot");
+      encodeCwdForClaude("/Users/danielholliday/workspace/worktrees/relay/app-copilot"),
+    ).toBe("-Users-danielholliday-workspace-worktrees-relay-app-copilot");
   });
 
   it("strips trailing slashes before encoding", () => {
@@ -116,7 +116,7 @@ describe("parseClaudeJsonl", () => {
     });
     expect(messages[0].parts[1]).toMatchObject({
       type: "tool_use",
-      toolName: "mcp__ticketbook__list_tasks",
+      toolName: "mcp__relay__list_tasks",
     });
   });
 

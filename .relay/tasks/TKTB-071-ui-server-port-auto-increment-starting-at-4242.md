@@ -8,7 +8,7 @@ tags:
   - ui
   - server
   - packaging
-project: ticketbook
+project: relay
 assignee: claude-opus
 created: '2026-04-11T07:05:51.605Z'
 updated: '2026-04-11T07:30:15.462Z'
@@ -20,16 +20,16 @@ Part of PLAN-005 Phase 0. Independent of Tasks A/B/C/E.
 
 ## Current behavior
 
-`bin/ticketbook.ts:219`:
+`bin/relay.ts:219`:
 ```ts
 port: args.port ?? 0,
 ```
 
-`0` tells Bun's `Bun.serve()` to auto-assign. Two ticketbook instances = two random ports.
+`0` tells Bun's `Bun.serve()` to auto-assign. Two relay instances = two random ports.
 
 ## Desired behavior
 
-- Default start port: `4242` (already matches the `bun dev` script in `package.json:10`, familiar to anyone who's worked on ticketbook)
+- Default start port: `4242` (already matches the `bun dev` script in `package.json:10`, familiar to anyone who's worked on relay)
 - On `EADDRINUSE`, increment and retry up to 100 attempts (covers any realistic multi-repo setup; sanity cap prevents runaway)
 - If the user passes `--port <N>` explicitly, hard-fail on collision — they opted in to a specific number, don't silently reassign
 - When auto-increment kicks in, log the picked port *and* the ones that were in use, so the user understands what happened
@@ -68,7 +68,7 @@ function bindWithIncrement(
 
 Extend `startServer`'s options type with an `autoIncrement?: boolean` flag. When `autoIncrement` is true, use `bindWithIncrement`. When false (explicit `--port`), call `Bun.serve()` directly and let it throw on conflict. Return the actually-bound port and `triedPorts` in the `handle` object so the CLI can log them.
 
-### `bin/ticketbook.ts`
+### `bin/relay.ts`
 
 At line 219, change:
 ```ts
@@ -80,15 +80,15 @@ port: args.port ?? 4242,
 autoIncrement: args.port == null,
 ```
 
-Then at the log line around `bin/ticketbook.ts:224`, lean harder on the outcome:
+Then at the log line around `bin/relay.ts:224`, lean harder on the outcome:
 ```ts
 if (handle.triedPorts && handle.triedPorts.length > 0) {
   console.log(
-    `Ticketbook server listening on http://localhost:${handle.port} ` +
+    `Relay server listening on http://localhost:${handle.port} ` +
     `(auto-selected; ${handle.triedPorts.join(", ")} in use)`,
   );
 } else {
-  console.log(`Ticketbook server listening on http://localhost:${handle.port}`);
+  console.log(`Relay server listening on http://localhost:${handle.port}`);
 }
 ```
 
@@ -108,9 +108,9 @@ Simulate in-use ports by opening real `Bun.serve()` listeners on them in test se
 - Bundling the auto-increment with dev mode (`bun dev` already pins 4242; leave it alone)
 
 ## Acceptance
-- `bun bin/ticketbook.ts` in a fresh terminal binds to 4242
-- A second `bun bin/ticketbook.ts` in another terminal binds to 4243 (log line says so)
-- Explicit `bun bin/ticketbook.ts --port 4242` when 4242 is held errors out without retrying
+- `bun bin/relay.ts` in a fresh terminal binds to 4242
+- A second `bun bin/relay.ts` in another terminal binds to 4243 (log line says so)
+- Explicit `bun bin/relay.ts --port 4242` when 4242 is held errors out without retrying
 - All tests pass (`bun test`)
 - `bun run typecheck` clean
 
@@ -136,10 +136,10 @@ Simulate in-use ports by opening real `Bun.serve()` listeners on them in test se
   - Line 82: `const autoIncrement = config.autoIncrement ?? false;`
   - Lines 158-159: `tryServe = (p) => Bun.serve<WsData>({...})` — callback closure preserves full Bun.serve options + WebSocket type narrowing through the retry loop
   - Lines 415-417: dispatch between auto-increment path (`bindWithIncrementUsing(tryServe, port, PORT_AUTO_INCREMENT_MAX_TRIES)`) and explicit path (`{ server: tryServe(port), port, triedPorts: [] as number[] }`)
-- **`bin/ticketbook.ts`:**
+- **`bin/relay.ts`:**
   - Line 58: help text updated — `--port <num>   Server port (default: 4242, auto-increment on collision)`
   - Lines 223-224: defaults to 4242, sets `autoIncrement: args.port == null` (only auto-increment when the user DIDN'T pass a specific port)
-  - Lines 229-236: log line distinguishes auto-selected ports from direct hits — `Ticketbook server listening on http://localhost:4243 (auto-selected; 4242 in use)` vs plain `Ticketbook server listening on http://localhost:4242`
+  - Lines 229-236: log line distinguishes auto-selected ports from direct hits — `Relay server listening on http://localhost:4243 (auto-selected; 4242 in use)` vs plain `Relay server listening on http://localhost:4242`
 
 ### Validation
 - `bun test` → **318 pass / 0 fail / 645 expect() calls** across 28 files.

@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "ticketbook": {
+    "relay": {
       "command": "bun",
       "args": [
-        "bin/ticketbook.ts",
+        "bin/relay.ts",
         "--mcp"
       ]
     }

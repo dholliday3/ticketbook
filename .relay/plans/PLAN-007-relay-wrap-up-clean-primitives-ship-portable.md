@@ -1,26 +1,26 @@
 ---
 id: PLAN-007
-title: 'Ticketbook wrap-up — clean primitives, ship portable'
+title: 'Relay wrap-up — clean primitives, ship portable'
 status: active
 tags:
   - wrap-up
   - primitives
   - packaging
   - agent-handoff
-project: ticketbook
+project: relay
 created: '2026-04-09T05:12:56.550Z'
 updated: '2026-04-11T06:47:33.845Z'
 ---
 
-# Ticketbook wrap-up — clean primitives, ship portable
+# Relay wrap-up — clean primitives, ship portable
 
-> **Status:** draft. This is the overarching plan for wrapping up Ticketbook as a clean, portable artifact-tracking tool (plans, tasks, docs) that can be dropped into any project. Once this plan is done, Ticketbook is "shipped" and focus shifts to Agent Editor.
+> **Status:** draft. This is the overarching plan for wrapping up Relay as a clean, portable artifact-tracking tool (plans, tasks, docs) that can be dropped into any project. Once this plan is done, Relay is "shipped" and focus shifts to Agent Editor.
 
 ## Context
 
-Ticketbook started as a canvas for solving project management friction and testing ideas for a future agentic editor. It's served that purpose well. Now it's time to draw a clean line:
+Relay started as a canvas for solving project management friction and testing ideas for a future agentic editor. It's served that purpose well. Now it's time to draw a clean line:
 
-- **Ticketbook** = artifact tracking (plans, tasks, docs) + agent handoff for those artifacts
+- **Relay** = artifact tracking (plans, tasks, docs) + agent handoff for those artifacts
 - **Agent Editor** = the mac app for observing/managing agent sessions, workspaces, terminal integration
 
 Most of PLAN-004 (V1 Foundations — sessions, workspaces, terminal, shell integration) is Agent Editor scope and should be deferred. The tickets tagged `deferred-desktop` were already marking this boundary.
@@ -30,7 +30,7 @@ Most of PLAN-004 (V1 Foundations — sessions, workspaces, terminal, shell integ
 1. Clean up the primitives: rename tickets → tasks, add docs as a lightweight third primitive
 2. Nail the artifact ↔ agent handoff pattern — agents should be able to pick up, work on, and hand back plans/tasks/docs cleanly
 3. QoL polish on the existing UI — small wins, not a full redesign
-4. Package Ticketbook as a standalone binary that can be installed, initialized, and onboarded in any repo
+4. Package Relay as a standalone binary that can be installed, initialized, and onboarded in any repo
 5. Explicitly defer everything that belongs to Agent Editor
 
 ## Non-goals
@@ -68,11 +68,11 @@ Plans and tasks aren't enough — there's a gap for persistent reference materia
 - MCP tools: `create_doc`, `get_doc`, `list_docs`, `update_doc`, `delete_doc`
 - Docs can be linked from plans and tasks (and vice versa) via refs
 - UI: docs appear as a third tab alongside plans and tasks
-- `ticketbook init` scaffolds `.docs/` alongside `.tasks/` and `.plans/`
+- `relay init` scaffolds `.docs/` alongside `.tasks/` and `.plans/`
 
 ### Phase 3: Agent handoff polish
 
-The artifact ↔ agent feedback loop is the most important thing to get right before shipping. This is what makes Ticketbook more than just markdown files.
+The artifact ↔ agent feedback loop is the most important thing to get right before shipping. This is what makes Relay more than just markdown files.
 
 - **TKTB-046** — Agent feedback loop: `feedback` status between `in-progress` and `done`, agent debrief/confidence in agent-notes, human validation step
 - **TKTB-025** — Agent handoff patterns: clear MCP workflow for agents to pick up a task, update status, leave notes, and hand back
@@ -92,15 +92,15 @@ Small, high-impact fixes. No redesign, no migration.
 
 ### Phase 5: Package and ship
 
-Subsumes PLAN-005. Make Ticketbook installable *and properly onboardable* in any repo. PLAN-005 now has five sub-phases — the first ships independently of any binary work, the rest are the compiled-binary path.
+Subsumes PLAN-005. Make Relay installable *and properly onboardable* in any repo. PLAN-005 now has five sub-phases — the first ships independently of any binary work, the rest are the compiled-binary path.
 
-- **Phase 0 (seeds-inspired init/onboard layer).** Split `ticketbook init` (data scaffold) from a new `ticketbook onboard` command (agent instructions). Agent instructions get wrapped in versioned HTML-comment markers (`<!-- ticketbook:start -->` / `<!-- ticketbook:end -->`) so re-running `onboard` after a version bump surgically replaces the bracketed section in existing CLAUDE.md / AGENTS.md files without touching content outside the markers. Candidate file walk: `CLAUDE.md` → `.claude/CLAUDE.md` → `AGENTS.md`. Support `--check` and `--stdout` dry-run modes. Ships without any binary work — pattern lifted from `~/workspace/resources/seeds`.
-- Compile to standalone binary via `bun build --compile`; embed `skills/ticketbook/SKILL.md` and `packages/ui/dist/`; verify `bun:sqlite` survives compile
+- **Phase 0 (seeds-inspired init/onboard layer).** Split `relay init` (data scaffold) from a new `relay onboard` command (agent instructions). Agent instructions get wrapped in versioned HTML-comment markers (`<!-- relay:start -->` / `<!-- relay:end -->`) so re-running `onboard` after a version bump surgically replaces the bracketed section in existing CLAUDE.md / AGENTS.md files without touching content outside the markers. Candidate file walk: `CLAUDE.md` → `.claude/CLAUDE.md` → `AGENTS.md`. Support `--check` and `--stdout` dry-run modes. Ships without any binary work — pattern lifted from `~/workspace/resources/seeds`.
+- Compile to standalone binary via `bun build --compile`; embed `skills/relay/SKILL.md` and `packages/ui/dist/`; verify `bun:sqlite` survives compile
 - Cross-compile for darwin-arm64, darwin-x64, linux-x64, linux-arm64 via `ubuntu-latest` CI
 - GitHub Releases workflow (tag push → test → build → upload binaries + `.sha256`)
-- `scripts/install.sh` for curl one-liner install; drops binary at `$HOME/.local/bin/ticketbook`; supports `--version <tag>` pinning
-- `ticketbook upgrade` and `ticketbook upgrade --check` self-update command (models seeds' `sd upgrade`; re-invokes `install.sh` under the hood)
-- Flip `PUBLISHED_MCP_ENTRY` in `packages/core/src/init.ts:90` from `bunx ticketbook` to `ticketbook` once the binary is on PATH
+- `scripts/install.sh` for curl one-liner install; drops binary at `$HOME/.local/bin/relay`; supports `--version <tag>` pinning
+- `relay upgrade` and `relay upgrade --check` self-update command (models seeds' `sd upgrade`; re-invokes `install.sh` under the hood)
+- Flip `PUBLISHED_MCP_ENTRY` in `packages/core/src/init.ts:90` from `bunx relay` to `relay` once the binary is on PATH
 - Delete `.claude-plugin/plugin.json` — the Claude Code plugin marketplace path is explicitly dropped; project-level `.mcp.json` auto-loading + project-level skills cover Claude Code without a plugin
 - README with clear install + init + onboard + upgrade instructions
 
@@ -127,7 +127,7 @@ The following are explicitly out of scope and should be ported to the Agent Edit
 - **TKTB-047** — Agent harness observability
 - **TKTB-049** — Ambient and proactive agents
 - **TKTB-050** — Platform agent runtime and model gateway
-- **TKTB-057** — TicketBook-native planning chat
+- **TKTB-057** — Relay-native planning chat
 - **TKTB-059** — Native Mac terminal exploration
 - **TKTB-061** — Custom plugins
 - **TKTB-058** — Terminal basics audit
@@ -142,13 +142,13 @@ The following are explicitly out of scope and should be ported to the Agent Edit
 
 ## What "done" looks like
 
-- Ticketbook ships three clean primitives: **plans**, **tasks**, **docs**
+- Relay ships three clean primitives: **plans**, **tasks**, **docs**
 - The MCP tools use consistent `task` (not `ticket`) naming
 - Agents can pick up, work on, debrief, and hand back artifacts via MCP
 - The UI is functional and navigable (command menu, filters, clickable tasks)
-- A user on any supported platform can `curl | bash` to install, then `ticketbook init` + `ticketbook onboard` in any repo to get a fully scaffolded and agent-onboarded setup
-- Re-running `ticketbook onboard` after a version bump surgically updates agent instructions in CLAUDE.md/AGENTS.md without clobbering user edits outside the markers
-- `ticketbook upgrade` self-updates users to the latest release
+- A user on any supported platform can `curl | bash` to install, then `relay init` + `relay onboard` in any repo to get a fully scaffolded and agent-onboarded setup
+- Re-running `relay onboard` after a version bump surgically updates agent instructions in CLAUDE.md/AGENTS.md without clobbering user edits outside the markers
+- `relay upgrade` self-updates users to the latest release
 - All Agent Editor work is cleanly cataloged and ready to port to the next project
 - CLAUDE.md, README, and skill docs reflect the shipped state
 

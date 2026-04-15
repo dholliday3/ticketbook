@@ -15,7 +15,7 @@ updated: '2026-04-09T10:00:00.000Z'
 
 ## Context
 
-TicketBook currently has two parallel theming systems living side by side:
+Relay currently has two parallel theming systems living side by side:
 
 1. **`packages/ui/src/index.css`** — modern shadcn/Tailwind v4 setup with theme tokens (`--background`, `--foreground`, `--card`, `--muted`, etc.) defined in oklch, mapped to Tailwind utilities via `@theme inline`. Used by the copilot panel and any new shadcn primitives under `packages/ui/src/components/ui/*` and `packages/ui/src/components/ai-elements/*`.
 2. **`packages/ui/src/App.css`** — ~2,800 lines of hand-rolled CSS with 366 selectors built against a parallel `--bg` / `--bg-panel` / `--bg-hover` / `--text` palette of hardcoded hex values. Covers essentially every legacy surface: ticket list, ticket detail, kanban board, dashboard, dialogs, dropdowns, settings, terminal chrome, tiptap editor, etc. Imported in `packages/ui/src/routes/__root.tsx:20`.
@@ -44,7 +44,7 @@ Three phases. Phase 1 unifies the visual experience immediately via a compat shi
 
 1. Create `packages/ui/src/themes/` directory.
 2. Create `packages/ui/src/themes/caffeine.css` containing only the `:root` (light) and `.dark` blocks for the caffeine palette. No `@import`, no `@theme inline`, no `@layer base` — those live once in the entry.
-3. Create `packages/ui/src/themes/ticketbook-legacy.css` containing the current `index.css` `:root` / `.dark` blocks. Lets us roll back the palette if caffeine looks wrong.
+3. Create `packages/ui/src/themes/relay-legacy.css` containing the current `index.css` `:root` / `.dark` blocks. Lets us roll back the palette if caffeine looks wrong.
 4. Rewrite `packages/ui/src/index.css` as the artisan-style entry:
    - `@import "tailwindcss"` + `@import "tw-animate-css"`
    - `@custom-variant dark (&:is(.dark *));`
@@ -123,7 +123,7 @@ Each row is its own PR. Mark off as completed inline in this ticket as they land
 When the table above is fully checked off:
 1. Delete `packages/ui/src/App.css` entirely.
 2. Remove `import "../App.css";` from `packages/ui/src/routes/__root.tsx:20`.
-3. Decide whether to delete `themes/ticketbook-legacy.css` or keep it as an alternative theme.
+3. Decide whether to delete `themes/relay-legacy.css` or keep it as an alternative theme.
 4. Final e2e + visual smoke test.
 
 ## Decisions captured

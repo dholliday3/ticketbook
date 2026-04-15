@@ -286,9 +286,9 @@ async function checkGitattributes(
   }
 
   const requiredLines = [
-    ".ticketbook/tasks/.counter merge=ours",
-    ".ticketbook/plans/.counter merge=ours",
-    ".ticketbook/docs/.counter merge=ours",
+    ".relay/tasks/.counter merge=ours",
+    ".relay/plans/.counter merge=ours",
+    ".relay/docs/.counter merge=ours",
   ];
 
   const missing: string[] = [];
@@ -305,7 +305,7 @@ async function checkGitattributes(
       item("fail", "gitattributes", `Missing merge strategies: ${missing.join(", ")}`, fix),
     );
     if (fix) {
-      const addition = "\n# Ticketbook: counter files use 'ours' merge to avoid conflicts\n" +
+      const addition = "\n# Relay: counter files use 'ours' merge to avoid conflicts\n" +
         missing.join("\n") + "\n";
       await atomicWriteFile(gaPath, content + addition);
       items.push(item("pass", "gitattributes", "Fixed: added merge strategies to .gitattributes", false));

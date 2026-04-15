@@ -8,7 +8,7 @@ import {
   TrashIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { renderContextRefMarker } from "@ticketbook/core/context-refs";
+import { renderContextRefMarker } from "@relay/core/context-refs";
 import { patchTask, patchTaskBody } from "../api";
 import type { Task, Status, Priority, Meta } from "../types";
 import { useAppContext } from "../context/AppContext";

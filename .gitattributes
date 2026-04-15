@@ -4,8 +4,8 @@
 *.ts text eol=lf
 *.json text eol=lf
 
-# Ticketbook: counter files use 'ours' merge to avoid conflicts
-# After merging, run `ticketbook doctor --fix` to reconcile counters
-.ticketbook/tasks/.counter merge=ours
-.ticketbook/plans/.counter merge=ours
-.ticketbook/docs/.counter merge=ours
+# Relay: counter files use 'ours' merge to avoid conflicts
+# After merging, run `relay doctor --fix` to reconcile counters
+.relay/tasks/.counter merge=ours
+.relay/plans/.counter merge=ours
+.relay/docs/.counter merge=ours

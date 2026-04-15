@@ -86,14 +86,14 @@ function buildInitialPrompt(systemPrompt: string | null, text: string): string {
 
 function codexMcpOverrides(mcpConfig: Record<string, unknown> | null): string[] {
   if (!mcpConfig) return [];
-  const ticketbook = (mcpConfig.mcpServers as Record<string, unknown> | undefined)?.ticketbook as
+  const relay = (mcpConfig.mcpServers as Record<string, unknown> | undefined)?.relay as
     | { command?: string; args?: string[] }
     | undefined;
-  if (!ticketbook?.command) return [];
+  if (!relay?.command) return [];
 
-  const overrides = [`mcp_servers.ticketbook.command="${ticketbook.command}"`];
-  if (Array.isArray(ticketbook.args)) {
-    overrides.push(`mcp_servers.ticketbook.args=${JSON.stringify(ticketbook.args)}`);
+  const overrides = [`mcp_servers.relay.command="${relay.command}"`];
+  if (Array.isArray(relay.args)) {
+    overrides.push(`mcp_servers.relay.args=${JSON.stringify(relay.args)}`);
   }
   return overrides;
 }

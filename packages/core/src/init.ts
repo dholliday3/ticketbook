@@ -7,13 +7,13 @@ import {
 } from "node:fs/promises";
 
 /**
- * Options for scaffolding a ticketbook installation into a target project.
+ * Options for scaffolding a relay installation into a target project.
  */
-export interface InitTicketbookOptions {
-  /** Directory to initialize ticketbook in (will contain .ticketbook/). */
+export interface InitRelayOptions {
+  /** Directory to initialize relay in (will contain .relay/). */
   baseDir: string;
   /**
-   * Path to `skills/ticketbook/SKILL.md` inside the ticketbook package.
+   * Path to `skills/relay/SKILL.md` inside the relay package.
    * The bin script computes this from its own location and passes it in.
    * If the file does not exist, skill installation is skipped with a warning.
    */
@@ -24,22 +24,22 @@ export interface InitTicketbookOptions {
  * Result summary of an init run. Fields indicate what was newly created
  * vs. left alone (init is idempotent — it never overwrites user files).
  */
-export interface InitTicketbookResult {
-  ticketbookDir: string;
+export interface InitRelayResult {
+  relayDir: string;
   tasksDir: string;
   plansDir: string;
   docsDir: string;
-  createdTicketbookDir: boolean;
+  createdRelayDir: boolean;
   wroteConfig: boolean;
   wroteSkill: boolean;
   wroteMcpConfig: boolean;
   mergedMcpConfig: boolean;
   updatedGitignore: boolean;
   /**
-   * True when init detected it was running against the ticketbook source
-   * repo itself (via package.json name + bin/ticketbook.ts presence) and
+   * True when init detected it was running against the relay source
+   * repo itself (via package.json name + bin/relay.ts presence) and
    * wrote a dev-mode MCP command that runs the bin script directly instead
-   * of relying on `bunx ticketbook` (which won't resolve while the package
+   * of relying on `bunx relay` (which won't resolve while the package
    * is `"private": true`).
    */
   devMode: boolean;
@@ -47,45 +47,45 @@ export interface InitTicketbookResult {
 
 /**
  * Published-mode MCP command. Used when init scaffolds a foreign repo that
- * has `ticketbook` available on its PATH (via a future binary install or an
+ * has `relay` available on its PATH (via a future binary install or an
  * eventual npm publish). Until the package is actually published, this
  * command will fail — so init auto-detects dev mode (running against the
- * ticketbook source repo itself) and swaps to DEV_MCP_ENTRY below.
+ * relay source repo itself) and swaps to DEV_MCP_ENTRY below.
  */
 const PUBLISHED_MCP_ENTRY = {
-  command: "ticketbook",
+  command: "relay",
   args: ["--mcp"],
 } as const;
 
 /**
  * Dev-mode MCP command. Used when init detects it's running against the
- * ticketbook source repo. Paths are relative to the project root (which
+ * relay source repo. Paths are relative to the project root (which
  * Claude Code uses as cwd when auto-loading .mcp.json), so this works for
  * anyone who clones the repo without any additional setup.
  */
 const DEV_MCP_ENTRY = {
   command: "bun",
-  args: ["bin/ticketbook.ts", "--mcp"],
+  args: ["bin/relay.ts", "--mcp"],
 } as const;
 
 /**
- * Detect whether `baseDir` is the ticketbook source repo itself. Returns
+ * Detect whether `baseDir` is the relay source repo itself. Returns
  * true only if both signals line up:
- *   - package.json exists and its `name` field is "ticketbook"
- *   - bin/ticketbook.ts exists (the entry point that --mcp mode relies on)
+ *   - package.json exists and its `name` field is "relay"
+ *   - bin/relay.ts exists (the entry point that --mcp mode relies on)
  *
  * Both checks together prevent false positives (e.g., a user's unrelated
- * project happens to have a package named "ticketbook" in their deps).
+ * project happens to have a package named "relay" in their deps).
  */
-async function detectTicketbookSourceRepo(baseDir: string): Promise<boolean> {
+async function detectRelaySourceRepo(baseDir: string): Promise<boolean> {
   try {
     const pkgText = await readFile(join(baseDir, "package.json"), "utf-8");
     const pkg = JSON.parse(pkgText);
-    if (pkg?.name !== "ticketbook") return false;
+    if (pkg?.name !== "relay") return false;
   } catch {
     return false;
   }
-  return pathExists(join(baseDir, "bin", "ticketbook.ts"));
+  return pathExists(join(baseDir, "bin", "relay.ts"));
 }
 
 async function pathExists(p: string): Promise<boolean> {
@@ -104,7 +104,7 @@ async function ensureDir(p: string): Promise<boolean> {
 }
 
 /**
- * Merge the ticketbook MCP server entry into a `.mcp.json` file.
+ * Merge the relay MCP server entry into a `.mcp.json` file.
  * Returns { wrote, merged }:
  *   - wrote=true if the file was newly created
  *   - merged=true if the file existed and we added (or already had) the entry
@@ -116,7 +116,7 @@ async function writeMcpConfig(
   if (!(await pathExists(mcpPath))) {
     const content = {
       mcpServers: {
-        ticketbook: entry,
+        relay: entry,
       },
     };
     await writeFile(mcpPath, JSON.stringify(content, null, 2) + "\n", "utf-8");
@@ -134,12 +134,12 @@ async function writeMcpConfig(
   }
 
   if (!parsed.mcpServers) parsed.mcpServers = {};
-  if (parsed.mcpServers.ticketbook) {
+  if (parsed.mcpServers.relay) {
     // Already configured — leave it alone (user may have customized).
     return { wrote: false, merged: false };
   }
 
-  parsed.mcpServers.ticketbook = entry;
+  parsed.mcpServers.relay = entry;
   await writeFile(mcpPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8");
   return { wrote: false, merged: true };
 }
@@ -187,48 +187,48 @@ async function updateGitignore(
 }
 
 /**
- * Scaffold a ticketbook installation into a target project.
+ * Scaffold a relay installation into a target project.
  *
  * Creates (idempotently — existing files are never overwritten):
- *   - .ticketbook/ root with tasks/, plans/, docs/ subdirectories
- *   - config.yaml at .ticketbook/config.yaml
+ *   - .relay/ root with tasks/, plans/, docs/ subdirectories
+ *   - config.yaml at .relay/config.yaml
  *   - .counter files in each subdirectory
- *   - .claude/skills/ticketbook/SKILL.md (Claude Code skill discovery)
- *   - .agents/skills/ticketbook/SKILL.md (Codex skill discovery)
- *   - .mcp.json (or merges a ticketbook entry into an existing one)
- *   - .gitignore entries for .ticketbook/{tasks,plans,docs}/.archive/
+ *   - .claude/skills/relay/SKILL.md (Claude Code skill discovery)
+ *   - .agents/skills/relay/SKILL.md (Codex skill discovery)
+ *   - .mcp.json (or merges a relay entry into an existing one)
+ *   - .gitignore entries for .relay/{tasks,plans,docs}/.archive/
  *
  * Agent instructions are a separate concern — the new `runOnboard` in
  * ./onboard.ts writes a versioned, marker-wrapped section into CLAUDE.md or
- * AGENTS.md. Callers should invoke `ticketbook onboard` as a follow-up step
+ * AGENTS.md. Callers should invoke `relay onboard` as a follow-up step
  * (the CLI's `printInitSummary` advertises this).
  */
-export async function initTicketbook(
-  options: InitTicketbookOptions,
-): Promise<InitTicketbookResult> {
+export async function initRelay(
+  options: InitRelayOptions,
+): Promise<InitRelayResult> {
   const baseDir = resolve(options.baseDir);
-  const ticketbookDir = join(baseDir, ".ticketbook");
-  const tasksDir = join(ticketbookDir, "tasks");
+  const relayDir = join(baseDir, ".relay");
+  const tasksDir = join(relayDir, "tasks");
   const tasksArchiveDir = join(tasksDir, ".archive");
-  const plansDir = join(ticketbookDir, "plans");
+  const plansDir = join(relayDir, "plans");
   const plansArchiveDir = join(plansDir, ".archive");
-  const docsDir = join(ticketbookDir, "docs");
+  const docsDir = join(relayDir, "docs");
   const docsArchiveDir = join(docsDir, ".archive");
 
-  const createdTicketbookDir = !(await pathExists(ticketbookDir));
+  const createdRelayDir = !(await pathExists(relayDir));
 
   await ensureDir(tasksArchiveDir);
   await ensureDir(plansArchiveDir);
   await ensureDir(docsArchiveDir);
 
-  // config.yaml — lives at .ticketbook/config.yaml (governs all primitives).
+  // config.yaml — lives at .relay/config.yaml (governs all primitives).
   // On first init we auto-populate `name` with the basename of the target
   // directory. It's used by the MCP server to give each instance a per-project
-  // identity (`ticketbook-<name>`) so multi-repo setups are distinguishable in
+  // identity (`relay-<name>`) so multi-repo setups are distinguishable in
   // `claude mcp list` and error logs. Existing configs are left alone — the
-  // MCP server tolerates a missing `name` field and falls back to `ticketbook`.
+  // MCP server tolerates a missing `name` field and falls back to `relay`.
   let wroteConfig = false;
-  const cfgPath = join(ticketbookDir, "config.yaml");
+  const cfgPath = join(relayDir, "config.yaml");
   if (!(await pathExists(cfgPath))) {
     const projectName = basename(baseDir);
     await writeFile(
@@ -249,9 +249,9 @@ export async function initTicketbook(
 
   // .gitignore updates
   const updatedGitignore = await updateGitignore(baseDir, [
-    ".ticketbook/tasks/.archive/",
-    ".ticketbook/plans/.archive/",
-    ".ticketbook/docs/.archive/",
+    ".relay/tasks/.archive/",
+    ".relay/plans/.archive/",
+    ".relay/docs/.archive/",
   ]);
 
   // Skill files — copied to both Claude and Codex discovery paths.
@@ -263,14 +263,14 @@ export async function initTicketbook(
       baseDir,
       ".claude",
       "skills",
-      "ticketbook",
+      "relay",
       "SKILL.md",
     );
     const codexSkillPath = join(
       baseDir,
       ".agents",
       "skills",
-      "ticketbook",
+      "relay",
       "SKILL.md",
     );
     const claudeWrote = await writeSkillFile(
@@ -284,22 +284,22 @@ export async function initTicketbook(
     wroteSkill = claudeWrote || codexWrote;
   }
 
-  // Detect whether we're scaffolding ticketbook against itself (dogfooding)
+  // Detect whether we're scaffolding relay against itself (dogfooding)
   // or against a foreign repo. Dev mode rewrites the MCP command so it runs
-  // the local bin script directly — `bunx ticketbook` won't resolve while
+  // the local bin script directly — `bunx relay` won't resolve while
   // the package is still `"private": true`.
-  const devMode = await detectTicketbookSourceRepo(baseDir);
+  const devMode = await detectRelaySourceRepo(baseDir);
   const mcpEntry = devMode ? DEV_MCP_ENTRY : PUBLISHED_MCP_ENTRY;
 
   // .mcp.json — project-level MCP config Claude Code auto-loads.
   const mcpResult = await writeMcpConfig(join(baseDir, ".mcp.json"), mcpEntry);
 
   return {
-    ticketbookDir,
+    relayDir,
     tasksDir,
     plansDir,
     docsDir,
-    createdTicketbookDir,
+    createdRelayDir,
     wroteConfig,
     wroteSkill,
     wroteMcpConfig: mcpResult.wrote,
@@ -311,12 +311,12 @@ export async function initTicketbook(
 
 /**
  * Returns the Codex TOML snippet users need to paste into ~/.codex/config.toml
- * to register the ticketbook MCP server. Codex doesn't support project-scoped
+ * to register the relay MCP server. Codex doesn't support project-scoped
  * MCP config without a trusted-workspace flag, so this is a manual step.
  */
 export function codexMcpInstructions(): string {
-  return `[mcp_servers.ticketbook]
-command = "ticketbook"
+  return `[mcp_servers.relay]
+command = "relay"
 args = ["--mcp"]`;
 }
 

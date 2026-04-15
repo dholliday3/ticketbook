@@ -1,6 +1,6 @@
 {
-  "name": "@ticketbook/core",
-  "version": "0.2.2",
+  "name": "@relay/core",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "main": "src/index.ts",

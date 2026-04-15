@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { writeFile, unlink, mkdtemp } from "node:fs/promises";
 
 /**
- * Generates a per-session MCP config file pointing at ticketbook's own MCP
+ * Generates a per-session MCP config file pointing at relay's own MCP
  * server, so the spawned `claude` (or future `codex`) gets read/write access
  * to the user's tasks, plans, and docs without us building a parallel tool layer.
  *
@@ -14,11 +14,11 @@ import { writeFile, unlink, mkdtemp } from "node:fs/promises";
  * untouched.
  */
 
-export interface BuildTicketbookMcpConfigInput {
-  /** Absolute path to the bin/ticketbook.ts entry script (the one that started the server). */
+export interface BuildRelayMcpConfigInput {
+  /** Absolute path to the bin/relay.ts entry script (the one that started the server). */
   binPath: string;
-  /** Absolute path to the .ticketbook directory the server is managing. */
-  ticketbookDir: string;
+  /** Absolute path to the .relay directory the server is managing. */
+  relayDir: string;
   /**
    * Bun executable to invoke the bin script with. Defaults to "bun" so it
    * resolves on PATH.
@@ -37,15 +37,15 @@ export interface BuildTicketbookMcpConfigInput {
   execPath?: string;
 }
 
-export function buildTicketbookMcpConfig(
-  input: BuildTicketbookMcpConfigInput,
+export function buildRelayMcpConfig(
+  input: BuildRelayMcpConfigInput,
 ): Record<string, unknown> {
   if (input.execPath) {
     return {
       mcpServers: {
-        ticketbook: {
+        relay: {
           command: input.execPath,
-          args: ["--mcp", "--dir", input.ticketbookDir],
+          args: ["--mcp", "--dir", input.relayDir],
         },
       },
     };
@@ -53,9 +53,9 @@ export function buildTicketbookMcpConfig(
   const bun = input.bunPath ?? "bun";
   return {
     mcpServers: {
-      ticketbook: {
+      relay: {
         command: bun,
-        args: ["run", input.binPath, "--mcp", "--dir", input.ticketbookDir],
+        args: ["run", input.binPath, "--mcp", "--dir", input.relayDir],
       },
     },
   };
