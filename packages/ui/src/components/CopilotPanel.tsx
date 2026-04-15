@@ -40,6 +40,7 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import {
   PromptInput,
   PromptInputBody,
@@ -308,37 +309,43 @@ function CopilotPanelInner({ onClose }: CopilotPanelProps) {
                   icon={<SparkleIcon className="size-6" />}
                 />
               ) : (
-                session.messages.map((msg, msgIndex) => {
-                  const isLastMessage = msgIndex === session.messages.length - 1;
-                  const isStillStreaming =
-                    session.isStreaming && isLastMessage && msg.role === "assistant";
-                  return (
-                    <MessageBranch defaultBranch={0} key={msg.id}>
-                      <MessageBranchContent>
-                        <Message
-                          from={msg.role}
-                          data-testid="copilot-message"
-                          data-role={msg.role}
-                        >
-                          {msg.parts.map((part, i) => (
-                            <CopilotPartView
-                              key={`${msg.id}-${i}`}
-                              part={part}
-                              isStreaming={
-                                session.isStreaming &&
-                                msg.role === "assistant" &&
-                                i === msg.parts.length - 1
-                              }
-                            />
-                          ))}
-                          {msg.role === "assistant" && !isStillStreaming && (
-                            <CopilotMessageActions message={msg} />
-                          )}
-                        </Message>
-                      </MessageBranchContent>
-                    </MessageBranch>
-                  );
-                })
+                <>
+                  {session.messages.map((msg, msgIndex) => {
+                    const isLastMessage = msgIndex === session.messages.length - 1;
+                    const isStillStreaming =
+                      session.isStreaming && isLastMessage && msg.role === "assistant";
+                    return (
+                      <MessageBranch defaultBranch={0} key={msg.id}>
+                        <MessageBranchContent>
+                          <Message
+                            from={msg.role}
+                            data-testid="copilot-message"
+                            data-role={msg.role}
+                          >
+                            {msg.parts.map((part, i) => (
+                              <CopilotPartView
+                                key={`${msg.id}-${i}`}
+                                part={part}
+                                isStreaming={
+                                  session.isStreaming &&
+                                  msg.role === "assistant" &&
+                                  i === msg.parts.length - 1
+                                }
+                              />
+                            ))}
+                            {msg.role === "assistant" && !isStillStreaming && (
+                              <CopilotMessageActions message={msg} />
+                            )}
+                          </Message>
+                        </MessageBranchContent>
+                      </MessageBranch>
+                    );
+                  })}
+                  {session.isStreaming &&
+                    session.messages.at(-1)?.role === "user" && (
+                      <CopilotPendingBubble />
+                    )}
+                </>
               )}
             </ConversationContent>
             <ConversationScrollButton />
@@ -495,6 +502,49 @@ function CopilotPanelInner({ onClose }: CopilotPanelProps) {
 function providerLabel(providerId: "claude-code" | "codex" | null): string {
   if (providerId === "codex") return "Codex";
   return "Claude Code";
+}
+
+// ─── Pending-response bubble ───────────────────────────────────────
+
+// Whimsical gerunds shown while waiting on the first streamed chunk,
+// a la Claude Code's own loading states. One word is picked at random
+// per loading instance and sticks for the duration of the wait.
+const PENDING_WORDS = [
+  "Pondering",
+  "Musing",
+  "Cogitating",
+  "Ruminating",
+  "Brewing",
+  "Conjuring",
+  "Noodling",
+  "Hatching",
+  "Scheming",
+  "Simmering",
+  "Percolating",
+  "Marinating",
+  "Mulling",
+  "Churning",
+  "Finagling",
+  "Reticulating",
+  "Rummaging",
+  "Tinkering",
+  "Plotting",
+  "Unfurling",
+  "Deliberating",
+  "Contemplating",
+] as const;
+
+function CopilotPendingBubble() {
+  const [word] = useState(
+    () => PENDING_WORDS[Math.floor(Math.random() * PENDING_WORDS.length)],
+  );
+  return (
+    <Message from="assistant" data-testid="copilot-pending" data-role="assistant">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Shimmer duration={2.5}>{`${word}…`}</Shimmer>
+      </div>
+    </Message>
+  );
 }
 
 // ─── Part renderers ────────────────────────────────────────────────

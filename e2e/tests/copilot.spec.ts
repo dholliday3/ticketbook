@@ -101,7 +101,17 @@ test("empty state shows suggestions and the prompt input is enabled", async ({ p
 test("sending a message streams a stub response with text + tool blocks", async ({ page }) => {
   await openAssistant(page);
   await sendMessage(page, "Hello stub");
+
+  // Between submit and first streamed chunk the pending "thinking word"
+  // bubble should appear. The stub holds the first emit for ~60ms so this
+  // is observable; we just assert the element attaches at some point before
+  // streaming completes.
+  await expect(page.getByTestId("copilot-pending")).toBeAttached({ timeout: 1_000 });
+
   await waitForReady(page);
+
+  // Once the response finishes the pending bubble is gone.
+  await expect(page.getByTestId("copilot-pending")).toHaveCount(0);
 
   // The user message is rendered.
   expect(await countMessages(page, "user")).toBe(1);

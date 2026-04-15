@@ -68,9 +68,10 @@ export class StubCopilotProvider extends EventEmitter implements CopilotProvider
     session.turnCount += 1;
     const messageId = `stub-msg-${Date.now()}-${session.turnCount}`;
 
-    // Defer to next tick so the caller's setState (the WebSocket subscriber
-    // in index.ts) has settled before we start emitting.
-    await Promise.resolve();
+    // Small delay before the first stream event so the client's "pending"
+    // bubble (shown between user-submit and first chunk) is observable in
+    // tests, mirroring the real provider's network/cold-start latency.
+    await new Promise((resolve) => setTimeout(resolve, 60));
 
     // Emit a thinking part — exercises the Reasoning component.
     this.emit(
