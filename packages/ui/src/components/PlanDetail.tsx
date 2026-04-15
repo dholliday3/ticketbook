@@ -13,6 +13,11 @@ import { useAppContext } from "../context/AppContext";
 import { TiptapEditor } from "./TiptapEditor";
 import { SelectChip, ComboboxChip, MultiComboboxChip } from "./MetaFields";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -187,52 +192,68 @@ export function PlanDetail({ plan, planMeta, onUpdated, onDelete, onTaskClick, o
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAddToChat}
-            title="Add to copilot chat"
-            aria-label="Add to copilot chat"
-          >
-            <ChatCircleTextIcon />
-            Add
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBrainstorm}
-            title="Brainstorm this plan with the agent"
-            aria-label="Brainstorm this plan with the agent"
-          >
-            <BrainIcon />
-            Brainstorm
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGetFeedback}
-            title="Review this plan with the agent"
-            aria-label="Review this plan"
-          >
-            <SparkleIcon />
-            Review
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCutTasks}
-            title="Ask the agent to cut tasks from this plan"
-          >
-            <ScissorsIcon />
-            Cut Tasks
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAddToChat}
+                aria-label="Add to copilot chat"
+              >
+                <ChatCircleTextIcon />
+                Add
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Attach this plan to the copilot chat</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBrainstorm}
+                aria-label="Brainstorm this plan with the agent"
+              >
+                <BrainIcon />
+                Brainstorm
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Brainstorm this plan with the copilot</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleGetFeedback}
+                aria-label="Review this plan"
+              >
+                <SparkleIcon />
+                Review
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Ask the copilot to review this plan</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCutTasks}
+                aria-label="Cut tasks from this plan"
+              >
+                <ScissorsIcon />
+                Cut Tasks
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Break this plan into tasks with the copilot</TooltipContent>
+          </Tooltip>
           {onDelete && (
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => onDelete(plan.id)}
               className="text-muted-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
-              title="Delete plan"
               aria-label="Delete plan"
             >
               <TrashIcon />

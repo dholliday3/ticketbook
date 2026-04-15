@@ -23,6 +23,11 @@ import {
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -200,43 +205,54 @@ export function TaskDetail({ task, meta, onUpdated, onDelete, onRequestClose }: 
               {saveStatus === "saving" ? "Saving..." : "Saved"}
             </span>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAddToChat}
-            title="Add to copilot chat"
-            aria-label="Add to copilot chat"
-          >
-            <ChatCircleTextIcon />
-            Add
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGetFeedback}
-            title="Review this task with the agent"
-            aria-label="Review this task"
-          >
-            <SparkleIcon />
-            Review
-          </Button>
-          <Button
-            variant={copyStatus === "copied" ? "secondary" : "outline"}
-            size="sm"
-            onClick={handleCopyTaskLabel}
-            title={`Copy ${task.id} and title`}
-            aria-label={`Copy ${task.id} and title`}
-          >
-            {copyStatus === "copied" ? <CheckIcon /> : <CopyIcon />}
-            {copyStatus === "copied" ? "Copied" : "Copy"}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAddToChat}
+                aria-label="Add to copilot chat"
+              >
+                <ChatCircleTextIcon />
+                Add
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Attach this task to the copilot chat</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleGetFeedback}
+                aria-label="Review this task"
+              >
+                <SparkleIcon />
+                Review
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Ask the copilot to review this task</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={copyStatus === "copied" ? "secondary" : "outline"}
+                size="sm"
+                onClick={handleCopyTaskLabel}
+                aria-label={`Copy ${task.id} and title`}
+              >
+                {copyStatus === "copied" ? <CheckIcon /> : <CopyIcon />}
+                {copyStatus === "copied" ? "Copied" : "Copy"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Copy task ID and title to clipboard</TooltipContent>
+          </Tooltip>
           {onDelete && (
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => onDelete(task.id)}
               className="text-muted-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
-              title="Delete task"
               aria-label="Delete task"
             >
               <TrashIcon />

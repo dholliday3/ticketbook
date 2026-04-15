@@ -7,6 +7,11 @@ import type { Doc, DocMeta } from "../types";
 import { TiptapEditor } from "./TiptapEditor";
 import { ComboboxChip, MultiComboboxChip } from "./MetaFields";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export function DocDetail({
@@ -131,23 +136,26 @@ export function DocDetail({
               {saveStatus === "saving" ? "Saving..." : "Saved"}
             </span>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAddToChat}
-            title="Add to copilot chat"
-            aria-label="Add to copilot chat"
-          >
-            <ChatCircleTextIcon />
-            Add
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAddToChat}
+                aria-label="Add to copilot chat"
+              >
+                <ChatCircleTextIcon />
+                Add
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Attach this doc to the copilot chat</TooltipContent>
+          </Tooltip>
           {onDelete && (
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => onDelete(doc.id)}
               className="text-muted-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
-              title="Delete doc"
               aria-label="Delete doc"
             >
               <TrashIcon />

@@ -140,14 +140,16 @@ function PlansRoute() {
             <PlanTabBar />
           )}
           {activePlan ? (
-            <PlanDetail
-              plan={activePlan}
-              planMeta={ctx.planMeta}
-              onUpdated={ctx.loadPlans}
-              onDelete={ctx.handleDeleteRequest}
-              onTaskClick={ctx.handlePlanTaskClick}
-              onTasksCreated={ctx.loadTasks}
-            />
+            <div className="pt-4">
+              <PlanDetail
+                plan={activePlan}
+                planMeta={ctx.planMeta}
+                onUpdated={ctx.loadPlans}
+                onDelete={ctx.handleDeleteRequest}
+                onTaskClick={ctx.handlePlanTaskClick}
+                onTasksCreated={ctx.loadTasks}
+              />
+            </div>
           ) : (
             <EmptyState title="No plan selected">
               <HintRow><kbd>&uarr;</kbd> <kbd>&darr;</kbd> Navigate</HintRow>

@@ -38,6 +38,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Lazy-loaded so the ai-elements/streamdown/shiki tree (~1MB+) only loads
 // when the user opens the assistant panel for the first time. Without this
@@ -55,7 +56,9 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <AppProvider>
-      <RootLayoutInner />
+      <TooltipProvider delayDuration={200}>
+        <RootLayoutInner />
+      </TooltipProvider>
     </AppProvider>
   );
 }
