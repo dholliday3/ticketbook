@@ -163,6 +163,7 @@ describe("REST API", () => {
     const config = await res.json();
     expect(config.prefix).toBe("TASK");
     expect(config.deleteMode).toBe("archive");
+    expect(config.worktreeMode).toBe("local");
   });
 
   test("PATCH /api/config updates config", async () => {

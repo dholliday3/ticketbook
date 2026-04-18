@@ -20,6 +20,8 @@ Launch Claude Code or Codex CLI straight from a plan or task, with the relevant 
 
 All three are plain markdown files with YAML frontmatter. Nothing is locked inside a database — `git log` is your history, `git blame` is your audit trail, and branches carry their own in-flight context.
 
+In linked git worktrees, Relay uses the current checkout's `.relay/` by default so artifacts stay on the branch you're editing. If you intentionally want shared artifacts instead, set `worktreeMode: shared` in `.relay/config.yaml`.
+
 ## Install
 
 ```bash

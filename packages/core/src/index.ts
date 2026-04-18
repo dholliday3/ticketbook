@@ -7,6 +7,7 @@ export {
   TaskFiltersSchema,
   DeleteModeEnum,
   RelayConfigSchema,
+  WorktreeModeEnum,
 } from "./schema.js";
 
 export type {

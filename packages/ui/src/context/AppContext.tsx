@@ -176,6 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     prefix: "TASK",
     deleteMode: "archive",
     debriefStyle: "very-concise",
+    worktreeMode: "local",
   });
   const [meta, setMeta] = useState<Meta>({ projects: [], epics: [], sprints: [], tags: [] });
   const [planMeta, setPlanMeta] = useState<PlanMeta>({ projects: [], tags: [] });

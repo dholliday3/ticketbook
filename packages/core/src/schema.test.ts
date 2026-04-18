@@ -7,6 +7,7 @@ import {
   TaskPatchSchema,
   TaskFiltersSchema,
   RelayConfigSchema,
+  WorktreeModeEnum,
 } from "./schema.js";
 
 describe("StatusEnum", () => {
@@ -167,6 +168,7 @@ describe("RelayConfigSchema", () => {
     const result = RelayConfigSchema.parse({});
     expect(result.prefix).toBe("TASK");
     expect(result.deleteMode).toBe("archive");
+    expect(result.worktreeMode).toBe("local");
   });
 
   test("accepts custom prefix", () => {
@@ -182,5 +184,17 @@ describe("RelayConfigSchema", () => {
   test("parses name when provided", () => {
     const result = RelayConfigSchema.parse({ name: "projA" });
     expect(result.name).toBe("projA");
+  });
+
+  test("parses worktreeMode when provided", () => {
+    const result = RelayConfigSchema.parse({ worktreeMode: "shared" });
+    expect(result.worktreeMode).toBe("shared");
+  });
+});
+
+describe("WorktreeModeEnum", () => {
+  test("accepts local and shared", () => {
+    expect(WorktreeModeEnum.parse("local")).toBe("local");
+    expect(WorktreeModeEnum.parse("shared")).toBe("shared");
   });
 });

@@ -106,10 +106,10 @@ Options:
 
 /** Walk up from startDir to find a .relay/ directory, with worktree awareness. */
 async function findRelayDir(startDir: string): Promise<string | null> {
-  const { relayDir, isWorktree } = await findRelayDirWithWorktree(startDir);
-  if (relayDir && isWorktree) {
+  const { relayDir, usesMainRootRelayDir } = await findRelayDirWithWorktree(startDir);
+  if (relayDir && usesMainRootRelayDir) {
     console.error(
-      `Detected git worktree — using main repo artifacts at ${relayDir}`,
+      `Detected git worktree with shared artifacts enabled — using main checkout artifacts at ${relayDir}`,
     );
   }
   return relayDir;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { RelayConfig, DebriefStyle } from "../types";
+import type { RelayConfig, DebriefStyle, WorktreeMode } from "../types";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
@@ -30,12 +30,13 @@ export function SettingsDialog({
   const [prefix, setPrefix] = useState(config.prefix);
   const [deleteMode, setDeleteMode] = useState(config.deleteMode);
   const [debriefStyle, setDebriefStyle] = useState<DebriefStyle>(config.debriefStyle ?? "very-concise");
+  const [worktreeMode, setWorktreeMode] = useState<WorktreeMode>(config.worktreeMode ?? "local");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave({ prefix, deleteMode, debriefStyle });
+      await onSave({ prefix, deleteMode, debriefStyle, worktreeMode });
     } catch (err) {
       console.error("Failed to save settings:", err);
       setSaving(false);
@@ -115,6 +116,31 @@ export function SettingsDialog({
             </ButtonGroup>
             <span className="text-[11px] text-muted-foreground">
               Controls how detailed agent debriefs are when writing to agent notes.
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-foreground">Worktree artifacts</label>
+            <ButtonGroup className="w-full">
+              <Button
+                variant={worktreeMode === "local" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setWorktreeMode("local")}
+                aria-pressed={worktreeMode === "local"}
+              >
+                Current branch
+              </Button>
+              <Button
+                variant={worktreeMode === "shared" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setWorktreeMode("shared")}
+                aria-pressed={worktreeMode === "shared"}
+              >
+                Shared main
+              </Button>
+            </ButtonGroup>
+            <span className="text-[11px] text-muted-foreground">
+              In git worktrees, keep `.relay/` on the current branch by default, or route writes through the main checkout.
             </span>
           </div>
         </div>

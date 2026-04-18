@@ -78,6 +78,7 @@ export const TaskFiltersSchema = z.object({
 export const DeleteModeEnum = z.enum(["archive", "hard"]);
 
 export const DebriefStyleEnum = z.enum(["very-concise", "concise", "detailed", "lengthy"]);
+export const WorktreeModeEnum = z.enum(["local", "shared"]);
 
 export const RelayConfigSchema = z.object({
   /**
@@ -92,6 +93,14 @@ export const RelayConfigSchema = z.object({
   docPrefix: z.string().default("DOC"),
   deleteMode: DeleteModeEnum.default("archive"),
   debriefStyle: DebriefStyleEnum.default("very-concise"),
+  /**
+   * How Relay resolves `.relay/` inside a linked git worktree.
+   *
+   * - local: use the current checkout's `.relay/` so artifacts stay on the
+   *   branch being edited and merge through git like any other tracked files.
+   * - shared: route worktree writes through the main checkout's `.relay/`.
+   */
+  worktreeMode: WorktreeModeEnum.default("local"),
   /**
    * Terminal scrollback buffer size in lines. Controls how much output
    * history is preserved per terminal session (visible on reconnect via

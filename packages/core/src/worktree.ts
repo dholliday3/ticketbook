@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
+import { getConfig } from "./config.js";
 
 const exec = promisify(execFile);
 
@@ -54,40 +55,79 @@ async function hasRelayDir(dir: string): Promise<boolean> {
   }
 }
 
-/**
- * Find the .relay/ directory, with worktree awareness.
- *
- * In a linked git worktree, this checks the main repo's root first.
- * If the main repo has a .relay/ directory, we use that (artifacts are
- * shared across worktrees, not duplicated). Otherwise falls back to
- * walking up from `startDir` as usual.
- */
-export async function findRelayDirWithWorktree(
-  startDir: string,
-): Promise<{ relayDir: string | null; isWorktree: boolean }> {
-  const mainRoot = await resolveWorktreeRoot(startDir);
-
-  if (mainRoot) {
-    // We're in a linked worktree — check the main repo first
-    if (await hasRelayDir(mainRoot)) {
-      return {
-        relayDir: join(mainRoot, ".relay"),
-        isWorktree: true,
-      };
-    }
-  }
-
-  // Standard walk-up search (same as before, but done here for completeness)
+async function findNearestRelayDir(startDir: string): Promise<string | null> {
   let dir = resolve(startDir);
-  const { dirname } = await import("node:path");
   while (true) {
     if (await hasRelayDir(dir)) {
-      return { relayDir: join(dir, ".relay"), isWorktree: false };
+      return join(dir, ".relay");
     }
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
+  return null;
+}
 
-  return { relayDir: null, isWorktree: false };
+export interface RelayDirResolution {
+  relayDir: string | null;
+  isWorktree: boolean;
+  usesMainRootRelayDir: boolean;
+}
+
+async function getWorktreeMode(dir: string): Promise<"local" | "shared"> {
+  try {
+    const config = await getConfig(dir);
+    return config.worktreeMode;
+  } catch {
+    return "local";
+  }
+}
+
+/**
+ * Find the .relay/ directory, with worktree awareness.
+ *
+ * In a linked git worktree, Relay defaults to the current checkout's
+ * `.relay/` so artifacts stay on the branch being edited. Projects can opt
+ * back into the historical shared-artifacts behavior with
+ * `worktreeMode: shared` in `.relay/config.yaml`.
+ */
+export async function findRelayDirWithWorktree(
+  startDir: string,
+): Promise<RelayDirResolution> {
+  const nearestRelayDir = await findNearestRelayDir(startDir);
+  const mainRoot = await resolveWorktreeRoot(startDir);
+
+  if (!mainRoot) {
+    return {
+      relayDir: nearestRelayDir,
+      isWorktree: false,
+      usesMainRootRelayDir: false,
+    };
+  }
+
+  if (nearestRelayDir) {
+    const worktreeMode = await getWorktreeMode(nearestRelayDir);
+    if (worktreeMode === "shared" && await hasRelayDir(mainRoot)) {
+      return {
+        relayDir: join(mainRoot, ".relay"),
+        isWorktree: true,
+        usesMainRootRelayDir: true,
+      };
+    }
+    return {
+      relayDir: nearestRelayDir,
+      isWorktree: true,
+      usesMainRootRelayDir: false,
+    };
+  }
+
+  if (await hasRelayDir(mainRoot)) {
+    return {
+      relayDir: join(mainRoot, ".relay"),
+      isWorktree: true,
+      usesMainRootRelayDir: true,
+    };
+  }
+
+  return { relayDir: null, isWorktree: true, usesMainRootRelayDir: false };
 }

@@ -42,11 +42,13 @@ export interface Meta {
 }
 
 export type DebriefStyle = "very-concise" | "concise" | "detailed" | "lengthy";
+export type WorktreeMode = "local" | "shared";
 
 export interface RelayConfig {
   prefix: string;
   deleteMode: "archive" | "hard";
   debriefStyle: DebriefStyle;
+  worktreeMode: WorktreeMode;
 }
 
 export interface CreateTaskInput {

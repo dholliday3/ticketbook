@@ -233,7 +233,7 @@ export async function initRelay(
     const projectName = basename(baseDir);
     await writeFile(
       cfgPath,
-      `name: "${projectName}"\nprefix: TASK\nplanPrefix: PLAN\ndocPrefix: DOC\ndeleteMode: archive\n`,
+      `name: "${projectName}"\nprefix: TASK\nplanPrefix: PLAN\ndocPrefix: DOC\ndeleteMode: archive\nworktreeMode: local\n`,
       "utf-8",
     );
     wroteConfig = true;

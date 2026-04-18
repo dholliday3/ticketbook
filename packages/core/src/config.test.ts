@@ -19,17 +19,19 @@ describe("getConfig", () => {
     const config = await getConfig(dir);
     expect(config.prefix).toBe("TASK");
     expect(config.deleteMode).toBe("archive");
+    expect(config.worktreeMode).toBe("local");
   });
 
   test("reads config from config.yaml", async () => {
     await writeFile(
       join(dir, "config.yaml"),
-      "prefix: ART\ndeleteMode: hard\n",
+      "prefix: ART\ndeleteMode: hard\nworktreeMode: shared\n",
       "utf-8",
     );
     const config = await getConfig(dir);
     expect(config.prefix).toBe("ART");
     expect(config.deleteMode).toBe("hard");
+    expect(config.worktreeMode).toBe("shared");
   });
 
   test("fills in defaults for partial config", async () => {
@@ -37,6 +39,7 @@ describe("getConfig", () => {
     const config = await getConfig(dir);
     expect(config.prefix).toBe("BUG");
     expect(config.deleteMode).toBe("archive");
+    expect(config.worktreeMode).toBe("local");
   });
 
   test("reads optional name field when present", async () => {
@@ -71,6 +74,7 @@ describe("updateConfig", () => {
     const config = await updateConfig(dir, { prefix: "NEW" });
     expect(config.prefix).toBe("NEW");
     expect(config.deleteMode).toBe("archive");
+    expect(config.worktreeMode).toBe("local");
 
     const raw = await readFile(join(dir, "config.yaml"), "utf-8");
     expect(raw).toContain("prefix: NEW");
@@ -85,5 +89,13 @@ describe("updateConfig", () => {
     const config = await updateConfig(dir, { deleteMode: "hard" });
     expect(config.prefix).toBe("OLD");
     expect(config.deleteMode).toBe("hard");
+  });
+
+  test("updates worktreeMode", async () => {
+    const config = await updateConfig(dir, { worktreeMode: "shared" });
+    expect(config.worktreeMode).toBe("shared");
+
+    const raw = await readFile(join(dir, "config.yaml"), "utf-8");
+    expect(raw).toContain("worktreeMode: shared");
   });
 });

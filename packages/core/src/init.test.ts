@@ -62,6 +62,7 @@ describe("initRelay", () => {
     expect(config).toContain("prefix: TASK");
     expect(config).toContain("planPrefix: PLAN");
     expect(config).toContain("docPrefix: DOC");
+    expect(config).toContain("worktreeMode: local");
     // name is auto-populated from basename(baseDir) so each repo gets a
     // distinguishable MCP identity.
     expect(config).toContain(`name: "${basename(dir)}"`);
